@@ -675,3 +675,6 @@ Backend spezzato in moduli (`server.py` ora 112 righe, prima 2761):
 
 ## 2026-06 – Listino concessionario: colonna IVA inclusa
 - Colonna "Listino IVA escl." → "Listino conc. IVA incl." = prezzo_listino × (1+IVA) in ListinoConcessionarioEditor e PDF concessionario (suzuki.py); disclaimer PDF aggiornato. Netto conc. resta IVA escl.
+
+## 2026-06 – Sicurezza password
+- Policy password (≥8, maiuscola, numero, simbolo :.-?!) su change-password, reset-password, pin-reset, master-reset. Nuovo endpoint /api/auth/master-reset con super password (sha256 in .env MASTER_PASSWORD_SHA256). RecuperoPin: scelta PIN / Super password + hint policy. ADMIN_EMAIL → sanpalmie@gmail.com.

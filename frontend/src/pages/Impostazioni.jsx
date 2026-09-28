@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { api } from "@/lib/api";
+import { POLICY, POLICY_MSG } from "@/lib/passwordPolicy";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -45,7 +46,7 @@ export default function Impostazioni() {
   const [pinSaving, setPinSaving] = useState(false);
 
   const changePassword = async () => {
-    if (pwNew.length < 5) { toast.error("La nuova password deve avere almeno 5 caratteri"); return; }
+    if (!POLICY.test(pwNew)) { toast.error(POLICY_MSG); return; }
     if (pwNew !== pwNew2) { toast.error("Le due password non coincidono"); return; }
     setPwSaving(true);
     try {

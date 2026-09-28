@@ -31,6 +31,24 @@ def verify_password(plain: str, hashed: str) -> bool:
         return False
 
 
+PASSWORD_POLICY_MSG = "La password deve avere almeno 8 caratteri, una lettera maiuscola, un numero e un simbolo tra : . - ? !"
+
+
+def validate_password_policy(pw: str) -> None:
+    import re as _re
+    pw = pw or ""
+    if len(pw) < 8 or not _re.search(r"[A-Z]", pw) or not _re.search(r"[0-9]", pw) or not _re.search(r"[:.\-?!]", pw):
+        raise HTTPException(400, PASSWORD_POLICY_MSG)
+
+
+def verify_master_password(pw: str) -> bool:
+    import hashlib, hmac
+    expected = os.environ.get("MASTER_PASSWORD_SHA256", "").strip().lower()
+    if not expected:
+        return False
+    return hmac.compare_digest(hashlib.sha256((pw or "").encode("utf-8")).hexdigest(), expected)
+
+
 def create_access_token(user_id: str, email: str) -> str:
     payload = {
         "sub": user_id,
@@ -122,8 +140,7 @@ async def pin_reset(payload: PinResetRequest, response: Response):
     pin_raw = (payload.pin or "").strip()
     if not pin_raw or not payload.new_password:
         raise HTTPException(400, "PIN e nuova password obbligatori")
-    if len(payload.new_password) < 5:
-        raise HTTPException(400, "La password deve contenere almeno 5 caratteri")
+    validate_password_policy(payload.new_password)
 
     settings = await db.app_settings.find_one({"id": "auth"})
     if not settings or not settings.get("recovery_pin_hash"):
@@ -145,6 +162,31 @@ async def pin_reset(payload: PinResetRequest, response: Response):
     )
     logger.info(f"Password admin reimpostata via PIN per {admin_email}")
 
+    token = create_access_token(user["id"], admin_email)
+    _set_cookie(response, token)
+    return {"ok": True, "id": user["id"], "email": admin_email, "nome": user.get("nome", ""), "role": user.get("role", "user"), "token": token}
+
+
+from pydantic import BaseModel as _BM
+
+
+class MasterResetRequest(_BM):
+    master_password: str
+    new_password: str
+
+
+@auth_router.post("/master-reset")
+async def master_reset(payload: MasterResetRequest, response: Response):
+    """Password dimenticata: la super password (hash in .env) autorizza a impostarne una nuova."""
+    if not verify_master_password(payload.master_password):
+        raise HTTPException(401, "Super password non corretta")
+    validate_password_policy(payload.new_password)
+    admin_email = os.environ.get("ADMIN_EMAIL", "admin@portomare.it").strip().lower()
+    user = await db.users.find_one({"email": admin_email})
+    if not user:
+        raise HTTPException(500, "Utente admin non trovato")
+    await db.users.update_one({"id": user["id"]}, {"$set": {"password_hash": hash_password(payload.new_password), "password_customized": True}})
+    logger.info(f"Password admin reimpostata via super password per {admin_email}")
     token = create_access_token(user["id"], admin_email)
     _set_cookie(response, token)
     return {"ok": True, "id": user["id"], "email": admin_email, "nome": user.get("nome", ""), "role": user.get("role", "user"), "token": token}
@@ -241,8 +283,7 @@ async def forgot_password(payload: ForgotPasswordRequest):
 async def reset_password(payload: ResetPasswordRequest):
     if not payload.token or not payload.new_password:
         raise HTTPException(400, "Token e nuova password obbligatori")
-    if len(payload.new_password) < 5:
-        raise HTTPException(400, "La password deve contenere almeno 5 caratteri")
+    validate_password_policy(payload.new_password)
 
     record = await db.password_reset_tokens.find_one({"token": payload.token})
     if not record:
@@ -272,8 +313,7 @@ async def reset_password(payload: ResetPasswordRequest):
 async def change_password(payload: ChangePasswordRequest, user: dict = Depends(get_current_user)):
     if not payload.current_password or not payload.new_password:
         raise HTTPException(400, "Compila entrambi i campi")
-    if len(payload.new_password) < 5:
-        raise HTTPException(400, "La nuova password deve contenere almeno 5 caratteri")
+    validate_password_policy(payload.new_password)
 
     full = await db.users.find_one({"id": user["id"]})
     if not full or not verify_password(payload.current_password, full.get("password_hash", "")):

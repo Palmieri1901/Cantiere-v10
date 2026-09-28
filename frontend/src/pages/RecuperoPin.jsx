@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { api } from "@/lib/api";
+import { POLICY, POLICY_MSG } from "@/lib/passwordPolicy";
 import { useAuth } from "@/lib/auth";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -25,16 +26,18 @@ export default function RecuperoPin() {
   const [loading, setLoading] = useState(false);
   const [done, setDone] = useState(false);
   const [err, setErr] = useState("");
+  const [modo, setModo] = useState("pin");
 
   const submit = async (e) => {
     e.preventDefault();
     setErr("");
-    if (!pin.trim()) { setErr("Inserisci il PIN di recupero"); return; }
-    if (pw1.length < 3) { setErr("La password deve contenere almeno 3 caratteri"); return; }
+    if (!pin.trim()) { setErr(modo === "super" ? "Inserisci la super password" : "Inserisci il PIN di recupero"); return; }
+    if (!POLICY.test(pw1)) { setErr(POLICY_MSG); return; }
     if (pw1 !== pw2) { setErr("Le due password non coincidono"); return; }
     setLoading(true);
     try {
-      await api.post("/auth/pin-reset", { pin: pin.trim(), new_password: pw1 });
+      if (modo === "super") await api.post("/auth/master-reset", { master_password: pin, new_password: pw1 });
+      else await api.post("/auth/pin-reset", { pin: pin.trim(), new_password: pw1 });
       setDone(true);
       await refresh();
       setTimeout(() => nav("/", { replace: true }), 1500);
@@ -77,13 +80,17 @@ export default function RecuperoPin() {
           ) : (
             <form onSubmit={submit} className="space-y-4">
               <div className="space-y-1.5">
-                <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">PIN di recupero</Label>
+                <div className="flex gap-2 text-xs mb-1">
+                  <button type="button" onClick={() => { setModo("pin"); setPin(""); }} className={`px-2.5 py-1.5 rounded-md border ${modo === "pin" ? "bg-primary text-primary-foreground border-primary" : "bg-card"}`} data-testid="btn-modo-pin">PIN di recupero</button>
+                  <button type="button" onClick={() => { setModo("super"); setPin(""); }} className={`px-2.5 py-1.5 rounded-md border ${modo === "super" ? "bg-primary text-primary-foreground border-primary" : "bg-card"}`} data-testid="btn-modo-super">Super password</button>
+                </div>
+                <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{modo === "super" ? "Super password" : "PIN di recupero"}</Label>
                 <Input
-                  type="text"
-                  inputMode="numeric"
+                  type={modo === "super" ? "password" : "text"}
+                  inputMode={modo === "super" ? "text" : "numeric"}
                   value={pin}
                   onChange={(e) => setPin(e.target.value)}
-                  placeholder="es. 347260"
+                  placeholder={modo === "super" ? "Super password del titolare" : "es. 347260"}
                   required
                   autoFocus
                   autoComplete="off"
@@ -98,6 +105,7 @@ export default function RecuperoPin() {
                   required
                   data-testid="input-recupero-pw1"
                 />
+                <div className="text-[11px] text-muted-foreground" data-testid="policy-hint">{POLICY_MSG}</div>
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Ripeti la password</Label>
