@@ -1,0 +1,22 @@
+{
+  "summary": "Verified bugfix for OFF switches in Rimessaggio preventivo (PDF 'Dettaglio manutenzione motore' and UI breakdown). Backend: 15/15 pytest cases pass covering /api/calcola-costi for each motor flag (anodi_interni, anodi_esterni, filtro_olio, olio_piede, ingrassaggio, girante) + 2nd motor variant, generic flags (antivegetativa, lavaggio_inizio, lavaggio_fine, scafo_sporco, copertura, alaggio_varo), PDF text extraction with pymupdf confirms 'Kit anodi interni' and 'Filtro olio' NOT in motor table while 'Kit anodi esterni', 'Olio piede', 'Ingrassaggio', 'Girante' ARE present. Full cliente CRUD + PDF flow verified: toggling anodi_interni_attivo true re-adds +50 to costo_ricambi_totale and makes the row reappear in PDF; test cliente deleted. Frontend: Preventivo veloce modal opened, lunghezza=6, HP=40, verified data-testid='totale-costi' decreased after flipping switch-anodi-interni (2319→2269 €, i.e. -50), 'Kit anodi interni' row removed from data-testid='ricambi-breakdown'. Also verified switch-antivegetativa (−225), switch-lavaggio-inizio (−90) and switch-girante (−50) all reduce the total.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [
+    "/app/backend/tests/test_switches_off_bugfix.py",
+    "/app/test_reports/pytest/iter20_switches.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "Fix in pdf_builders._build_motore_table correctly filters rows by flags_1/flags_2; `girante_attivo` uses default-true semantics (`is not False`) which matches existing docs that don't carry the field — safe for backward compat.",
+    "/api/clienti PUT requires full body (not patch semantics). Not a bug but worth documenting; frontend already sends full body."
+  ],
+  "updated_files": ["/app/backend/tests/test_switches_off_bugfix.py"],
+  "success_rate": {"backend": "100% (15/15)", "frontend": "100% (5/5 switch scenarios)"},
+  "test_credentials": "password 'admin' (shared) as per /app/memory/test_credentials.md",
+  "seed_data_creation": "Transient TEST_PDF cliente created and deleted inside test_cliente_pdf_toggles; no residual data.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Reusable regression test file at /app/backend/tests/test_switches_off_bugfix.py (requires REACT_APP_BACKEND_URL env). Covers all motor/generic flags and PDF content checks via pymupdf.",
+  "rca of the issue": "Pre-fix, backend already computed costs correctly when flags were false, but pdf_builders._build_motore_table unconditionally rendered rows (anodi, filtro olio, etc.) regardless of the *_attivo flags, so a switched-OFF item still showed with its unit price in the PDF, making subtotal/line sum inconsistent. Fix routes flags_1/flags_2 dicts into the row builder; UI BreakdownRow also hides zero-cost lines. Verified end-to-end."
+}

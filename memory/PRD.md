@@ -678,3 +678,6 @@ Backend spezzato in moduli (`server.py` ora 112 righe, prima 2761):
 
 ## 2026-06 – Sicurezza password
 - Policy password (≥8, maiuscola, numero, simbolo :.-?!) su change-password, reset-password, pin-reset, master-reset. Nuovo endpoint /api/auth/master-reset con super password (sha256 in .env MASTER_PASSWORD_SHA256). RecuperoPin: scelta PIN / Super password + hint policy. ADMIN_EMAIL → sanpalmie@gmail.com.
+
+## 2026-06 – Fix interruttori preventivo rimessaggio
+- Il PDF "Dettaglio manutenzione motore" elencava sempre tutti i kit (anodi, filtro, olio piede, ingrassaggio) anche se in OFF. Ora mostra solo le voci attive (flag None = attivo). UI: righe a 0 nascoste nel riepilogo motore. Testato iteration_20 (15/15 backend + frontend OK).
