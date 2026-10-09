@@ -369,22 +369,28 @@ def _build_preventivo_pdf(doc: dict, lavori_docs: list, cantiere_doc: dict, t_cu
     manodopera_2 = float(doc.get("costo_manodopera_motore_2") or 0)
     ricambi_2_tot = float(doc.get("costo_ricambi_motore_2_totale") or 0)
 
-    def _build_motore_table(title_txt, potenza, litri, litri_piede, nc, nt, girante_on, manod, ric_tot):
+    def _build_motore_table(title_txt, potenza, litri, litri_piede, nc, nt, girante_on, manod, ric_tot, flags):
         rows = [
             ["Manodopera motore", "", _euro(manod)],
         ]
         if girante_on:
             rows.append(["Girante", "1", _euro(t_current.costo_girante)])
-        rows.extend([
-            ["Olio motore", f"{litri:g} L", _euro(litri * t_current.costo_olio_motore)],
-            ["Filtro olio", "1", _euro(t_current.costo_filtro_olio)],
-            ["Candele", str(nc), _euro(nc * t_current.costo_candela)],
-            ["Termostato", str(nt), _euro(nt * t_current.costo_termostato)],
-            ["Olio piede", f"{litri_piede:g} L", _euro(litri_piede * t_current.costo_olio_piede)],
-            ["Kit anodi interni", "1", _euro(t_current.costo_anodi_interni)],
-            ["Kit anodi esterni", "1", _euro(t_current.costo_anodi_esterni)],
-            ["Ingrassaggio", "1", _euro(t_current.costo_ingrassaggio)],
-        ])
+        if litri > 0:
+            rows.append(["Olio motore", f"{litri:g} L", _euro(litri * t_current.costo_olio_motore)])
+        if flags.get("filtro_olio"):
+            rows.append(["Filtro olio", "1", _euro(t_current.costo_filtro_olio)])
+        if nc > 0:
+            rows.append(["Candele", str(nc), _euro(nc * t_current.costo_candela)])
+        if nt > 0:
+            rows.append(["Termostato", str(nt), _euro(nt * t_current.costo_termostato)])
+        if flags.get("olio_piede") and litri_piede > 0:
+            rows.append(["Olio piede", f"{litri_piede:g} L", _euro(litri_piede * t_current.costo_olio_piede)])
+        if flags.get("anodi_interni"):
+            rows.append(["Kit anodi interni", "1", _euro(t_current.costo_anodi_interni)])
+        if flags.get("anodi_esterni"):
+            rows.append(["Kit anodi esterni", "1", _euro(t_current.costo_anodi_esterni)])
+        if flags.get("ingrassaggio"):
+            rows.append(["Ingrassaggio", "1", _euro(t_current.costo_ingrassaggio)])
         subtotale = manod + ric_tot
         header_row = [f"{title_txt} — {int(potenza) if potenza else 0} HP", "", _euro(subtotale)]
         data = [header_row, ["VOCE", "Q.TÀ", "IMPORTO"]] + rows
@@ -417,22 +423,24 @@ def _build_preventivo_pdf(doc: dict, lavori_docs: list, cantiere_doc: dict, t_cu
         elems.append(Paragraph("DETTAGLIO MANUTENZIONE MOTORE", h2))
         nc = int(doc.get("numero_candele") or 0)
         nt = int(doc.get("numero_termostati") or 0)
-        girante_attivo = bool(doc.get("girante_attivo", True))
+        girante_attivo = doc.get("girante_attivo") is not False
         litri = float(doc.get("litri_olio_motore") or 0)
         potenza_1 = float(doc.get("potenza_motore") or 0)
         motore_1_label = "1° Motore" if has_motore_2 else "Motore"
         litri_piede_1 = float(doc.get("litri_olio_piede") or 1.0)
-        elems.append(_build_motore_table(motore_1_label, potenza_1, litri, litri_piede_1, nc, nt, girante_attivo, manodopera, ricambi_tot))
+        flags_1 = {k: doc.get(f"{k}_attivo") is not False for k in ("filtro_olio", "olio_piede", "anodi_interni", "anodi_esterni", "ingrassaggio")}
+        elems.append(_build_motore_table(motore_1_label, potenza_1, litri, litri_piede_1, nc, nt, girante_attivo, manodopera, ricambi_tot, flags_1))
 
         if has_motore_2:
             elems.append(Spacer(1, 1*mm))
             nc2 = int(doc.get("numero_candele_2") or 0)
             nt2 = int(doc.get("numero_termostati_2") or 0)
-            girante_2 = bool(doc.get("girante_2_attivo", True))
+            girante_2 = doc.get("girante_2_attivo") is not False
             litri2 = float(doc.get("litri_olio_motore_2") or 0)
             litri_piede_2 = float(doc.get("litri_olio_piede_2") or 1.0)
             potenza_2 = float(doc.get("potenza_motore_2") or 0)
-            elems.append(_build_motore_table("2° Motore", potenza_2, litri2, litri_piede_2, nc2, nt2, girante_2, manodopera_2, ricambi_2_tot))
+            flags_2 = {k: doc.get(f"{k}_2_attivo") is not False for k in ("filtro_olio", "olio_piede", "anodi_interni", "anodi_esterni", "ingrassaggio")}
+            elems.append(_build_motore_table("2° Motore", potenza_2, litri2, litri_piede_2, nc2, nt2, girante_2, manodopera_2, ricambi_2_tot, flags_2))
 
     if lav_extra and tot_extra > 0:
         elems.append(Paragraph("LAVORAZIONI EXTRA", h2))

@@ -69,6 +69,7 @@ export function CostField({ label, value, onChange, disabled, testId }) {
 }
 
 export function BreakdownRow({ label, value }) {
+  if (!(Number(value) > 0)) return null;
   return (
     <div className="flex justify-between">
       <span className="text-muted-foreground">{label}</span>
