@@ -699,3 +699,6 @@ Backend spezzato in moduli (`server.py` ora 112 righe, prima 2761):
 
 ## 2026-06 – Capitaneria: anteprima salva in archivio
 - "Anteprima PDF" salva prima la comunicazione (stato Da inviare) e mostra il PDF del documento archiviato; il form non si chiude quando si chiude l anteprima. Pulsanti: "Salva, invia dopo" e "Salva e invia email". Scheda mobile con pulsante Anteprima. PdfPreviewOverlay: zoom iniziale ridotto su schermi stretti.
+
+## 2026-06 – Overlay "Script error." su cellulare
+- Errore generico cross-origin (script del proxy/CDN, non del codice app) faceva comparire l overlay rosso di sviluppo dopo l invio email (che riusciva). index.js: handler globale che ignora "Script error." senza filename.
