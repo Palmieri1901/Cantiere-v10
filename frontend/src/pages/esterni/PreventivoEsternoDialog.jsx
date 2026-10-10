@@ -83,8 +83,8 @@ export default function PreventivoEsternoDialog({ esterno, preventivo, open, onC
               <div className="absolute z-30 left-0 right-0 mt-1 bg-card border rounded-md shadow-lg divide-y max-h-64 overflow-y-auto">
                 {trovati.map((a) => (
                   <button key={a.id} onClick={() => { addRiga({ tipo: "articolo", articolo_id: a.id, codice: a.codice, descrizione: a.nome, quantita: 1, prezzo_unitario: scorpora(a.prezzo_listino) }); setQ(""); }} className="w-full text-left px-3 py-2 hover:bg-muted text-sm flex justify-between gap-3" data-testid={`prev-art-${a.id}`}>
-                    <span className="truncate"><Package className="w-3.5 h-3.5 inline mr-1.5 text-primary" />{a.codice ? `[${a.codice}] ` : ""}{a.nome}</span>
-                    <span className="font-mono-num text-xs text-muted-foreground shrink-0">{fmtEuro(scorpora(a.prezzo_listino))} netto ({fmtEuro(a.prezzo_listino || 0)} ivato) · giac. {a.quantita}</span>
+                    <span className="font-medium text-base leading-tight whitespace-normal"><Package className="w-3.5 h-3.5 inline mr-1.5 text-primary" />{a.nome}</span>
+                    <span className="font-mono-num text-xs text-muted-foreground shrink-0">{fmtEuro(scorpora(a.prezzo_listino))} netto ({fmtEuro(a.prezzo_listino || 0)} ivato)</span>
                   </button>
                 ))}
                 <button onClick={() => { addRiga({ tipo: "articolo", articolo_id: null, codice: "", descrizione: q.trim(), quantita: 1, prezzo_unitario: 0 }); setQ(""); }} className="w-full text-left px-3 py-2 hover:bg-muted text-sm text-primary" data-testid="prev-art-nuovo">

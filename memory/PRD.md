@@ -723,3 +723,6 @@ Backend spezzato in moduli (`server.py` ora 112 righe, prima 2761):
 
 ## 2026-06 – Scorte negative consentite nei lavori
 - LavoriSection: rimosso il blocco "giacenza insufficiente"; ora avviso ambra e salvataggio consentito, il magazzino va in negativo (backend già lo permetteva; movimenti e ripristino in eliminazione verificati: 0 → -3 → 0).
+
+## 2026-06 – Selezione articolo: solo nome ben visibile
+- ArticoloPicker, righe articolo in LavoriSection, NuovoLavoro (PWA) e PreventivoEsternoDialog: nome articolo grande/leggibile, senza codice né giacenza (solo prezzo a destra).

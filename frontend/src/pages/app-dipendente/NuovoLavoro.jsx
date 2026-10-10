@@ -94,7 +94,7 @@ export default function NuovoLavoro({ onSaved }) {
             const art = articoli.find((x) => x.id === a.articolo_id);
             return (
               <div key={a.articolo_id} className="flex items-center gap-2 text-sm" data-testid={`mobile-art-${i}`}>
-                <div className="flex-1 truncate">{art?.codice ? `[${art.codice}] ` : ""}{art?.nome}</div>
+                <div className="flex-1 font-medium text-base leading-tight whitespace-normal">{art?.nome}</div>
                 <Input type="number" inputMode="decimal" min="0.5" step="0.5" value={a.quantita} onChange={(e) => set("articoli", f.articoli.map((x, j) => j === i ? { ...x, quantita: e.target.value } : x))} className="w-20 h-10 text-right" />
                 <button onClick={() => set("articoli", f.articoli.filter((_, j) => j !== i))}><X className="w-4 h-4 text-destructive" /></button>
               </div>

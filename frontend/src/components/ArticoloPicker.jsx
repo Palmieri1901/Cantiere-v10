@@ -22,9 +22,9 @@ export function ArticoloPicker({ articoli = [], onSelect, placeholder = "Cerca a
         <div className="absolute z-40 left-0 right-0 mt-1 bg-card border border-border rounded-md shadow-lg divide-y divide-border max-h-72 overflow-y-auto">
           {trovati.length === 0 && <div className="px-3 py-2 text-xs text-muted-foreground">Nessun articolo trovato</div>}
           {trovati.map((a) => (
-            <button key={a.id} type="button" onClick={() => { onSelect(a); setQ(""); }} className="w-full text-left px-3 py-2 hover:bg-muted text-sm flex justify-between gap-3" data-testid={`${testId}-opt-${a.id}`}>
-              <span className="truncate"><Package className="w-3.5 h-3.5 inline mr-1.5 text-primary" />{a.codice ? `[${a.codice}] ` : ""}{a.nome}</span>
-              <span className={`font-mono-num text-xs shrink-0 ${Number(a.quantita) < 0 ? "text-destructive font-bold" : "text-muted-foreground"}`}>giac. {a.quantita}{showPrezzo ? ` · ${fmtEuro(a.prezzo_listino || 0)}` : ""}</span>
+            <button key={a.id} type="button" onClick={() => { onSelect(a); setQ(""); }} className="w-full text-left px-3 py-2.5 hover:bg-muted text-sm flex items-center justify-between gap-3" data-testid={`${testId}-opt-${a.id}`}>
+              <span className="font-medium text-base leading-tight whitespace-normal"><Package className="w-3.5 h-3.5 inline mr-1.5 text-primary" />{a.nome}</span>
+              {showPrezzo && <span className="font-mono-num text-xs shrink-0 text-muted-foreground">{fmtEuro(a.prezzo_listino || 0)}</span>}
             </button>
           ))}
           {extra && extra(q.trim(), () => setQ(""))}

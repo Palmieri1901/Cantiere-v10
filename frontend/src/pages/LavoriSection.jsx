@@ -241,7 +241,7 @@ export default function LavoriSection({ clienteId }) {
                     <Package className="w-3 h-3 text-primary shrink-0" />
                     {(l.articoli_magazzino || []).map((it, i) => (
                       <Badge key={i} variant="secondary" className="text-[10px] font-normal">
-                        {it.codice ? `[${it.codice}] ` : ""}{it.nome} × {it.quantita} · {fmtEuro(it.totale)}
+                        {it.nome} × {it.quantita} · {fmtEuro(it.totale)}
                       </Badge>
                     ))}
                     {(l.articoli_liberi || []).map((it, i) => (
@@ -348,11 +348,8 @@ export default function LavoriSection({ clienteId }) {
                         return (
                           <div key={a.articolo_id} className={`flex items-center gap-2 text-sm bg-card rounded-md p-2 border ${stockKO ? "border-amber-400/70 bg-amber-50/40" : "border-border/60"}`} data-testid={`art-mag-row-${i}`}>
                             <div className="flex-1 min-w-0">
-                              <div className="font-medium truncate">
-                                {a.codice && <span className="font-mono text-xs text-muted-foreground mr-1.5">[{a.codice}]</span>}
-                                {a.nome}
-                              </div>
-                              <div className={`text-[10px] ${stockKO ? "text-amber-700 font-medium" : "text-muted-foreground"}`}>Giacenza: {a.giacenza}{stockKO ? ` → ${(Number(a.giacenza) - Number(a.quantita)).toLocaleString("it-IT")} (negativa)` : ""}</div>
+                              <div className="font-semibold text-base leading-tight whitespace-normal" data-testid={`art-mag-nome-${i}`}>{a.nome}</div>
+                              {stockKO && <div className="text-[10px] text-amber-700 font-medium">Giacenza insufficiente: il magazzino andrà in negativo</div>}
                             </div>
                             <Input
                               type="number" step="0.01" min="0.01"
