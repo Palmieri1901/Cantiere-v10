@@ -11,6 +11,19 @@ from helpers import serialize
 router = APIRouter()
 
 
+def _norm_liberi(items) -> list:
+    """Articoli non in magazzino: [{descrizione, quantita, prezzo_unitario, totale}]"""
+    out = []
+    for it in items or []:
+        descr = str(it.get("descrizione") or "").strip()
+        qt = float(it.get("quantita") or 0)
+        pu = float(it.get("prezzo_unitario") or 0)
+        if not descr and qt * pu == 0:
+            continue
+        out.append({"descrizione": descr, "quantita": qt, "prezzo_unitario": pu, "totale": round(qt * pu, 2)})
+    return out
+
+
 async def _scarica_articoli_magazzino(articoli: list, cliente: dict, lavoro_id: str, data: str) -> tuple[float, list]:
     """Per ogni articolo di magazzino usato: valida stock, decrementa la giacenza
     e crea un movimento di scarico. Restituisce (costo_totale, lista_snapshot).
@@ -120,8 +133,11 @@ async def create_lavoro(payload: LavoroCreate):
 
     data = {k: v for k, v in payload.model_dump().items() if v is not None}
     articoli_input = data.pop("articoli_magazzino", None) or []
+    liberi = _norm_liberi(data.pop("articoli_liberi", None))
 
     lavoro = Lavoro(**data)
+    lavoro.articoli_liberi = liberi
+    lavoro.costo = float(lavoro.costo or 0) + sum(x["totale"] for x in liberi)
     # Prima creo il record poi decurto il magazzino (così il lavoro_id è disponibile)
     await db.lavori.insert_one(serialize(lavoro))
 
@@ -151,6 +167,15 @@ async def update_lavoro(lavoro_id: str, payload: LavoroCreate):
     payload_data = payload.model_dump()
     articoli_new_input = payload_data.pop("articoli_magazzino", None)
     articoli_old = existing.get("articoli_magazzino") or []
+    liberi_input = payload_data.pop("articoli_liberi", None)
+    liberi_old = existing.get("articoli_liberi") or []
+    liberi_finale = liberi_old if liberi_input is None else _norm_liberi(liberi_input)
+    # Il client invia costo = manodopera/voce; gli articoli (magazzino + liberi) vengono sommati qui sotto
+    costo_base = float(payload_data.get("costo") or 0)
+    if liberi_input is None and articoli_new_input is None:
+        costo_base = (float(payload_data.get("costo") or existing.get("costo") or 0)
+                      - sum(float(x.get("totale") or 0) for x in liberi_old)
+                      - sum(float(x.get("totale") or 0) for x in articoli_old))
 
     # Snapshot definitivo per il lavoro (di default resta quello esistente)
     snapshot_finale = articoli_old
@@ -231,12 +256,11 @@ async def update_lavoro(lavoro_id: str, payload: LavoroCreate):
                 costo_delta_magazzino += new_q * prezzo_unit
 
         # Ricalcola costo togliendo il vecchio contributo magazzino e aggiungendo il nuovo
-        vecchio_contributo = sum(float(x.get("totale") or 0) for x in articoli_old)
-        payload_data["costo"] = float(payload_data.get("costo") or existing.get("costo") or 0) - vecchio_contributo + costo_delta_magazzino
-
     merged = {**existing, **{k: v for k, v in payload_data.items() if v is not None}}
+    merged["costo"] = round(costo_base + sum(float(x.get("totale") or 0) for x in snapshot_finale) + sum(float(x.get("totale") or 0) for x in liberi_finale), 2)
     merged["id"] = lavoro_id
     merged["articoli_magazzino"] = snapshot_finale
+    merged["articoli_liberi"] = liberi_finale
     lavoro = Lavoro(**merged)
     await db.lavori.update_one({"id": lavoro_id}, {"$set": serialize(lavoro)})
     await sync_lavori_cliente(lavoro.cliente_id)

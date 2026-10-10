@@ -240,6 +240,7 @@ class Lavoro(BaseModel):
     dipendente: str = ""
     anno: int = Field(default_factory=lambda: datetime.now().year)
     articoli_magazzino: List[dict] = Field(default_factory=list)
+    articoli_liberi: List[dict] = Field(default_factory=list)
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 
@@ -255,6 +256,7 @@ class LavoroCreate(BaseModel):
     dipendente: Optional[str] = ""
     anno: Optional[int] = None
     articoli_magazzino: Optional[List[dict]] = None
+    articoli_liberi: Optional[List[dict]] = None
 
 
 class Cantiere(BaseModel):

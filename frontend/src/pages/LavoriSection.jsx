@@ -44,6 +44,11 @@ export default function LavoriSection({ clienteId }) {
   const [costoManuale, setCostoManuale] = useState(false);
   const [articoliMag, setArticoliMag] = useState([]);
   const [artSelezionati, setArtSelezionati] = useState([]); // [{articolo_id, codice, nome, quantita, prezzo_unitario, giacenza}]
+  const [artLiberi, setArtLiberi] = useState([]); // articoli non in magazzino: [{descrizione, quantita, prezzo_unitario}]
+  const addLibero = () => setArtLiberi((s) => [...s, { descrizione: "", quantita: 1, prezzo_unitario: "" }]);
+  const updateLibero = (i, k, v) => setArtLiberi((s) => s.map((x, idx) => idx === i ? { ...x, [k]: v } : x));
+  const removeLibero = (i) => setArtLiberi((s) => s.filter((_, idx) => idx !== i));
+  const costoLiberi = artLiberi.reduce((s, a) => s + (Number(a.quantita || 0) * Number(a.prezzo_unitario || 0)), 0);
 
   const load = () => {
     if (!clienteId) return;
@@ -60,6 +65,7 @@ export default function LavoriSection({ clienteId }) {
     setEditing(null);
     setForm(emptyLavoro(clienteId));
     setArtSelezionati([]);
+    setArtLiberi([]);
     setCostoManuale(false);
     setDialogOpen(true);
     try {
@@ -75,7 +81,8 @@ export default function LavoriSection({ clienteId }) {
 
   const openEdit = (l) => {
     setEditing(l);
-    setForm({ ...l });
+    setForm({ ...l, costo: +(Number(l.costo || 0) - (l.articoli_liberi || []).reduce((s, x) => s + Number(x.totale || 0), 0) - (l.articoli_magazzino || []).reduce((s, x) => s + Number(x.totale || 0), 0)).toFixed(2) });
+    setArtLiberi((l.articoli_liberi || []).map((x) => ({ descrizione: x.descrizione || "", quantita: x.quantita, prezzo_unitario: x.prezzo_unitario })));
     setCostoManuale(true);
     api.get("/tariffe").then((t) => setTariffaOraria(Number(t.data.costo_orario_manodopera) || 0)).catch(() => {});
     // Ripopola gli articoli già scaricati sul lavoro così l'utente può aggiungerne/toglierne
@@ -139,6 +146,9 @@ export default function LavoriSection({ clienteId }) {
       // rispetto a quella già salvata e scarica/ricarica il magazzino di conseguenza.
       articoli_magazzino: artSelezionati.map((a) => ({
         articolo_id: a.articolo_id, quantita: Number(a.quantita), prezzo_unitario: Number(a.prezzo_unitario),
+      })),
+      articoli_liberi: artLiberi.filter((a) => (a.descrizione || "").trim() || Number(a.prezzo_unitario) > 0).map((a) => ({
+        descrizione: a.descrizione, quantita: Number(a.quantita) || 1, prezzo_unitario: Number(a.prezzo_unitario) || 0,
       })),
     };
     try {
@@ -228,12 +238,17 @@ export default function LavoriSection({ clienteId }) {
                   </div>
                 )}
                 {l.materiali && <div className="text-[11px] text-muted-foreground/80 italic mt-0.5">Mat.: {l.materiali}</div>}
-                {Array.isArray(l.articoli_magazzino) && l.articoli_magazzino.length > 0 && (
+                {((Array.isArray(l.articoli_magazzino) && l.articoli_magazzino.length > 0) || (Array.isArray(l.articoli_liberi) && l.articoli_liberi.length > 0)) && (
                   <div className="mt-1.5 text-[11px] flex items-center gap-1.5 flex-wrap">
                     <Package className="w-3 h-3 text-primary shrink-0" />
-                    {l.articoli_magazzino.map((it, i) => (
+                    {(l.articoli_magazzino || []).map((it, i) => (
                       <Badge key={i} variant="secondary" className="text-[10px] font-normal">
-                        {it.codice ? `[${it.codice}] ` : ""}{it.nome} × {it.quantita}
+                        {it.codice ? `[${it.codice}] ` : ""}{it.nome} × {it.quantita} · {fmtEuro(it.totale)}
+                      </Badge>
+                    ))}
+                    {(l.articoli_liberi || []).map((it, i) => (
+                      <Badge key={`l${i}`} variant="outline" className="text-[10px] font-normal" data-testid={`lavoro-art-lib-${l.id}-${i}`}>
+                        {it.descrizione} × {it.quantita} · {fmtEuro(it.totale)}
                       </Badge>
                     ))}
                   </div>
@@ -294,9 +309,9 @@ export default function LavoriSection({ clienteId }) {
                     <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">€</span>
                     <Input type="number" step="0.01" min="0" className="pl-10 font-mono-num" value={form.costo} onChange={(e) => { setCostoManuale(true); setForm({ ...form, costo: e.target.value }); }} data-testid="input-lavoro-costo" />
                   </div>
-                  {!editing && costoArticoli > 0 && (
-                    <div className="text-[11px] text-muted-foreground mt-1">
-                      + {fmtEuro(costoArticoli)} articoli · totale {fmtEuro(Number(form.costo || 0) + costoArticoli)}
+                  {(costoArticoli > 0 || costoLiberi > 0) && (
+                    <div className="text-[11px] text-muted-foreground mt-1" data-testid="lavoro-costo-articoli-hint">
+                      + {fmtEuro(costoArticoli + costoLiberi)} articoli · totale {fmtEuro(Number(form.costo || 0) + costoArticoli + costoLiberi)}
                     </div>
                   )}
                 </div>
@@ -374,6 +389,34 @@ export default function LavoriSection({ clienteId }) {
                   <ArticoloPicker articoli={articoliDisponibili} onSelect={(a) => addArticolo(a.id)} placeholder="+ Cerca e aggiungi articolo dal magazzino…" testId="select-add-articolo" />
                 </div>
               )}
+
+              {/* Articoli non in magazzino (descrizione libera + prezzo) */}
+              <div className="border border-border/60 rounded-md p-3 bg-muted/10" data-testid="lavoro-articoli-liberi">
+                <div className="flex items-center justify-between mb-2 gap-2 flex-wrap">
+                  <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                    <Package className="w-3 h-3" /> Altri articoli (non in magazzino)
+                  </Label>
+                  <Button size="sm" variant="outline" onClick={addLibero} data-testid="btn-aggiungi-articolo"><Plus className="w-3.5 h-3.5 mr-1" /> Aggiungi articolo</Button>
+                </div>
+                {artLiberi.length === 0 ? (
+                  <div className="text-xs text-muted-foreground py-1">Nessun articolo: usa "Aggiungi articolo" per inserire descrizione, quantità e prezzo.</div>
+                ) : (
+                  <div className="space-y-1.5">
+                    {artLiberi.map((a, i) => (
+                      <div key={i} className="flex items-center gap-2 text-sm bg-card rounded-md p-2 border border-border/60 flex-wrap sm:flex-nowrap" data-testid={`art-lib-row-${i}`}>
+                        <Input value={a.descrizione} onChange={(e) => updateLibero(i, "descrizione", e.target.value)} placeholder="Descrizione articolo" className="flex-1 min-w-[140px] h-8" data-testid={`art-lib-descr-${i}`} />
+                        <Input type="number" step="0.01" min="0" value={a.quantita} onChange={(e) => updateLibero(i, "quantita", e.target.value)} className="w-20 h-8 text-right font-mono-num" placeholder="Q.tà" data-testid={`art-lib-qty-${i}`} />
+                        <div className="relative w-28">
+                          <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">€</span>
+                          <Input type="number" step="0.01" min="0" value={a.prezzo_unitario} onChange={(e) => updateLibero(i, "prezzo_unitario", e.target.value)} className="pl-6 h-8 text-right font-mono-num text-xs" placeholder="Prezzo" data-testid={`art-lib-price-${i}`} />
+                        </div>
+                        <div className="w-20 text-right font-mono-num text-xs font-semibold">{fmtEuro(Number(a.quantita || 0) * Number(a.prezzo_unitario || 0))}</div>
+                        <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => removeLibero(i)} data-testid={`art-lib-del-${i}`}><Trash2 className="w-3.5 h-3.5 text-destructive" /></Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           )}
           <DialogFooter>

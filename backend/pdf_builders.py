@@ -608,6 +608,8 @@ def build_conto_esterno_pdf(est: dict, lavori: list, cantiere_doc: dict, anno=No
             testo += f"<br/><font size=7 color='#5B6478'>Materiali: {l['materiali']}</font>"
         for it in (l.get("articoli_magazzino") or []):
             testo += f"<br/><font size=7 color='#5B6478'>· {it.get('nome', '')} × {it.get('quantita'):g} — {_euro(float(it.get('totale') or 0))}</font>"
+        for it in (l.get("articoli_liberi") or []):
+            testo += f"<br/><font size=7 color='#5B6478'>· {it.get('descrizione', '')} × {float(it.get('quantita') or 0):g} — {_euro(float(it.get('totale') or 0))}</font>"
         ore = float(l.get("ore") or 0)
         costo = float(l.get("costo") or 0)
         totale += costo

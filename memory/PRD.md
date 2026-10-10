@@ -711,3 +711,6 @@ Backend spezzato in moduli (`server.py` ora 112 righe, prima 2761):
 
 ## 2026-06 – SMTP Aruba: diagnosi
 - Credenziali info@gebnautica.it su smtp.aruba.it:465 → 535 authentication rejected; smtps.aruba.it rifiuta IP del server cloud (554). Messaggi errore SMTP differenziati (auth/timeout/rifiuto). Overlay dev "Uncaught runtime errors" disattivato in craco (client.overlay=false). Host SMTP normalizzato in minuscolo.
+
+## 2026-06 – Lavori: articoli non in magazzino con prezzo
+- Lavoro.articoli_liberi [{descrizione, quantita, prezzo_unitario, totale}] (models.py, lavori.py _norm_liberi). Costo lavoro = manodopera + magazzino + liberi; PUT ora riceve costo=manodopera e somma gli articoli lato server. UI LavoriSection: riquadro "Altri articoli (non in magazzino)" con pulsante "Aggiungi articolo" (descrizione, q.tà, prezzo), badge nell elenco, righe nel PDF conto. Testato via API (131 → 115,50 su modifica) e screenshot.
