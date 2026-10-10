@@ -717,3 +717,6 @@ Backend spezzato in moduli (`server.py` ora 112 righe, prima 2761):
 
 ## 2026-06 – Conto cliente esterno: righe articoli
 - PDF conto esterno (pdf_builders build_conto_esterno): colonne DATA/DESCRIZIONE/Q.TÀ/PREZZO/IMPORTO; riga manodopera (ore × tariffa) + una riga per ogni articolo (magazzino e liberi) con quantità, prezzo unitario e importo nella colonna totali.
+
+## 2026-06 – App dipendenti: articoli non in magazzino
+- NuovoLavoro.jsx (PWA): riquadro "Altri articoli (non in magazzino)" + pulsante "Aggiungi articolo" (descrizione, q.tà, prezzo); Coda.jsx invia articoli_liberi; dipendenti.py li salva in lavori_pending e li passa a LavoroCreate in approvazione (costo = manodopera + liberi). ApprovaDialog e PendingTab li mostrano. Testato via API: pending → approva → costo 70 (60 manodopera + 10 articoli).

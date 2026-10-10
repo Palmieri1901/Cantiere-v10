@@ -18,7 +18,7 @@ export default function Coda({ coda, setCoda, onSync, syncing, online }) {
   for (let i = 0; i < daInviare.length; i += CHUNK) chunks.push(daInviare.slice(i, i + CHUNK));
   const qrValue = chunks.length ? JSON.stringify({
     t: "pm-lavori", d: mobileStore.getNome(), p: page, n: chunks.length,
-    items: chunks[page].map(({ client_uid, cliente_id, cliente_nome, data, tipo, descrizione, ore, materiali, articoli_magazzino }) => ({ client_uid, cliente_id, cliente_nome, data, tipo, descrizione, ore, materiali, articoli_magazzino })),
+    items: chunks[page].map(({ client_uid, cliente_id, cliente_nome, data, tipo, descrizione, ore, materiali, articoli_magazzino, articoli_liberi }) => ({ client_uid, cliente_id, cliente_nome, data, tipo, descrizione, ore, materiali, articoli_magazzino, articoli_liberi })),
   }) : "";
 
   const segnaInviati = async () => {

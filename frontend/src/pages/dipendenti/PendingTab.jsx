@@ -47,7 +47,7 @@ export default function PendingTab({ onChange }) {
                 <div className="text-[11px] text-muted-foreground mt-1 flex items-center gap-3 flex-wrap">
                   <span className="inline-flex items-center gap-1"><User className="w-3 h-3" /> {p.dipendente_nome}</span>
                   <span className="inline-flex items-center gap-1"><Clock className="w-3 h-3" /> {p.ore} h</span>
-                  {p.articoli_magazzino?.length > 0 && <span className="inline-flex items-center gap-1"><Package className="w-3 h-3" /> {p.articoli_magazzino.length} articoli</span>}
+                  {((p.articoli_magazzino?.length || 0) + (p.articoli_liberi?.length || 0)) > 0 && <span className="inline-flex items-center gap-1"><Package className="w-3 h-3" /> {(p.articoli_magazzino?.length || 0) + (p.articoli_liberi?.length || 0)} articoli</span>}
                   {p.materiali && <span className="italic">Mat.: {p.materiali}</span>}
                   {p.costo > 0 && <span>{fmtEuro(p.costo)}</span>}
                 </div>

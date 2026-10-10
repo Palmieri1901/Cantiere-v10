@@ -7,11 +7,11 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Save, Search, X } from "lucide-react";
+import { Save, Search, X, Plus } from "lucide-react";
 
 const TIPI = ["Riparazione", "Manutenzione motore", "Antivegetativa", "Pulizia", "Elettrico", "Altro"];
 const L = ({ children }) => <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{children}</Label>;
-const empty = () => ({ cliente_id: "", cliente_nuovo: "", data: new Date().toISOString().slice(0, 10), tipo: "Riparazione", descrizione: "", ore: "", materiali: "", articoli: [] });
+const empty = () => ({ cliente_id: "", cliente_nuovo: "", data: new Date().toISOString().slice(0, 10), tipo: "Riparazione", descrizione: "", ore: "", materiali: "", articoli: [], articoli_liberi: [] });
 
 export default function NuovoLavoro({ onSaved }) {
   const clienti = mobileStore.clienti();
@@ -28,6 +28,8 @@ export default function NuovoLavoro({ onSaved }) {
   const cliente = clienti.find((c) => c.id === f.cliente_id) || (f.cliente_nuovo ? { id: "", cognome: f.cliente_nuovo, nome: "", tipo_barca: "Nuovo cliente (non in archivio)" } : null);
 
   const addArt = (id) => { if (!id || f.articoli.some((a) => a.articolo_id === id)) return; set("articoli", [...f.articoli, { articolo_id: id, quantita: 1 }]); };
+  const addLibero = () => set("articoli_liberi", [...f.articoli_liberi, { descrizione: "", quantita: 1, prezzo_unitario: "" }]);
+  const setLibero = (i, k, v) => set("articoli_liberi", f.articoli_liberi.map((x, j) => j === i ? { ...x, [k]: v } : x));
 
   const salva = () => {
     if (!f.cliente_id && !f.cliente_nuovo) return toast.error("Scegli il cliente");
@@ -37,6 +39,7 @@ export default function NuovoLavoro({ onSaved }) {
       client_uid: uid(), cliente_id: f.cliente_id || null, cliente_nome: `${c.cognome} ${c.nome}`.trim(), nuovo_cliente: !f.cliente_id, data: f.data, tipo: f.tipo,
       descrizione: f.descrizione.trim(), ore: Number(f.ore) || 0, materiali: f.materiali,
       articoli_magazzino: f.articoli.map((a) => ({ articolo_id: a.articolo_id, quantita: Number(a.quantita) || 1 })),
+      articoli_liberi: f.articoli_liberi.filter((a) => a.descrizione.trim()).map((a) => ({ descrizione: a.descrizione.trim(), quantita: Number(a.quantita) || 1, prezzo_unitario: Number(a.prezzo_unitario) || 0 })),
       creato_at: new Date().toISOString(), inviato: false,
     });
     setF(empty()); setQ("");
@@ -100,6 +103,21 @@ export default function NuovoLavoro({ onSaved }) {
           <ArticoloPicker articoli={articoli} exclude={f.articoli.map((a) => a.articolo_id)} onSelect={(a) => addArt(a.id)} showPrezzo={false} placeholder="+ Cerca articolo (codice o nome)…" testId="select-mobile-articolo" />
         </div>
       )}
+
+      <div className="space-y-1.5" data-testid="mobile-articoli-liberi">
+        <div className="flex items-center justify-between gap-2">
+          <L>Altri articoli (non in magazzino)</L>
+          <Button size="sm" variant="outline" onClick={addLibero} data-testid="btn-mobile-aggiungi-articolo"><Plus className="w-3.5 h-3.5 mr-1" /> Aggiungi articolo</Button>
+        </div>
+        {f.articoli_liberi.map((a, i) => (
+          <div key={i} className="flex items-center gap-2 text-sm flex-wrap" data-testid={`mobile-art-lib-${i}`}>
+            <Input value={a.descrizione} onChange={(e) => setLibero(i, "descrizione", e.target.value)} placeholder="Descrizione articolo" className="flex-1 min-w-[150px] h-10" data-testid={`mobile-art-lib-descr-${i}`} />
+            <Input type="number" inputMode="decimal" min="0" step="0.5" value={a.quantita} onChange={(e) => setLibero(i, "quantita", e.target.value)} className="w-16 h-10 text-right" placeholder="Q.tà" data-testid={`mobile-art-lib-qty-${i}`} />
+            <div className="relative w-24"><span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">€</span><Input type="number" inputMode="decimal" min="0" step="0.01" value={a.prezzo_unitario} onChange={(e) => setLibero(i, "prezzo_unitario", e.target.value)} className="pl-6 h-10 text-right" placeholder="Prezzo" data-testid={`mobile-art-lib-price-${i}`} /></div>
+            <button onClick={() => set("articoli_liberi", f.articoli_liberi.filter((_, j) => j !== i))} data-testid={`mobile-art-lib-del-${i}`}><X className="w-4 h-4 text-destructive" /></button>
+          </div>
+        ))}
+      </div>
 
       <Button onClick={salva} className="w-full h-12 bg-primary hover:bg-primary/90 text-base" data-testid="btn-mobile-salva"><Save className="w-4 h-4 mr-2" /> Salva lavoro</Button>
     </div>

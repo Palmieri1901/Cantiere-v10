@@ -44,6 +44,7 @@ class ApprovaIn(BaseModel):
     costo: Optional[float] = None
     materiali: Optional[str] = None
     articoli_magazzino: Optional[List[dict]] = None
+    articoli_liberi: Optional[List[dict]] = None
 
 
 def _pub(d: dict) -> dict:
@@ -123,6 +124,7 @@ async def inserisci_pending(items: list, dipendente: dict, origine: str) -> int:
             "ore": float(it.get("ore") or 0),
             "materiali": it.get("materiali") or "",
             "articoli_magazzino": it.get("articoli_magazzino") or [],
+            "articoli_liberi": it.get("articoli_liberi") or [],
             "stato": "in_attesa", "origine": origine,
             "created_at": datetime.now(timezone.utc).isoformat(),
         }
@@ -190,6 +192,7 @@ async def approva_pending(pid: str, payload: ApprovaIn):
         materiali=merged.get("materiali", ""), stato="completato",
         ore=float(merged.get("ore") or 0), dipendente=p.get("dipendente_nome", ""),
         articoli_magazzino=merged.get("articoli_magazzino") or None,
+        articoli_liberi=merged.get("articoli_liberi") or None,
     )
     lavoro = await create_lavoro(lc)
     await db.lavori_pending.update_one({"id": pid}, {"$set": {

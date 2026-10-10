@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { api } from "@/lib/api";
+import { api, fmtEuro } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -99,6 +99,15 @@ export default function ApprovaDialog({ item, onClose, onDone }) {
             <div className="space-y-1.5"><L>Materiali</L><Textarea rows={2} value={f.materiali} onChange={(e) => set("materiali", e.target.value)} data-testid="input-approva-materiali" /></div>
             {item.articoli_magazzino?.length > 0 && (
               <div className="text-xs text-muted-foreground">Approvando verranno scaricati dal magazzino {item.articoli_magazzino.length} articoli indicati dal dipendente.</div>
+            )}
+            {item.articoli_liberi?.length > 0 && (
+              <div className="text-xs rounded-md border border-border/60 p-2 space-y-0.5" data-testid="approva-articoli-liberi">
+                <div className="font-semibold text-muted-foreground uppercase tracking-wider text-[10px]">Altri articoli (non in magazzino)</div>
+                {item.articoli_liberi.map((a, i) => (
+                  <div key={i} className="flex justify-between gap-2"><span>{a.descrizione} × {a.quantita}</span><span className="font-mono-num">{fmtEuro(Number(a.quantita || 0) * Number(a.prezzo_unitario || 0))}</span></div>
+                ))}
+                <div className="text-[11px] text-muted-foreground">Verranno aggiunti al costo del lavoro.</div>
+              </div>
             )}
           </div>
         )}
