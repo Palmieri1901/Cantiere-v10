@@ -130,7 +130,7 @@ async def salva_smtp(payload: SmtpIn):
     data = payload.model_dump()
     if data["password"] is None or data["password"] == "":
         data.pop("password")
-    data["host"] = data["host"].strip(); data["user"] = data["user"].strip(); data["from_email"] = data["from_email"].strip()
+    data["host"] = data["host"].strip().lower(); data["user"] = data["user"].strip(); data["from_email"] = data["from_email"].strip()
     await db.app_settings.update_one({"id": "smtp"}, {"$set": {"id": "smtp", **data}}, upsert=True)
     return _smtp_public(await db.app_settings.find_one({"id": "smtp"}, {"_id": 0}))
 

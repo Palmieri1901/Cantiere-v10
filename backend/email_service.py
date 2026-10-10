@@ -5,6 +5,7 @@ import base64
 import ssl
 import asyncio
 import smtplib
+import socket
 import ipaddress
 import logging
 import httpx
@@ -144,10 +145,15 @@ async def send_email(*, to: str, subject: str, html: str, attachments: list | No
         try:
             return await asyncio.to_thread(_send_smtp, cfg, to, subject, html, attachments, from_name)
         except smtplib.SMTPAuthenticationError:
-            raise HTTPException(status_code=400, detail="SMTP: utente o password non corretti (per Gmail serve una password per le app)")
+            raise HTTPException(status_code=400, detail="SMTP: utente o password non accettati dal provider (per Gmail serve una password per le app; per Aruba usa l'indirizzo completo come utente e la password della casella)")
+        except (TimeoutError, socket.timeout, OSError) as e:
+            logger.error(f"SMTP connection error: {e}")
+            raise HTTPException(status_code=400, detail=f"SMTP: il server {cfg['host']}:{cfg['port']} non risponde o rifiuta la connessione. Controlla server e porta (Aruba: smtps.aruba.it 465, Gmail: smtp.gmail.com 465)")
+        except smtplib.SMTPConnectError as e:
+            raise HTTPException(status_code=400, detail=f"SMTP: connessione rifiutata dal provider: {str(e)[:140]}")
         except Exception as e:
             logger.error(f"SMTP send error: {e}")
-            raise HTTPException(status_code=400, detail=f"Impossibile inviare email (SMTP): {str(e)[:120]}")
+            raise HTTPException(status_code=400, detail=f"Impossibile inviare email (SMTP): {str(e)[:140]}")
     email_key = os.environ.get("EMERGENT_EMAIL_KEY")
     if not email_key:
         raise HTTPException(status_code=500, detail="Email non configurata: imposta SMTP_HOST nel file .env")

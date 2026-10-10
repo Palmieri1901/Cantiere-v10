@@ -108,6 +108,8 @@ let webpackConfig = {
 };
 
 webpackConfig.devServer = (devServerConfig) => {
+  // Niente overlay rosso "Uncaught runtime errors" in anteprima (errori generici di script esterni)
+  devServerConfig.client = { ...(devServerConfig.client || {}), overlay: false };
   // Add health check endpoints if enabled
   if (config.enableHealthCheck && setupHealthEndpoints && healthPluginInstance) {
     const originalSetupMiddlewares = devServerConfig.setupMiddlewares;

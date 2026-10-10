@@ -708,3 +708,6 @@ Backend spezzato in moduli (`server.py` ora 112 righe, prima 2761):
 
 ## 2026-06 – Impostazioni casella SMTP da interfaccia
 - GET/PUT /capitaneria/smtp (app_settings id=smtp: attivo, host, port, user, password, from_email; password mai restituita), POST /capitaneria/smtp/test (invia prova al mittente stesso). email_service.get_smtp_config(): DB se attivo, altrimenti .env. Errori SMTP → 400 con dettaglio (502 veniva sostituito dalla pagina Cloudflare). Frontend SmtpSettings.jsx dentro Impostazioni Capitaneria.
+
+## 2026-06 – SMTP Aruba: diagnosi
+- Credenziali info@gebnautica.it su smtp.aruba.it:465 → 535 authentication rejected; smtps.aruba.it rifiuta IP del server cloud (554). Messaggi errore SMTP differenziati (auth/timeout/rifiuto). Overlay dev "Uncaught runtime errors" disattivato in craco (client.overlay=false). Host SMTP normalizzato in minuscolo.
