@@ -729,3 +729,6 @@ Backend spezzato in moduli (`server.py` ora 112 righe, prima 2761):
 
 ## 2026-06 – Rinominato il programma: Gestionale GEBnautica
 - Sostituito "Portomare" in titolo pagina, login, recupero PIN, sidebar (fallback), manifest PWA, email e PDF di fallback (il nome cantiere reale resta quello di Impostazioni). Cache SW rinominata gebnautica-app-v2.
+
+## 2026-06 – Nuova sezione Consumi e ricavi mezzi
+- routers/mezzi.py: CRUD mezzi (db.mezzi) e movimenti (db.mezzi_movimenti: mezzo_id, data, categoria incasso/carburante/riparazione/biglietti/pedaggio/assicurazione/altro, importo, descrizione); /mezzi/riepilogo (12 mesi + totale anno, filtro mezzo), /mezzi/anni, /mezzi/riepilogo.pdf (A4 orizzontale). Frontend /mezzi (Mezzi.jsx + mezzi/TabellaAnno, MezziDialogs), tile Home + nav. Home riepilogo: mezzi_movimenti.
