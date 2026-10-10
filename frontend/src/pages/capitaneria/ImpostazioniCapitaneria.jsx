@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { PORTI } from "./ComunicazioneForm";
+import SmtpSettings from "./SmtpSettings";
 
 const CAMPI = [
   ["ordinanza", "Riferimento ordinanza (predefinito)"],
@@ -40,9 +41,10 @@ export default function ImpostazioniCapitaneria({ open, onClose, settings, onSav
         <div className="space-y-6">
           <div className={`p-3 rounded-md border text-sm ${s.smtp_configurato ? "border-emerald-300 bg-emerald-50 text-emerald-900" : "border-amber-300 bg-amber-50 text-amber-900"}`} data-testid="cap-smtp-info">
             {s.smtp_configurato
-              ? "Invio dalla tua casella di posta (SMTP) attivo: il PDF viene allegato alla mail."
-              : "Allegato PDF: il servizio email integrato non supporta gli allegati, quindi la mail contiene un pulsante/link sicuro per aprire e scaricare il modulo PDF. Per allegare il PDF direttamente, configura la tua casella di posta nelle variabili del server (SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASSWORD, SMTP_FROM)."}
+              ? "Invio dalla tua casella di posta attivo: il PDF viene allegato alla mail."
+              : "Senza casella di posta configurata, la mail contiene un pulsante/link sicuro per aprire e scaricare il modulo PDF. Configura qui sotto la tua casella per allegare il PDF direttamente."}
           </div>
+          <SmtpSettings onChanged={() => api.get("/capitaneria/impostazioni").then((r) => { onSaved(r.data); setS((p) => ({ ...p, smtp_configurato: r.data.smtp_configurato })); })} />
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {CAMPI.map(([k, label]) => (
               <div key={k} className={`space-y-1.5 ${k === "ordinanza" ? "md:col-span-2" : ""}`}>

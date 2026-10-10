@@ -92,12 +92,26 @@ def _assert_safe_email(subject: str, html: str) -> None:
                 raise ValueError(f"Anchor text {m.group(1)!r} ≠ real link host {real!r} (G3)")
 
 
-def _send_smtp(to: str, subject: str, html: str, attachments: list | None = None, from_name: str | None = None) -> str:
-    host = os.environ["SMTP_HOST"]
-    port = int(os.environ.get("SMTP_PORT", "587"))
-    user = os.environ.get("SMTP_USER", "")
-    password = os.environ.get("SMTP_PASSWORD", "")
-    sender = os.environ.get("SMTP_FROM", user)
+def _smtp_env_config() -> dict | None:
+    if not os.environ.get("SMTP_HOST"):
+        return None
+    return {"host": os.environ["SMTP_HOST"], "port": int(os.environ.get("SMTP_PORT", "587")), "user": os.environ.get("SMTP_USER", ""),
+            "password": os.environ.get("SMTP_PASSWORD", ""), "from_email": os.environ.get("SMTP_FROM", os.environ.get("SMTP_USER", ""))}
+
+
+async def get_smtp_config() -> dict | None:
+    """Config SMTP salvata nelle impostazioni (app_settings id=smtp) oppure da .env."""
+    from database import db
+    doc = await db.app_settings.find_one({"id": "smtp"}, {"_id": 0})
+    if doc and doc.get("attivo") and doc.get("host"):
+        return {"host": doc["host"], "port": int(doc.get("port") or 587), "user": doc.get("user") or "",
+                "password": doc.get("password") or "", "from_email": doc.get("from_email") or doc.get("user") or ""}
+    return _smtp_env_config()
+
+
+def _send_smtp(cfg: dict, to: str, subject: str, html: str, attachments: list | None = None, from_name: str | None = None) -> str:
+    host, port, user, password = cfg["host"], int(cfg["port"]), cfg.get("user") or "", cfg.get("password") or ""
+    sender = cfg.get("from_email") or user
     from_name = from_name or os.environ.get("EMAIL_FROM_NAME", "Portomare")
     msg = EmailMessage()
     msg["Subject"] = subject
@@ -109,12 +123,12 @@ def _send_smtp(to: str, subject: str, html: str, attachments: list | None = None
         msg.add_attachment(a["bytes"], maintype="application", subtype="pdf", filename=a["filename"])
     ctx = ssl.create_default_context()
     if port == 465:
-        with smtplib.SMTP_SSL(host, port, context=ctx, timeout=30) as s:
+        with smtplib.SMTP_SSL(host, port, context=ctx, timeout=15) as s:
             if user:
                 s.login(user, password)
             s.send_message(msg)
     else:
-        with smtplib.SMTP(host, port, timeout=30) as s:
+        with smtplib.SMTP(host, port, timeout=15) as s:
             s.starttls(context=ctx)
             if user:
                 s.login(user, password)
@@ -125,12 +139,15 @@ def _send_smtp(to: str, subject: str, html: str, attachments: list | None = None
 async def send_email(*, to: str, subject: str, html: str, attachments: list | None = None, from_name: str | None = None) -> str | None:
     """Invia un'email via SMTP (SMTP_HOST) oppure via proxy Emergent (EMERGENT_EMAIL_KEY). attachments: [{filename, bytes}]"""
     _assert_safe_email(subject, html)
-    if os.environ.get("SMTP_HOST"):
+    cfg = await get_smtp_config()
+    if cfg:
         try:
-            return await asyncio.to_thread(_send_smtp, to, subject, html, attachments, from_name)
+            return await asyncio.to_thread(_send_smtp, cfg, to, subject, html, attachments, from_name)
+        except smtplib.SMTPAuthenticationError:
+            raise HTTPException(status_code=400, detail="SMTP: utente o password non corretti (per Gmail serve una password per le app)")
         except Exception as e:
             logger.error(f"SMTP send error: {e}")
-            raise HTTPException(status_code=502, detail="Impossibile inviare email (SMTP)")
+            raise HTTPException(status_code=400, detail=f"Impossibile inviare email (SMTP): {str(e)[:120]}")
     email_key = os.environ.get("EMERGENT_EMAIL_KEY")
     if not email_key:
         raise HTTPException(status_code=500, detail="Email non configurata: imposta SMTP_HOST nel file .env")

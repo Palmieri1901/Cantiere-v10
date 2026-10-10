@@ -705,3 +705,6 @@ Backend spezzato in moduli (`server.py` ora 112 righe, prima 2761):
 
 ## 2026-06 – Capitaneria: PDF nella mail
 - Il proxy email Emergent NON supporta allegati. Ora: se SMTP_HOST configurato → PDF allegato via SMTP; altrimenti la mail contiene pulsante/link pubblico sicuro GET /api/capitaneria/pubblico/{token}.pdf (token 64 hex salvato in pdf_token, router non autenticato). Impostazioni mostrano stato SMTP (smtp_configurato). Fix: PUT impostazioni parziale non azzera più le email degli altri porti.
+
+## 2026-06 – Impostazioni casella SMTP da interfaccia
+- GET/PUT /capitaneria/smtp (app_settings id=smtp: attivo, host, port, user, password, from_email; password mai restituita), POST /capitaneria/smtp/test (invia prova al mittente stesso). email_service.get_smtp_config(): DB se attivo, altrimenti .env. Errori SMTP → 400 con dettaglio (502 veniva sostituito dalla pagina Cloudflare). Frontend SmtpSettings.jsx dentro Impostazioni Capitaneria.

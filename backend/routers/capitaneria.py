@@ -10,7 +10,7 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
 from database import db
-from email_service import send_email
+from email_service import send_email, get_smtp_config
 from pdf_capitaneria import build_comunicazione_capitaneria_pdf, fmt_mt
 
 router = APIRouter()
@@ -94,13 +94,61 @@ async def get_settings() -> dict:
 def _merge_settings(doc) -> dict:
     out = {**DEFAULT_SETTINGS, **(doc or {})}
     out["porti"] = {k: {**v, "email": "", **((out.get("porti") or {}).get(k) or {})} for k, v in PORTI.items()}
-    out["smtp_configurato"] = bool(os.environ.get("SMTP_HOST"))
+    out["smtp_configurato"] = bool(os.environ.get("SMTP_HOST"))  # aggiornato da leggi_impostazioni
     return out
 
 
 @router.get("/capitaneria/impostazioni")
 async def leggi_impostazioni():
-    return await get_settings()
+    out = await get_settings()
+    out["smtp_configurato"] = bool(await get_smtp_config())
+    return out
+
+
+class SmtpIn(BaseModel):
+    attivo: bool = True
+    host: str = ""
+    port: int = 587
+    user: str = ""
+    password: Optional[str] = None
+    from_email: str = ""
+
+
+def _smtp_public(doc: dict | None) -> dict:
+    d = doc or {}
+    return {"attivo": bool(d.get("attivo")), "host": d.get("host") or "", "port": int(d.get("port") or 587), "user": d.get("user") or "",
+            "from_email": d.get("from_email") or "", "password_impostata": bool(d.get("password")), "env_configurato": bool(os.environ.get("SMTP_HOST"))}
+
+
+@router.get("/capitaneria/smtp")
+async def leggi_smtp():
+    return _smtp_public(await db.app_settings.find_one({"id": "smtp"}, {"_id": 0}))
+
+
+@router.put("/capitaneria/smtp")
+async def salva_smtp(payload: SmtpIn):
+    data = payload.model_dump()
+    if data["password"] is None or data["password"] == "":
+        data.pop("password")
+    data["host"] = data["host"].strip(); data["user"] = data["user"].strip(); data["from_email"] = data["from_email"].strip()
+    await db.app_settings.update_one({"id": "smtp"}, {"$set": {"id": "smtp", **data}}, upsert=True)
+    return _smtp_public(await db.app_settings.find_one({"id": "smtp"}, {"_id": 0}))
+
+
+@router.post("/capitaneria/smtp/test")
+async def test_smtp():
+    cfg = await get_smtp_config()
+    if not cfg:
+        raise HTTPException(400, "Casella di posta non configurata o non attiva")
+    to = (cfg.get("from_email") or cfg.get("user") or "").strip()
+    if not to:
+        raise HTTPException(400, "Inserisci l'indirizzo mittente")
+    s = await get_settings()
+    html = ('<table role="presentation" width="100%"><tr><td style="padding:24px;font-family:Arial,sans-serif;font-size:14px;color:#0f172a">'
+            '<p>Email di prova inviata dal gestionale: la configurazione della casella di posta funziona correttamente.</p>'
+            f'<p style="font-size:12px;color:#888">{escape(s.get("ditta") or "")}</p></td></tr></table>')
+    mid = await send_email(to=to, subject="Email di prova – gestionale cantiere", html=html, from_name=(s.get("email_mittente") or "GEB Nautica").strip())
+    return {"ok": True, "inviata_a": to, "email_id": mid}
 
 
 @router.put("/capitaneria/impostazioni")
@@ -208,7 +256,7 @@ async def invia_email(cid: str, request: Request):
     token = doc.get("pdf_token") or uuid.uuid4().hex + uuid.uuid4().hex
     if not doc.get("pdf_token"):
         await db.comunicazioni_capitaneria.update_one({"id": cid}, {"$set": {"pdf_token": token}})
-    con_allegato = bool(os.environ.get("SMTP_HOST"))
+    con_allegato = bool(await get_smtp_config())
     link = f"{_public_base(request)}/api/capitaneria/pubblico/{token}.pdf"
     porto_nome = PORTI[doc["porto"]]["nome"]
     ops = " / ".join([x for x, on in (("alaggio", doc.get("alaggio")), ("varo", doc.get("varo"))) if on]) or "alaggio/varo"
