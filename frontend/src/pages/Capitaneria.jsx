@@ -54,13 +54,21 @@ export default function Capitaneria() {
     } catch (e) { toast.error("Errore PDF"); }
   };
 
+  const [sending, setSending] = useState(false);
   const invia = async (c) => {
     const to = settings?.porti?.[c.porto]?.email;
     if (!to) { toast.error("Imposta l'email dell'ufficio nelle impostazioni"); setSetOpen(true); return; }
     const ok = await confirmDialog(`Il PDF verrà inviato a ${to} (${PORTI[c.porto].nome}). Confermi?`, { title: "Invia comunicazione via email", okLabel: "Invia", danger: false });
-    if (!ok) return;
-    try { await api.post(`/capitaneria/comunicazioni/${c.id}/invia-email`); toast.success(`Email inviata a ${to}`); load(); }
-    catch (e) { toast.error(e.response?.data?.detail || "Errore invio email"); }
+    if (!ok || sending) return;
+    setSending(true);
+    const t = toast.loading("Invio email in corso…");
+    try {
+      const r = await api.post(`/capitaneria/comunicazioni/${c.id}/invia-email`, null, { timeout: 90000 });
+      toast.success(`Email inviata a ${r.data?.inviata_a || to}`, { id: t });
+    } catch (e) {
+      const det = e.response?.data?.detail || (e.code === "ECONNABORTED" ? "tempo scaduto, verifica l'archivio" : e.message);
+      toast.error(`Errore invio email: ${det}`, { id: t, duration: 8000 });
+    } finally { setSending(false); load(); }
   };
   const salvaEInvia = async () => { const d = await salva(); if (d) { setEditing(null); invia(d); } };
 

@@ -693,3 +693,6 @@ Backend spezzato in moduli (`server.py` ora 112 righe, prima 2761):
 
 ## 2026-06 – Capitaneria: stato invio leggibile da cellulare
 - ArchivioPorto: su schermi piccoli elenco a schede con badge "Inviata gg/mm/aaaa" (verde) o "Da inviare" (ambra) + pulsante "Invia email"; tabella desktop con stesso badge; contatore "N da inviare" nell intestazione.
+
+## 2026-06 – Capitaneria invio email: robustezza
+- Lato server tutti gli invii risultavano riusciti (202 dal servizio email). Frontend: toast "Invio in corso", timeout 90s, messaggio di errore con dettaglio reale, blocco doppio invio, refresh elenco sempre.
