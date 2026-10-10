@@ -1,0 +1,24 @@
+{
+  "summary": "Full backend + frontend regression on new 'Comunicazione Capitaneria' module. Backend pytest: 12/12 passed (impostazioni GET defaults + PUT persistence incl. ordinanza & porto email, CRUD POST/GET?porto=/PUT/DELETE, invalid porto -> 400, GET /{id}/pdf validated with pymupdf for 1 page containing 'Allegato 1', 'TEST QA', 'Delegazione di Spiaggia', 'Palmieri Sandro', POST /capitaneria/pdf anteprima returns %PDF, POST /{id}/invia-email on marina_di_campo with delivered@resend.dev -> 200 with inviata_a & persisted inviata_at, same on porto without email -> 400, GET /home/riepilogo includes integer 'capitaneria'). Frontend Playwright: Home tile cta-capitaneria navigates to /capitaneria; tabs cap-tab-marina-di-campo / cap-tab-marciana-marina work; cap-nuova-marciana-marina opens cap-form-dialog with precompiled dichiarante 'Palmieri Sandro', ditta 'GEB di Palmieri Sandro', responsabile 'Sandro Palmieri', ufficio locale marittimo 'Marciana Marina'; filling cap-unita-nome + cap-switch-alaggio ON + cap-anteprima opens PDF overlay (iframe found); cap-salva creates row that appears ONLY in Marciana Marina tab (not in Marina di Campo); cap-duplica-* and cap-modifica-* reopen the dialog correctly; saving without alaggio/varo shows toast 'Seleziona alaggio e/o varo'; cap-invia-* on porto without email shows error and auto-opens cap-impostazioni-dialog; setting email via cap-set-email-marciana-marina + cap-set-salva then invia -> confirm-ok -> success toast 'Email inviata' + 'Inviata' badge appears; cap-elimina-* with confirm-ok removes the row. All seed/test data cleaned up (deleted test rows + emails reset + ordinanza restored to default).",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [
+    "/app/backend/tests/test_capitaneria.py",
+    "/app/test_reports/pytest/iter21_capitaneria.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "backend/routers/capitaneria.py get_settings() correctly merges nested porti and strips _id; PUT uses $set with merge-on-porti preserving ufficio_locale_marittimo/delegazione_spiaggia constants.",
+    "ComunicazioneIn in capitaneria.py uses Optional[str] with defaults so partial payloads succeed; PUT replaces the entire doc content minus id/created_at which is fine for the current UI pattern.",
+    "Minor: on invia-email the subject hardcodes ops='alaggio/varo' label even when only one is on, logic uses doc.get boolean filtered — correct. Email HTML already escapes user content.",
+    "pdf_capitaneria.py: single-page A4 layout verified via pymupdf; uses reportlab, text extraction works."
+  ],
+  "updated_files": ["/app/backend/tests/test_capitaneria.py"],
+  "success_rate": {"backend": "100% (12/12)", "frontend": "100% (all flows)"},
+  "test_credentials": "password 'admin' (shared) per /app/memory/test_credentials.md",
+  "seed_data_creation": "Transient docs created and deleted; seed id 7f2b3c71-ad28-4860-809d-c06c2b9adc32 deletion attempted (best-effort). Email settings restored to '' and ordinanza restored to default.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Reusable regression file at /app/backend/tests/test_capitaneria.py. Run with REACT_APP_BACKEND_URL env from /app/frontend/.env. Playwright flow uses data-testids: cta-capitaneria, capitaneria-page, cap-tab-{marina-di-campo|marciana-marina}, cap-nuova-{porto}, cap-form-dialog, cap-dichiarante/ditta/resp-nome/resp-cognome/ufficio-locale-marittimo (via cap-{field_snake_to_hyphen}), cap-switch-alaggio/varo, cap-anteprima, cap-salva, cap-salva-invia, cap-pdf-{id}, cap-invia-{id}, cap-modifica-{id}, cap-duplica-{id}, cap-elimina-{id}, cap-impostazioni-btn, cap-impostazioni-dialog, cap-set-email-{porto}, cap-set-salva, confirm-ok.",
+  "rca of the issue": "N/A — feature verification, no bugs found."
+}

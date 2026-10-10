@@ -681,3 +681,6 @@ Backend spezzato in moduli (`server.py` ora 112 righe, prima 2761):
 
 ## 2026-06 – Fix interruttori preventivo rimessaggio
 - Il PDF "Dettaglio manutenzione motore" elencava sempre tutti i kit (anodi, filtro, olio piede, ingrassaggio) anche se in OFF. Ora mostra solo le voci attive (flag None = attivo). UI: righe a 0 nascoste nel riepilogo motore. Testato iteration_20 (15/15 backend + frontend OK).
+
+## 2026-06 – Comunicazione Capitaneria (nuova sezione Home)
+- Route /capitaneria: modulo Allegato 1 (Ordinanza 61/2023, riferimento modificabile) comunicazione preventiva alaggio/varo, archivio copie in 2 schede (Marina di Campo / Marciana Marina), PDF fedele al modulo, duplica/modifica/elimina, invio email PDF allegato all ufficio (email per porto in Impostazioni, via email_service con attachments). Backend routers/capitaneria.py + pdf_capitaneria.py, collection comunicazioni_capitaneria, settings in app_settings id=capitaneria. Testato iteration_21 (12/12 backend + frontend OK).
