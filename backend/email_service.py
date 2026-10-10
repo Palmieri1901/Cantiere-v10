@@ -1,6 +1,7 @@
 """Invio email: SMTP standard (es. Aruba) oppure, se configurato, proxy Emergent."""
 import os
 import re
+import base64
 import ssl
 import asyncio
 import smtplib
@@ -91,7 +92,7 @@ def _assert_safe_email(subject: str, html: str) -> None:
                 raise ValueError(f"Anchor text {m.group(1)!r} ≠ real link host {real!r} (G3)")
 
 
-def _send_smtp(to: str, subject: str, html: str) -> str:
+def _send_smtp(to: str, subject: str, html: str, attachments: list | None = None) -> str:
     host = os.environ["SMTP_HOST"]
     port = int(os.environ.get("SMTP_PORT", "587"))
     user = os.environ.get("SMTP_USER", "")
@@ -104,6 +105,8 @@ def _send_smtp(to: str, subject: str, html: str) -> str:
     msg["To"] = to
     msg.set_content("Questo messaggio richiede un client che supporti HTML.")
     msg.add_alternative(html, subtype="html")
+    for a in attachments or []:
+        msg.add_attachment(a["bytes"], maintype="application", subtype="pdf", filename=a["filename"])
     ctx = ssl.create_default_context()
     if port == 465:
         with smtplib.SMTP_SSL(host, port, context=ctx, timeout=30) as s:
@@ -119,12 +122,12 @@ def _send_smtp(to: str, subject: str, html: str) -> str:
     return msg["Message-ID"] or "smtp"
 
 
-async def send_email(*, to: str, subject: str, html: str) -> str | None:
-    """Invia un'email via SMTP (SMTP_HOST) oppure via proxy Emergent (EMERGENT_EMAIL_KEY)."""
+async def send_email(*, to: str, subject: str, html: str, attachments: list | None = None) -> str | None:
+    """Invia un'email via SMTP (SMTP_HOST) oppure via proxy Emergent (EMERGENT_EMAIL_KEY). attachments: [{filename, bytes}]"""
     _assert_safe_email(subject, html)
     if os.environ.get("SMTP_HOST"):
         try:
-            return await asyncio.to_thread(_send_smtp, to, subject, html)
+            return await asyncio.to_thread(_send_smtp, to, subject, html, attachments)
         except Exception as e:
             logger.error(f"SMTP send error: {e}")
             raise HTTPException(status_code=502, detail="Impossibile inviare email (SMTP)")
@@ -138,6 +141,8 @@ async def send_email(*, to: str, subject: str, html: str) -> str | None:
         "html": html,
         "from_name": from_name,
     }
+    if attachments:
+        payload["attachments"] = [{"filename": a["filename"], "content": base64.b64encode(a["bytes"]).decode()} for a in attachments]
     try:
         async with httpx.AsyncClient(timeout=30) as client:
             resp = await client.post(

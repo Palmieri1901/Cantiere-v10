@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { NavLink, Outlet, useLocation, Link, useNavigate } from "react-router-dom";
-import { LayoutDashboard, Users, Grid3x3, Settings2, Sailboat, Building2, Home as HomeIcon, FileBarChart, FileSignature, LogOut, User, Package, Ship, ChevronDown, List, SlidersHorizontal, LifeBuoy, Truck, Smartphone, HardHat, FileBadge } from "lucide-react";
+import { LayoutDashboard, Users, Grid3x3, Settings2, Sailboat, Building2, Home as HomeIcon, FileBarChart, FileSignature, LogOut, User, Package, Ship, ChevronDown, List, SlidersHorizontal, LifeBuoy, Truck, Smartphone, HardHat, FileBadge, Anchor } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
@@ -33,6 +33,7 @@ const nav = [
   { section: "Documenti" },
   { to: "/ddt", label: "DDT & Destinazione", icon: Truck, testId: "nav-ddt" },
   { to: "/servizio", label: "Banca & Privacy", icon: FileBadge, testId: "nav-servizio" },
+  { to: "/capitaneria", label: "Comunicazione Capitaneria", icon: Anchor, testId: "nav-capitaneria" },
   { to: "/impostazioni", label: "Impostazione dati cantiere", icon: Building2, testId: "nav-impostazioni" },
 ];
 
