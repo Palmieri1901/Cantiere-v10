@@ -35,8 +35,10 @@ function F({ label, children, className = "" }) {
   );
 }
 
-function Txt({ f, k, set, type = "text", placeholder = "" }) {
-  return <Input type={type} value={f[k] ?? ""} placeholder={placeholder} onChange={(e) => set(k, e.target.value)} data-testid={`cap-${k.replace(/_/g, "-")}`} />;
+function Txt({ f, k, set, type = "text", placeholder = "", suffix = "" }) {
+  const input = <Input type={type} inputMode={suffix ? "decimal" : undefined} step={type === "number" ? "0.01" : undefined} value={f[k] ?? ""} placeholder={placeholder} onChange={(e) => set(k, e.target.value)} data-testid={`cap-${k.replace(/_/g, "-")}`} className={suffix ? "pr-10" : ""} />;
+  if (!suffix) return input;
+  return <div className="relative">{input}<span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-muted-foreground">{suffix}</span></div>;
 }
 
 function Sw({ label, checked, onChange, testId }) {
@@ -48,13 +50,16 @@ function Sw({ label, checked, onChange, testId }) {
   );
 }
 
-export default function ComunicazioneForm({ f, set }) {
-  const Sec = ({ lett, title, children }) => (
+function Sec({ lett, title, children }) {
+  return (
     <section className="space-y-3">
       <div className="label-mini flex items-center gap-2"><span className="w-6 h-6 rounded bg-primary text-primary-foreground grid place-items-center text-xs font-bold">{lett}</span>{title}</div>
       {children}
     </section>
   );
+}
+
+export default function ComunicazioneForm({ f, set }) {
   return (
     <div className="space-y-7">
       <section className="grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -83,7 +88,7 @@ export default function ComunicazioneForm({ f, set }) {
       <Sec lett="B" title="Operazione">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <F label="Giorno"><Txt f={f} k="data_operazione" set={set} type="date" /></F>
-          <F label="Ore"><Txt f={f} k="ora_operazione" set={set} placeholder="es. 10.00" /></F>
+          <F label="Ore"><Txt f={f} k="ora_operazione" set={set} type="time" /></F>
           <Sw label="Alaggio" checked={f.alaggio} onChange={(v) => set("alaggio", v)} testId="cap-switch-alaggio" />
           <Sw label="Varo" checked={f.varo} onChange={(v) => set("varo", v)} testId="cap-switch-varo" />
         </div>
@@ -111,9 +116,9 @@ export default function ComunicazioneForm({ f, set }) {
           <F label="Nome"><Txt f={f} k="unita_nome" set={set} /></F>
           <F label="N° d'iscrizione"><Txt f={f} k="unita_iscrizione" set={set} /></F>
           <F label="Nominativo internazionale"><Txt f={f} k="unita_nominativo" set={set} /></F>
-          <F label="Lunghezza"><Txt f={f} k="unita_lunghezza" set={set} placeholder="es. 7,50 mt" /></F>
-          <F label="Pescaggio"><Txt f={f} k="unita_pescaggio" set={set} /></F>
-          <F label="Larghezza"><Txt f={f} k="unita_larghezza" set={set} placeholder="es. 2,5 mt" /></F>
+          <F label="Lunghezza"><Txt f={f} k="unita_lunghezza" set={set} type="number" placeholder="es. 7.50" suffix="mt" /></F>
+          <F label="Pescaggio"><Txt f={f} k="unita_pescaggio" set={set} type="number" placeholder="es. 0.60" suffix="mt" /></F>
+          <F label="Larghezza"><Txt f={f} k="unita_larghezza" set={set} type="number" placeholder="es. 2.50" suffix="mt" /></F>
         </div>
       </Sec>
 

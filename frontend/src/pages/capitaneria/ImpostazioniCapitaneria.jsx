@@ -12,6 +12,7 @@ const CAMPI = [
   ["dichiarante", "Dichiarante"], ["ditta", "Ditta"], ["ditta_sede", "Sede"], ["ditta_via", "Via"],
   ["resp_nome", "Responsabile: nome"], ["resp_cognome", "Responsabile: cognome"], ["resp_nato_a", "Nato/a a"], ["resp_nato_il", "Nato/a il"],
   ["resp_qualifica", "Qualifica"], ["resp_cellulare", "Cellulare"], ["firma_localita", "Località firma"],
+  ["email_mittente", "Nome mittente email (intestazione)"],
 ];
 
 export default function ImpostazioniCapitaneria({ open, onClose, settings, onSaved }) {

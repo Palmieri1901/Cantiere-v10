@@ -40,7 +40,7 @@ export default function ArchivioPorto({ porto, nome, lista, onNuova, onApri, onP
                     {c.varo && <Badge variant="secondary">Varo</Badge>}
                   </td>
                   <td className="px-3 py-2">{c.unita_nome || "—"}<span className="text-muted-foreground"> · {c.uso === "pesca" ? "pesca" : "diporto"} · {c.tipo_unita}</span></td>
-                  <td className="px-3 py-2">{c.unita_lunghezza || "—"}</td>
+                  <td className="px-3 py-2">{c.unita_lunghezza ? `${String(c.unita_lunghezza).replace(".", ",")} mt` : "—"}</td>
                   <td className="px-3 py-2">
                     {c.inviata_at ? <Badge className="bg-emerald-600 hover:bg-emerald-600">Inviata {fmt(c.inviata_at.slice(0, 10))}</Badge> : <span className="text-muted-foreground">—</span>}
                   </td>

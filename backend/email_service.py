@@ -92,13 +92,13 @@ def _assert_safe_email(subject: str, html: str) -> None:
                 raise ValueError(f"Anchor text {m.group(1)!r} ≠ real link host {real!r} (G3)")
 
 
-def _send_smtp(to: str, subject: str, html: str, attachments: list | None = None) -> str:
+def _send_smtp(to: str, subject: str, html: str, attachments: list | None = None, from_name: str | None = None) -> str:
     host = os.environ["SMTP_HOST"]
     port = int(os.environ.get("SMTP_PORT", "587"))
     user = os.environ.get("SMTP_USER", "")
     password = os.environ.get("SMTP_PASSWORD", "")
     sender = os.environ.get("SMTP_FROM", user)
-    from_name = os.environ.get("EMAIL_FROM_NAME", "Portomare")
+    from_name = from_name or os.environ.get("EMAIL_FROM_NAME", "Portomare")
     msg = EmailMessage()
     msg["Subject"] = subject
     msg["From"] = f"{from_name} <{sender}>"
@@ -122,19 +122,19 @@ def _send_smtp(to: str, subject: str, html: str, attachments: list | None = None
     return msg["Message-ID"] or "smtp"
 
 
-async def send_email(*, to: str, subject: str, html: str, attachments: list | None = None) -> str | None:
+async def send_email(*, to: str, subject: str, html: str, attachments: list | None = None, from_name: str | None = None) -> str | None:
     """Invia un'email via SMTP (SMTP_HOST) oppure via proxy Emergent (EMERGENT_EMAIL_KEY). attachments: [{filename, bytes}]"""
     _assert_safe_email(subject, html)
     if os.environ.get("SMTP_HOST"):
         try:
-            return await asyncio.to_thread(_send_smtp, to, subject, html, attachments)
+            return await asyncio.to_thread(_send_smtp, to, subject, html, attachments, from_name)
         except Exception as e:
             logger.error(f"SMTP send error: {e}")
             raise HTTPException(status_code=502, detail="Impossibile inviare email (SMTP)")
     email_key = os.environ.get("EMERGENT_EMAIL_KEY")
     if not email_key:
         raise HTTPException(status_code=500, detail="Email non configurata: imposta SMTP_HOST nel file .env")
-    from_name = os.environ.get("EMAIL_FROM_NAME", "Portomare")
+    from_name = from_name or os.environ.get("EMAIL_FROM_NAME", "Portomare")
     payload = {
         "to": [to],
         "subject": subject,

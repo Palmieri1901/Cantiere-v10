@@ -10,7 +10,7 @@ from pydantic import BaseModel
 
 from database import db
 from email_service import send_email
-from pdf_capitaneria import build_comunicazione_capitaneria_pdf
+from pdf_capitaneria import build_comunicazione_capitaneria_pdf, fmt_mt
 
 router = APIRouter()
 
@@ -29,6 +29,7 @@ DEFAULT_SETTINGS = {
     "resp_nome": "Sandro", "resp_cognome": "Palmieri", "resp_nato_a": "Torino", "resp_nato_il": "1972-01-19",
     "resp_qualifica": "titolare", "resp_cellulare": "3472600872",
     "firma_localita": "Marina di Campo",
+    "email_mittente": "GEB Nautica",
     "porti": {k: {**v, "email": ""} for k, v in PORTI.items()},
 }
 
@@ -46,6 +47,7 @@ class CapitaneriaSettings(BaseModel):
     resp_qualifica: Optional[str] = None
     resp_cellulare: Optional[str] = None
     firma_localita: Optional[str] = None
+    email_mittente: Optional[str] = None
     porti: Optional[dict] = None
 
 
@@ -188,12 +190,12 @@ async def invia_email(cid: str):
             f'<p>Buongiorno,</p><p>in allegato la comunicazione preventiva di <strong>{escape(ops)}</strong> con mezzo autogrù '
             f'(Allegato 1, {escape(doc.get("ordinanza") or s["ordinanza"])}) per il porto di <strong>{escape(porto_nome)}</strong>, '
             f'prevista il giorno <strong>{escape(data_it)}</strong> alle ore <strong>{escape(doc.get("ora_operazione") or "")}</strong>.</p>'
-            f'<p>Unità: {escape(doc.get("unita_nome") or "-")} · lunghezza {escape(doc.get("unita_lunghezza") or "-")}</p>'
+            f'<p>Unità: {escape(doc.get("unita_nome") or "-")} · lunghezza {escape(fmt_mt(doc.get("unita_lunghezza")))}</p>'
             f'<p>Cordiali saluti,<br/><strong>{escape(doc.get("ditta") or s["ditta"])}</strong><br/>'
             f'{escape(doc.get("resp_nome") or "")} {escape(doc.get("resp_cognome") or "")} · tel. {escape(doc.get("resp_cellulare") or "")}</p>'
             f'</td></tr></table>')
     pdf = build_comunicazione_capitaneria_pdf(doc, await _cantiere())
-    mid = await send_email(to=to, subject=subject, html=html, attachments=[{"filename": _filename(doc), "bytes": pdf}])
+    mid = await send_email(to=to, subject=subject, html=html, attachments=[{"filename": _filename(doc), "bytes": pdf}], from_name=(s.get("email_mittente") or "GEB Nautica").strip())
     now = datetime.now(timezone.utc).isoformat()
     await db.comunicazioni_capitaneria.update_one({"id": cid}, {"$set": {"inviata_at": now, "inviata_a": to}})
     return {"ok": True, "inviata_a": to, "inviata_at": now, "email_id": mid}

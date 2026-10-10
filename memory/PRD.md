@@ -687,3 +687,6 @@ Backend spezzato in moduli (`server.py` ora 112 righe, prima 2761):
 
 ## 2026-06 – Modulo Capitaneria fedele all originale + logo
 - pdf_capitaneria.py ora renderizza il template ODS ufficiale (backend/templates/comunicazione_capitaneria.ods) cella per cella (bordi, sfondi gialli/grigi, caselle x, overflow testo) con i valori dinamici sovrascritti per posizione; intestazione con logo e dati azienda sopra il modulo. Dipendenza odfpy.
+
+## 2026-06 – Capitaneria: mittente email, ora, misure
+- Mittente email configurabile (Impostazioni → "Nome mittente email", default "GEB Nautica") passato a send_email(from_name). Fix perdita focus nel form (componente Sec spostato fuori dal render). Ora con input type=time; lunghezza/pescaggio/larghezza numerici con suffisso mt, stampati nel PDF come "7,50 mt".

@@ -102,6 +102,16 @@ def _fmt_data(s: str, short=True) -> str:
     return s
 
 
+def fmt_mt(v) -> str:
+    s = str(v or "").strip().replace(",", ".")
+    if not s:
+        return ""
+    try:
+        return f"{float(s):.2f}".replace(".", ",") + " mt"
+    except ValueError:
+        return str(v)
+
+
 def _overrides(c: dict) -> dict:
     ordinanza = (c.get("ordinanza") or "").strip() or "Ordinanza n. 61/2023, in data 03/08/2023 della Capitaneria di porto di Portoferraio"
     porto_nome = c.get("porto_nome") or ("Marina di Campo" if (c.get("porto") or "marina_di_campo") == "marina_di_campo" else "Marciana Marina")
@@ -120,7 +130,7 @@ def _overrides(c: dict) -> dict:
         (20, 5): x(uso == "diporto"), (20, 12): x(uso == "pesca"),
         (22, 2): x(tipo == "natante"), (22, 7): x(tipo == "imbarcazione"),
         (24, 1): c.get("unita_nome") or "", (24, 9): c.get("unita_iscrizione") or "", (24, 13): c.get("unita_nominativo") or "",
-        (26, 1): c.get("unita_lunghezza") or "", (26, 9): c.get("unita_pescaggio") or "", (26, 13): c.get("unita_larghezza") or "",
+        (26, 1): fmt_mt(c.get("unita_lunghezza")), (26, 9): fmt_mt(c.get("unita_pescaggio")), (26, 13): fmt_mt(c.get("unita_larghezza")),
         (32, 1): c.get("resp_nome") or "", (32, 11): c.get("resp_cognome") or "",
         (34, 1): c.get("resp_nato_a") or "", (34, 11): _fmt_data(c.get("resp_nato_il")),
         (36, 1): c.get("resp_qualifica") or "", (36, 11): c.get("resp_cellulare") or "",
