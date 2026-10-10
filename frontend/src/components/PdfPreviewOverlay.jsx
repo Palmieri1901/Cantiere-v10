@@ -13,7 +13,7 @@ pdfjs.GlobalWorkerOptions.workerSrc = `${process.env.PUBLIC_URL || ""}/pdf.worke
 export function PdfPreviewOverlay({ open, onClose, url, filename }) {
   const [numPages, setNumPages] = useState(0);
   const [pageNum, setPageNum] = useState(1);
-  const [scale, setScale] = useState(1.1);
+  const [scale, setScale] = useState(() => (typeof window !== "undefined" && window.innerWidth < 640 ? 0.58 : 1.1));
   const [loadErr, setLoadErr] = useState(null);
 
   const onLoadSuccess = useCallback(({ numPages }) => {

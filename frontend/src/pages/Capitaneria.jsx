@@ -7,7 +7,7 @@ import { PdfPreviewOverlay } from "@/components/PdfPreviewOverlay";
 import { confirmDialog } from "@/components/ConfirmDialog";
 import { openBlob } from "@/pages/ddt/common";
 import { toast } from "sonner";
-import { Anchor, Settings, FileText, Send, Save } from "lucide-react";
+import { Anchor, Settings, FileText, Send, Archive } from "lucide-react";
 import ComunicazioneForm, { PORTI, nuovaComunicazione } from "@/pages/capitaneria/ComunicazioneForm";
 import ArchivioPorto from "@/pages/capitaneria/ArchivioPorto";
 import ImpostazioniCapitaneria from "@/pages/capitaneria/ImpostazioniCapitaneria";
@@ -29,12 +29,14 @@ export default function Capitaneria() {
   const nuova = (porto) => setEditing(nuovaComunicazione(porto, settings));
   const duplica = (c) => { const { id, created_at, updated_at, inviata_at, inviata_a, ...rest } = c; setEditing({ ...rest, firma_data: new Date().toISOString().slice(0, 10) }); };
 
-  const salva = async () => {
+  const salva = async (silent = false) => {
     if (!editing.alaggio && !editing.varo) { toast.error("Seleziona alaggio e/o varo"); return null; }
     setSaving(true);
     try {
       const r = editing.id ? await api.put(`/capitaneria/comunicazioni/${editing.id}`, editing) : await api.post("/capitaneria/comunicazioni", editing);
-      toast.success("Comunicazione salvata"); await load(); setTab(editing.porto);
+      if (!silent) toast.success(editing.id ? "Comunicazione aggiornata" : "Salvata in archivio: pronta per l'invio");
+      setEditing((p) => (p ? { ...p, id: r.data.id } : p));
+      await load(); setTab(editing.porto);
       return r.data;
     } catch (e) { toast.error(e.response?.data?.detail || "Errore salvataggio"); return null; }
     finally { setSaving(false); }
@@ -42,9 +44,11 @@ export default function Capitaneria() {
   const salvaEChiudi = async () => { if (await salva()) setEditing(null); };
 
   const anteprima = async () => {
+    const d = await salva(true);
+    if (!d) return;
     try {
-      setPreview({ open: false, name: `comunicazione_${editing.porto}.pdf` });
-      await openBlob(api, "post", "/capitaneria/pdf", editing, setPreviewUrl, (o) => setPreview((p) => ({ ...p, open: o })));
+      setPreview({ open: false, name: `comunicazione_${d.porto}_${d.data_operazione}.pdf` });
+      await openBlob(api, "get", `/capitaneria/comunicazioni/${d.id}/pdf`, null, setPreviewUrl, (o) => setPreview((p) => ({ ...p, open: o })));
     } catch (e) { toast.error("Errore PDF"); }
   };
   const pdfSalvata = async (c) => {
@@ -104,17 +108,19 @@ export default function Capitaneria() {
         ))}
       </Tabs>
 
-      <Dialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
-        <DialogContent className="max-w-5xl max-h-[92vh] overflow-y-auto" data-testid="cap-form-dialog">
+      <Dialog open={!!editing} onOpenChange={(o) => { if (!o && !preview.open) setEditing(null); }}>
+        <DialogContent className="max-w-5xl max-h-[92vh] overflow-y-auto" data-testid="cap-form-dialog" onInteractOutside={(e) => { if (preview.open) e.preventDefault(); }} onEscapeKeyDown={(e) => { if (preview.open) e.preventDefault(); }}>
           <DialogHeader>
             <DialogTitle>{editing?.id ? "Modifica comunicazione" : "Nuova comunicazione"} · {editing && PORTI[editing.porto]?.nome}</DialogTitle>
-            <DialogDescription>Allegato 1 – Comunicazione preventiva di alaggio/varo con mezzo autogrù</DialogDescription>
+            <DialogDescription>Allegato 1 – Comunicazione preventiva di alaggio/varo con mezzo autogrù{editing?.id ? " · salvata in archivio" : ""}</DialogDescription>
           </DialogHeader>
           {editing && <ComunicazioneForm f={editing} set={set} />}
-          <DialogFooter className="gap-2 flex-wrap">
-            <Button variant="outline" onClick={anteprima} data-testid="cap-anteprima"><FileText className="w-4 h-4 mr-2" /> Anteprima PDF</Button>
-            <Button variant="outline" onClick={salvaEChiudi} disabled={saving} data-testid="cap-salva"><Save className="w-4 h-4 mr-2" /> Salva</Button>
-            <Button onClick={salvaEInvia} disabled={saving} data-testid="cap-salva-invia"><Send className="w-4 h-4 mr-2" /> Salva e invia email</Button>
+          <DialogFooter className="gap-2 flex-wrap sm:justify-between">
+            <Button variant="outline" onClick={anteprima} disabled={saving} data-testid="cap-anteprima"><FileText className="w-4 h-4 mr-2" /> Anteprima PDF</Button>
+            <div className="flex gap-2 flex-wrap">
+              <Button variant="secondary" onClick={salvaEChiudi} disabled={saving} data-testid="cap-salva"><Archive className="w-4 h-4 mr-2" /> Salva, invia dopo</Button>
+              <Button onClick={salvaEInvia} disabled={saving} data-testid="cap-salva-invia"><Send className="w-4 h-4 mr-2" /> Salva e invia email</Button>
+            </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>

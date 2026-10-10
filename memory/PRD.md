@@ -696,3 +696,6 @@ Backend spezzato in moduli (`server.py` ora 112 righe, prima 2761):
 
 ## 2026-06 – Capitaneria invio email: robustezza
 - Lato server tutti gli invii risultavano riusciti (202 dal servizio email). Frontend: toast "Invio in corso", timeout 90s, messaggio di errore con dettaglio reale, blocco doppio invio, refresh elenco sempre.
+
+## 2026-06 – Capitaneria: anteprima salva in archivio
+- "Anteprima PDF" salva prima la comunicazione (stato Da inviare) e mostra il PDF del documento archiviato; il form non si chiude quando si chiude l anteprima. Pulsanti: "Salva, invia dopo" e "Salva e invia email". Scheda mobile con pulsante Anteprima. PdfPreviewOverlay: zoom iniziale ridotto su schermi stretti.

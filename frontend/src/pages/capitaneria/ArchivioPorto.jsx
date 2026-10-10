@@ -32,9 +32,12 @@ function CardMobile({ c, ...h }) {
         </div>
         <StatoInvio c={c} />
       </div>
-      <div className="flex items-center justify-between gap-2">
+      <div className="flex items-center justify-between gap-2 flex-wrap">
         <div>{c.alaggio && <Badge variant="secondary" className="mr-1">Alaggio</Badge>}{c.varo && <Badge variant="secondary">Varo</Badge>}</div>
-        {!c.inviata_at && <Button size="sm" onClick={() => h.onInvia(c)} data-testid={`cap-invia-mobile-${c.id}`}><Send className="w-3.5 h-3.5 mr-1.5" /> Invia email</Button>}
+        <div className="flex gap-2">
+          <Button size="sm" variant="outline" onClick={() => h.onPdf(c)} data-testid={`cap-anteprima-mobile-${c.id}`}><FileText className="w-3.5 h-3.5 mr-1.5" /> Anteprima</Button>
+          {!c.inviata_at && <Button size="sm" onClick={() => h.onInvia(c)} data-testid={`cap-invia-mobile-${c.id}`}><Send className="w-3.5 h-3.5 mr-1.5" /> Invia email</Button>}
+        </div>
       </div>
       <Azioni c={c} {...h} />
     </div>
