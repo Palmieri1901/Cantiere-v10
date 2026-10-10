@@ -129,6 +129,7 @@ export default function Home() {
             <ModuleTile to="/gommoni" icon={LifeBuoy} title="Gommoni GEB" desc="Modelli, accessori e preventivi" stat={r?.gommoni} statLabel="modelli" testId="cta-gommoni" />
             <ModuleTile to="/ddt" icon={Truck} title="DDT & Destinazione" desc="Documenti di trasporto e rubrica" stat={r?.ddt} statLabel={`DDT ${r?.anno || ""}`} testId="cta-ddt" />
             <ModuleTile to="/capitaneria" icon={Landmark} title="Comunicazione Capitaneria" desc="Alaggio/varo: Marina di Campo e Marciana Marina" stat={r?.capitaneria} statLabel="comunicazioni" testId="cta-capitaneria" />
+            <ModuleTile to="/mezzi" icon={Truck} title="Consumi e ricavi mezzi" desc="Camion e mezzi: carburante, riparazioni, pedaggi, incassi" stat={r?.mezzi_movimenti} statLabel={`movimenti ${r?.anno || ""}`} testId="cta-mezzi" />
           </div>
           <div className="mt-6">
             <Link to="/impostazioni" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors" data-testid="cta-impostazioni">

@@ -27,6 +27,7 @@ import AppDipendente from "@/pages/AppDipendente";
 import Login from "@/pages/Login";
 import RecuperoPin from "@/pages/RecuperoPin";
 import Capitaneria from "@/pages/Capitaneria";
+import Mezzi from "@/pages/Mezzi";
 import { isAppDipendentiHost } from "@/lib/appHost";
 
 function App() {
@@ -89,6 +90,7 @@ function App() {
                 <Route path="/esterni" element={<LavorazioniEsterne />} />
                 <Route path="/servizio" element={<DocumentiServizio />} />
                 <Route path="/capitaneria" element={<Capitaneria />} />
+                <Route path="/mezzi" element={<Mezzi />} />
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Route>
             </Routes>

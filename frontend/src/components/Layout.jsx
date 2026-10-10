@@ -34,6 +34,7 @@ const nav = [
   { to: "/ddt", label: "DDT & Destinazione", icon: Truck, testId: "nav-ddt" },
   { to: "/servizio", label: "Banca & Privacy", icon: FileBadge, testId: "nav-servizio" },
   { to: "/capitaneria", label: "Comunicazione Capitaneria", icon: Anchor, testId: "nav-capitaneria" },
+  { to: "/mezzi", label: "Consumi e ricavi mezzi", icon: Truck, testId: "nav-mezzi" },
   { to: "/impostazioni", label: "Impostazione dati cantiere", icon: Building2, testId: "nav-impostazioni" },
 ];
 
