@@ -1,10 +1,11 @@
 """Comunicazioni preventive alaggio/varo alla Capitaneria di porto, divise per porto."""
 import io
+import os
 import uuid
 from html import escape
 from datetime import datetime, timezone
 from typing import Optional
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
@@ -13,6 +14,7 @@ from email_service import send_email
 from pdf_capitaneria import build_comunicazione_capitaneria_pdf, fmt_mt
 
 router = APIRouter()
+public_router = APIRouter()
 
 PORTI = {
     "marina_di_campo": {"nome": "Marina di Campo", "ufficio_locale_marittimo": "", "delegazione_spiaggia": "Campo nell'Elba"},
@@ -86,8 +88,13 @@ class ComunicazioneIn(BaseModel):
 
 async def get_settings() -> dict:
     doc = await db.app_settings.find_one({"id": "capitaneria"}, {"_id": 0})
+    return _merge_settings(doc)
+
+
+def _merge_settings(doc) -> dict:
     out = {**DEFAULT_SETTINGS, **(doc or {})}
     out["porti"] = {k: {**v, "email": "", **((out.get("porti") or {}).get(k) or {})} for k, v in PORTI.items()}
+    out["smtp_configurato"] = bool(os.environ.get("SMTP_HOST"))
     return out
 
 
@@ -100,7 +107,8 @@ async def leggi_impostazioni():
 async def salva_impostazioni(payload: CapitaneriaSettings):
     data = {k: v for k, v in payload.model_dump().items() if v is not None}
     if "porti" in data:
-        data["porti"] = {k: {**PORTI[k], **(data["porti"].get(k) or {})} for k in PORTI}
+        cur = (await get_settings())["porti"]
+        data["porti"] = {k: {**cur[k], **(data["porti"].get(k) or {})} for k in PORTI}
     await db.app_settings.update_one({"id": "capitaneria"}, {"$set": {"id": "capitaneria", **data}}, upsert=True)
     return await get_settings()
 
@@ -173,8 +181,23 @@ async def pdf_comunicazione(cid: str):
                              headers={"Content-Disposition": f"attachment; filename={_filename(doc)}"})
 
 
+@public_router.get("/api/capitaneria/pubblico/{token}.pdf")
+async def pdf_pubblico(token: str):
+    doc = await db.comunicazioni_capitaneria.find_one({"pdf_token": token}, {"_id": 0})
+    if not doc or len(token) < 32:
+        raise HTTPException(404, "Documento non trovato")
+    pdf = build_comunicazione_capitaneria_pdf(doc, await _cantiere())
+    return StreamingResponse(io.BytesIO(pdf), media_type="application/pdf",
+                             headers={"Content-Disposition": f"inline; filename={_filename(doc)}"})
+
+
+def _public_base(request: Request) -> str:
+    host = request.headers.get("x-forwarded-host") or request.headers.get("host") or ""
+    return f"https://{host.split(',')[0].strip()}"
+
+
 @router.post("/capitaneria/comunicazioni/{cid}/invia-email")
-async def invia_email(cid: str):
+async def invia_email(cid: str, request: Request):
     doc = await db.comunicazioni_capitaneria.find_one({"id": cid}, {"_id": 0})
     if not doc:
         raise HTTPException(404, "Comunicazione non trovata")
@@ -182,20 +205,32 @@ async def invia_email(cid: str):
     to = ((s["porti"].get(doc["porto"]) or {}).get("email") or "").strip()
     if not to:
         raise HTTPException(400, "Email dell'ufficio non impostata: inseriscila nelle impostazioni del porto")
+    token = doc.get("pdf_token") or uuid.uuid4().hex + uuid.uuid4().hex
+    if not doc.get("pdf_token"):
+        await db.comunicazioni_capitaneria.update_one({"id": cid}, {"$set": {"pdf_token": token}})
+    con_allegato = bool(os.environ.get("SMTP_HOST"))
+    link = f"{_public_base(request)}/api/capitaneria/pubblico/{token}.pdf"
     porto_nome = PORTI[doc["porto"]]["nome"]
     ops = " / ".join([x for x, on in (("alaggio", doc.get("alaggio")), ("varo", doc.get("varo"))) if on]) or "alaggio/varo"
     data_it = "/".join(reversed((doc.get("data_operazione") or "").split("-")))
     subject = f"Comunicazione preventiva {ops} – {porto_nome} – {data_it}"
+    intro = "in allegato" if con_allegato else "si trasmette"
+    blocco_link = ("" if con_allegato else
+                   f'<p style="margin:18px 0"><a href="{link}" style="display:inline-block;padding:10px 18px;background:#0f172a;color:#ffffff;text-decoration:none;border-radius:4px;font-weight:bold">Apri / scarica il modulo PDF (Allegato 1)</a></p>'
+                   f'<p style="font-size:12px;color:#555">Se il pulsante non funziona, copiare questo indirizzo nel browser:<br/>{escape(link)}</p>')
     html = (f'<table role="presentation" width="100%"><tr><td style="padding:24px;font-family:Arial,sans-serif;font-size:14px;color:#0f172a">'
-            f'<p>Buongiorno,</p><p>in allegato la comunicazione preventiva di <strong>{escape(ops)}</strong> con mezzo autogrù '
+            f'<p>Buongiorno,</p><p>{intro} la comunicazione preventiva di <strong>{escape(ops)}</strong> con mezzo autogrù '
             f'(Allegato 1, {escape(doc.get("ordinanza") or s["ordinanza"])}) per il porto di <strong>{escape(porto_nome)}</strong>, '
             f'prevista il giorno <strong>{escape(data_it)}</strong> alle ore <strong>{escape(doc.get("ora_operazione") or "")}</strong>.</p>'
             f'<p>Unità: {escape(doc.get("unita_nome") or "-")} · lunghezza {escape(fmt_mt(doc.get("unita_lunghezza")))}</p>'
+            f'{blocco_link}'
             f'<p>Cordiali saluti,<br/><strong>{escape(doc.get("ditta") or s["ditta"])}</strong><br/>'
             f'{escape(doc.get("resp_nome") or "")} {escape(doc.get("resp_cognome") or "")} · tel. {escape(doc.get("resp_cellulare") or "")}</p>'
             f'</td></tr></table>')
-    pdf = build_comunicazione_capitaneria_pdf(doc, await _cantiere())
-    mid = await send_email(to=to, subject=subject, html=html, attachments=[{"filename": _filename(doc), "bytes": pdf}], from_name=(s.get("email_mittente") or "GEB Nautica").strip())
+    attachments = None
+    if con_allegato:
+        attachments = [{"filename": _filename(doc), "bytes": build_comunicazione_capitaneria_pdf(doc, await _cantiere())}]
+    mid = await send_email(to=to, subject=subject, html=html, attachments=attachments, from_name=(s.get("email_mittente") or "GEB Nautica").strip())
     now = datetime.now(timezone.utc).isoformat()
-    await db.comunicazioni_capitaneria.update_one({"id": cid}, {"$set": {"inviata_at": now, "inviata_a": to}})
-    return {"ok": True, "inviata_a": to, "inviata_at": now, "email_id": mid}
+    await db.comunicazioni_capitaneria.update_one({"id": cid}, {"$set": {"inviata_at": now, "inviata_a": to, "inviata_con_allegato": con_allegato}})
+    return {"ok": True, "inviata_a": to, "inviata_at": now, "email_id": mid, "con_allegato": con_allegato, "link_pdf": link}

@@ -38,6 +38,11 @@ export default function ImpostazioniCapitaneria({ open, onClose, settings, onSav
           <DialogDescription>Dati precompilati nei nuovi moduli e indirizzi email degli uffici per l'invio.</DialogDescription>
         </DialogHeader>
         <div className="space-y-6">
+          <div className={`p-3 rounded-md border text-sm ${s.smtp_configurato ? "border-emerald-300 bg-emerald-50 text-emerald-900" : "border-amber-300 bg-amber-50 text-amber-900"}`} data-testid="cap-smtp-info">
+            {s.smtp_configurato
+              ? "Invio dalla tua casella di posta (SMTP) attivo: il PDF viene allegato alla mail."
+              : "Allegato PDF: il servizio email integrato non supporta gli allegati, quindi la mail contiene un pulsante/link sicuro per aprire e scaricare il modulo PDF. Per allegare il PDF direttamente, configura la tua casella di posta nelle variabili del server (SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASSWORD, SMTP_FROM)."}
+          </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {CAMPI.map(([k, label]) => (
               <div key={k} className={`space-y-1.5 ${k === "ordinanza" ? "md:col-span-2" : ""}`}>

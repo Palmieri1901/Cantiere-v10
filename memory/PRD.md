@@ -702,3 +702,6 @@ Backend spezzato in moduli (`server.py` ora 112 righe, prima 2761):
 
 ## 2026-06 – Overlay "Script error." su cellulare
 - Errore generico cross-origin (script del proxy/CDN, non del codice app) faceva comparire l overlay rosso di sviluppo dopo l invio email (che riusciva). index.js: handler globale che ignora "Script error." senza filename.
+
+## 2026-06 – Capitaneria: PDF nella mail
+- Il proxy email Emergent NON supporta allegati. Ora: se SMTP_HOST configurato → PDF allegato via SMTP; altrimenti la mail contiene pulsante/link pubblico sicuro GET /api/capitaneria/pubblico/{token}.pdf (token 64 hex salvato in pdf_token, router non autenticato). Impostazioni mostrano stato SMTP (smtp_configurato). Fix: PUT impostazioni parziale non azzera più le email degli altri porti.

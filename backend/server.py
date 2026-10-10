@@ -59,6 +59,7 @@ api_router.include_router(capitaneria.router)
 app.include_router(api_router)
 app.include_router(auth_router)
 app.include_router(mobile.router)
+app.include_router(capitaneria.public_router)
 
 app.add_middleware(
     CORSMiddleware,

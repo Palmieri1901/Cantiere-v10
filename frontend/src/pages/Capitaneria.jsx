@@ -68,7 +68,7 @@ export default function Capitaneria() {
     const t = toast.loading("Invio email in corso…");
     try {
       const r = await api.post(`/capitaneria/comunicazioni/${c.id}/invia-email`, null, { timeout: 90000 });
-      toast.success(`Email inviata a ${r.data?.inviata_a || to}`, { id: t });
+      toast.success(r.data?.con_allegato ? `Email con PDF allegato inviata a ${r.data?.inviata_a || to}` : `Email inviata a ${r.data?.inviata_a || to} (con link al PDF)`, { id: t });
     } catch (e) {
       const det = e.response?.data?.detail || (e.code === "ECONNABORTED" ? "tempo scaduto, verifica l'archivio" : e.message);
       toast.error(`Errore invio email: ${det}`, { id: t, duration: 8000 });
