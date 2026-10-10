@@ -56,7 +56,7 @@ export default function RecuperoPin() {
             <Sailboat className="w-8 h-8" strokeWidth={1.8} />
           </div>
           <div className="label-mini mb-1">Gestione Cantiere</div>
-          <h1 className="font-display text-3xl font-semibold tracking-tight">Portomare</h1>
+          <h1 className="font-display text-3xl font-semibold tracking-tight">Gestionale GEBnautica</h1>
         </div>
 
         <Card className="p-8">
@@ -138,7 +138,7 @@ export default function RecuperoPin() {
         </Card>
 
         <p className="text-center text-xs text-muted-foreground mt-6">
-          Portomare · Gestionale Cantiere Nautico
+          Gestionale GEBnautica · Cantiere Nautico
         </p>
       </div>
     </div>

@@ -201,7 +201,7 @@ async def report_pagamenti_pdf(anno: Optional[int] = None, stato: str = "tutti")
     tiny = ParagraphStyle("tiny", parent=styles["Normal"], fontName="Helvetica", fontSize=8, textColor=MUTED, leading=10)
 
     elems = []
-    nome_cantiere = (cantiere_doc.get("nome") or "PORTOMARE").upper()
+    nome_cantiere = (cantiere_doc.get("nome") or "GEBNAUTICA").upper()
     stato_label = {"tutti": "Tutti", "pagati": "Solo pagati", "non_pagati": "Solo non pagati"}[stato]
     anno_label = str(anno) if anno else "Tutti gli anni"
 
@@ -283,7 +283,7 @@ async def report_pagamenti_pdf(anno: Optional[int] = None, stato: str = "tutti")
 
     elems.append(Spacer(1, 8*mm))
     elems.append(Paragraph(
-        f"Documento generato automaticamente da {cantiere_doc.get('nome') or 'Portomare'} — {date.today().strftime('%d/%m/%Y %H:%M')}. "
+        f"Documento generato automaticamente da {cantiere_doc.get('nome') or 'Gestionale GEBnautica'} — {date.today().strftime('%d/%m/%Y %H:%M')}. "
         f"Il totale filtrato include solo i clienti visibili.",
         tiny
     ))

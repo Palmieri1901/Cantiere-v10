@@ -726,3 +726,6 @@ Backend spezzato in moduli (`server.py` ora 112 righe, prima 2761):
 
 ## 2026-06 – Selezione articolo: solo nome ben visibile
 - ArticoloPicker, righe articolo in LavoriSection, NuovoLavoro (PWA) e PreventivoEsternoDialog: nome articolo grande/leggibile, senza codice né giacenza (solo prezzo a destra).
+
+## 2026-06 – Rinominato il programma: Gestionale GEBnautica
+- Sostituito "Portomare" in titolo pagina, login, recupero PIN, sidebar (fallback), manifest PWA, email e PDF di fallback (il nome cantiere reale resta quello di Impostazioni). Cache SW rinominata gebnautica-app-v2.

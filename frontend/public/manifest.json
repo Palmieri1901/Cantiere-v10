@@ -1,6 +1,6 @@
 {
-  "name": "Portomare - App dipendenti",
-  "short_name": "Portomare Lavori",
+  "name": "GEBnautica - App dipendenti",
+  "short_name": "GEBnautica Lavori",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

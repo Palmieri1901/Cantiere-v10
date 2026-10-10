@@ -79,7 +79,7 @@ def build_contratto_pdf_bytes(cliente: dict, cantiere: dict, testo: str, titolo:
     small = ParagraphStyle("small", parent=styles["Normal"], fontName="Helvetica", fontSize=8, textColor=MUTED, leading=10)
 
     elems = []
-    nome_cantiere = (cantiere.get("nome") or "PORTOMARE").upper()
+    nome_cantiere = (cantiere.get("nome") or "GEBNAUTICA").upper()
     contatti_parts = [x for x in [
         cantiere.get("indirizzo"),
         " ".join(filter(None, [cantiere.get("cap"), cantiere.get("citta"),

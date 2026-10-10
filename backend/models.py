@@ -262,7 +262,7 @@ class LavoroCreate(BaseModel):
 class Cantiere(BaseModel):
     model_config = ConfigDict(extra="ignore")
     id: str = Field(default_factory=lambda: "default")
-    nome: str = "Portomare"
+    nome: str = "Gestionale GEBnautica"
     slogan: str = "Cantiere nautico dal 1985"
     indirizzo: str = ""
     citta: str = ""

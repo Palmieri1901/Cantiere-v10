@@ -39,7 +39,7 @@ def _build_storico_pdf(docs: list, cantiere_doc: dict) -> bytes:
 
     elems = []
 
-    nome_cantiere = (cantiere_doc.get("nome") or "PORTOMARE").upper()
+    nome_cantiere = (cantiere_doc.get("nome") or "GEBNAUTICA").upper()
     indirizzo_parts = [x for x in [cantiere_doc.get("indirizzo"), " ".join(filter(None, [cantiere_doc.get("cap"), cantiere_doc.get("citta"), (f"({cantiere_doc.get('provincia')})" if cantiere_doc.get("provincia") else "")])), cantiere_doc.get("telefono"), cantiere_doc.get("email"), cantiere_doc.get("piva") and f"P.IVA {cantiere_doc.get('piva')}"] if x]
     contatti_txt = " · ".join(indirizzo_parts) if indirizzo_parts else ""
     logo_b64 = cantiere_doc.get("logo_base64") or ""
@@ -230,7 +230,7 @@ def _build_preventivo_pdf(doc: dict, lavori_docs: list, cantiere_doc: dict, t_cu
 
     elems = []
 
-    nome_cantiere = (cantiere_doc.get("nome") or "PORTOMARE").upper()
+    nome_cantiere = (cantiere_doc.get("nome") or "GEBNAUTICA").upper()
     indirizzo_parts = [x for x in [cantiere_doc.get("indirizzo"), " ".join(filter(None, [cantiere_doc.get("cap"), cantiere_doc.get("citta"), (f"({cantiere_doc.get('provincia')})" if cantiere_doc.get("provincia") else "")])), cantiere_doc.get("telefono"), cantiere_doc.get("email"), cantiere_doc.get("piva") and f"P.IVA {cantiere_doc.get('piva')}"] if x]
     contatti_txt = " · ".join(indirizzo_parts) if indirizzo_parts else ""
 
@@ -547,7 +547,7 @@ def _build_preventivo_pdf(doc: dict, lavori_docs: list, cantiere_doc: dict, t_cu
     _block("preventivo_condizioni_titolo", "preventivo_condizioni_testo")
 
     elems.append(Spacer(1, 3*mm))
-    footer_name = cantiere_doc.get("nome") or "Portomare"
+    footer_name = cantiere_doc.get("nome") or "Gestionale GEBnautica"
     elems.append(Paragraph(
         f"Documento generato automaticamente da {footer_name} — Gestione Cantiere Nautico. "
         f"Validità 30 giorni dalla data di emissione ({date.today().strftime('%d/%m/%Y')}).",
@@ -574,7 +574,7 @@ def build_conto_esterno_pdf(est: dict, lavori: list, cantiere_doc: dict, anno=No
     small = ParagraphStyle("small", parent=body, fontSize=7.5, textColor=MUTED, leading=9)
     val = ParagraphStyle("val", parent=body, fontName="Helvetica-Bold", fontSize=11)
 
-    nome_cantiere = (cantiere_doc.get("nome") or "PORTOMARE").upper()
+    nome_cantiere = (cantiere_doc.get("nome") or "GEBNAUTICA").upper()
     parts = [x for x in [cantiere_doc.get("indirizzo"), " ".join(filter(None, [cantiere_doc.get("cap"), cantiere_doc.get("citta")])), cantiere_doc.get("telefono"), cantiere_doc.get("email"), cantiere_doc.get("piva") and f"P.IVA {cantiere_doc.get('piva')}"] if x]
     logo_cell = Paragraph(f"<b>{nome_cantiere}</b>", ParagraphStyle("brand", fontName="Helvetica-Bold", fontSize=18, textColor=NAVY))
     logo_b64 = cantiere_doc.get("logo_base64") or ""
@@ -665,7 +665,7 @@ def _build_documento_servizio(cantiere_doc, sottotitolo, blocchi, note, testo, f
     valb = ParagraphStyle("valb", parent=body, fontName="Helvetica-Bold", fontSize=10.5)
     mono = ParagraphStyle("mono", parent=valb, fontName="Courier-Bold", fontSize=12, leading=15)
 
-    nome_cantiere = (cantiere_doc.get("nome") or "PORTOMARE").upper()
+    nome_cantiere = (cantiere_doc.get("nome") or "GEBNAUTICA").upper()
     parts = [x for x in [cantiere_doc.get("indirizzo"), " ".join(filter(None, [cantiere_doc.get("cap"), cantiere_doc.get("citta")])), cantiere_doc.get("telefono"), cantiere_doc.get("email"), cantiere_doc.get("piva") and f"P.IVA {cantiere_doc.get('piva')}"] if x]
     logo_cell = Paragraph(f"<b>{escape(nome_cantiere)}</b>", ParagraphStyle("brand", fontName="Helvetica-Bold", fontSize=17, textColor=NAVY))
     logo_b64 = cantiere_doc.get("logo_base64") or ""
@@ -725,7 +725,7 @@ def build_preventivo_esterno_pdf(p: dict, est: dict, cantiere_doc: dict) -> byte
     body = ParagraphStyle("body", parent=styles["Normal"], fontName="Helvetica", fontSize=9, textColor=NAVY, leading=11.5)
     small = ParagraphStyle("small", parent=body, fontSize=7.5, textColor=MUTED, leading=9)
     h2 = ParagraphStyle("h2", parent=body, fontName="Helvetica-Bold", fontSize=9, textColor=TEAK, spaceBefore=6, spaceAfter=2)
-    nome_cantiere = (cantiere_doc.get("nome") or "PORTOMARE").upper()
+    nome_cantiere = (cantiere_doc.get("nome") or "GEBNAUTICA").upper()
     parts = [x for x in [cantiere_doc.get("indirizzo"), " ".join(filter(None, [cantiere_doc.get("cap"), cantiere_doc.get("citta")])), cantiere_doc.get("telefono"), cantiere_doc.get("email"), cantiere_doc.get("piva") and f"P.IVA {cantiere_doc.get('piva')}"] if x]
     logo_cell = Paragraph(f"<b>{escape(nome_cantiere)}</b>", ParagraphStyle("brand", fontName="Helvetica-Bold", fontSize=17, textColor=NAVY))
     logo_b64 = cantiere_doc.get("logo_base64") or ""

@@ -772,7 +772,7 @@ async def listino_pdf(
     styles = getSampleStyleSheet()
     story = []
 
-    nome_cantiere = cantiere.get("nome") or "Portomare"
+    nome_cantiere = cantiere.get("nome") or "Gestionale GEBnautica"
     story.append(Paragraph(f"<b>{nome_cantiere}</b>", styles["Title"]))
     subtitle = "Listino accessori nautici"
     if fornitore:
@@ -852,7 +852,7 @@ async def ordine_composto_pdf(payload: OrdineComposto):
         gruppi.setdefault(fid, []).append(art)
 
     cantiere = await db.cantiere.find_one({"id": "default"}, {"_id": 0}) or {}
-    nome_cantiere = cantiere.get("nome") or "Portomare"
+    nome_cantiere = cantiere.get("nome") or "Gestionale GEBnautica"
 
     buf = io.BytesIO()
     doc = SimpleDocTemplate(buf, pagesize=A4, leftMargin=15*mm, rightMargin=15*mm, topMargin=15*mm, bottomMargin=15*mm)
@@ -967,7 +967,7 @@ async def ordine_fornitore_pdf(fornitore_id: Optional[str] = None):
     story = []
 
     # Intestazione cantiere
-    nome_cantiere = cantiere.get("nome") or "Portomare"
+    nome_cantiere = cantiere.get("nome") or "Gestionale GEBnautica"
     story.append(Paragraph(f"<b>{nome_cantiere}</b>", styles["Title"]))
     riga_ind = " · ".join(x for x in [
         cantiere.get("indirizzo"),
@@ -1072,7 +1072,7 @@ async def inventario_pdf(data: str = ""):
     styles = getSampleStyleSheet()
     story = []
 
-    nome_cantiere = cantiere.get("nome") or "Portomare"
+    nome_cantiere = cantiere.get("nome") or "Gestionale GEBnautica"
     story.append(Paragraph(f"<b>{nome_cantiere}</b>", styles["Title"]))
     story.append(Paragraph("Inventario magazzino", styles["Heading3"]))
     if data_rif:

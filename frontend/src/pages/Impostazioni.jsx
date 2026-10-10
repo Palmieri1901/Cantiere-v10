@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/alert-dialog";
 
 const FIELDS = [
-  { key: "nome", label: "Nome cantiere *", placeholder: "Es. Cantiere Portomare" },
+  { key: "nome", label: "Nome cantiere *", placeholder: "Es. GEB Nautica" },
   { key: "slogan", label: "Slogan", placeholder: "Es. Cantiere nautico dal 1985" },
   { key: "indirizzo", label: "Indirizzo", placeholder: "Via Marina, 42" },
   { key: "citta", label: "Città", placeholder: "Genova" },

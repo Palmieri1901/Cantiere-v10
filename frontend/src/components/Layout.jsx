@@ -115,7 +115,7 @@ export default function Layout() {
     return () => { window.removeEventListener("pending-changed", load); window.removeEventListener("focus", load); };
   }, [loc.pathname]);
 
-  const brandName = c?.nome || "Portomare";
+  const brandName = c?.nome || "Gestionale GEBnautica";
 
   const handleLogout = async () => {
     await logout();

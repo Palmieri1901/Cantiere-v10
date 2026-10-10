@@ -27,7 +27,7 @@ class LavoriBatch(BaseModel):
 @router.get("/me")
 async def me(dip: dict = Depends(get_dipendente)):
     cant = await db.cantiere.find_one({"id": "default"}, {"_id": 0, "nome": 1}) or {}
-    return {"id": dip["id"], "nome": dip["nome"], "cantiere": cant.get("nome", "Portomare")}
+    return {"id": dip["id"], "nome": dip["nome"], "cantiere": cant.get("nome", "Gestionale GEBnautica")}
 
 
 @router.get("/clienti")

@@ -113,7 +113,7 @@ async def get_smtp_config() -> dict | None:
 def _send_smtp(cfg: dict, to: str, subject: str, html: str, attachments: list | None = None, from_name: str | None = None) -> str:
     host, port, user, password = cfg["host"], int(cfg["port"]), cfg.get("user") or "", cfg.get("password") or ""
     sender = cfg.get("from_email") or user
-    from_name = from_name or os.environ.get("EMAIL_FROM_NAME", "Portomare")
+    from_name = from_name or os.environ.get("EMAIL_FROM_NAME", "Gestionale GEBnautica")
     msg = EmailMessage()
     msg["Subject"] = subject
     msg["From"] = f"{from_name} <{sender}>"
@@ -157,7 +157,7 @@ async def send_email(*, to: str, subject: str, html: str, attachments: list | No
     email_key = os.environ.get("EMERGENT_EMAIL_KEY")
     if not email_key:
         raise HTTPException(status_code=500, detail="Email non configurata: imposta SMTP_HOST nel file .env")
-    from_name = from_name or os.environ.get("EMAIL_FROM_NAME", "Portomare")
+    from_name = from_name or os.environ.get("EMAIL_FROM_NAME", "Gestionale GEBnautica")
     payload = {
         "to": [to],
         "subject": subject,
@@ -185,7 +185,7 @@ async def send_email(*, to: str, subject: str, html: str, attachments: list | No
 
 def build_password_reset_email(reset_link: str, requesting_email: str) -> tuple[str, str]:
     """Restituisce (subject, html) del messaggio di recupero password."""
-    brand = os.environ.get("EMAIL_FROM_NAME", "Portomare")
+    brand = os.environ.get("EMAIL_FROM_NAME", "Gestionale GEBnautica")
     subject = f"{brand} — Recupero password gestionale"
     html = f"""
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f4f6f8;padding:32px 0;font-family:Arial,Helvetica,sans-serif">
