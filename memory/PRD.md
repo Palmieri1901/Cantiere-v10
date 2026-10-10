@@ -684,3 +684,6 @@ Backend spezzato in moduli (`server.py` ora 112 righe, prima 2761):
 
 ## 2026-06 – Comunicazione Capitaneria (nuova sezione Home)
 - Route /capitaneria: modulo Allegato 1 (Ordinanza 61/2023, riferimento modificabile) comunicazione preventiva alaggio/varo, archivio copie in 2 schede (Marina di Campo / Marciana Marina), PDF fedele al modulo, duplica/modifica/elimina, invio email PDF allegato all ufficio (email per porto in Impostazioni, via email_service con attachments). Backend routers/capitaneria.py + pdf_capitaneria.py, collection comunicazioni_capitaneria, settings in app_settings id=capitaneria. Testato iteration_21 (12/12 backend + frontend OK).
+
+## 2026-06 – Modulo Capitaneria fedele all originale + logo
+- pdf_capitaneria.py ora renderizza il template ODS ufficiale (backend/templates/comunicazione_capitaneria.ods) cella per cella (bordi, sfondi gialli/grigi, caselle x, overflow testo) con i valori dinamici sovrascritti per posizione; intestazione con logo e dati azienda sopra il modulo. Dipendenza odfpy.

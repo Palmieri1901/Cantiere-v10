@@ -103,6 +103,10 @@ async def salva_impostazioni(payload: CapitaneriaSettings):
     return await get_settings()
 
 
+async def _cantiere() -> dict:
+    return await db.cantiere.find_one({"id": "default"}, {"_id": 0}) or {}
+
+
 def _check_porto(porto: str):
     if porto not in PORTI:
         raise HTTPException(400, "Porto non valido")
@@ -152,7 +156,7 @@ def _filename(doc: dict) -> str:
 @router.post("/capitaneria/pdf")
 async def pdf_anteprima(payload: ComunicazioneIn):
     _check_porto(payload.porto)
-    pdf = build_comunicazione_capitaneria_pdf(payload.model_dump())
+    pdf = build_comunicazione_capitaneria_pdf(payload.model_dump(), await _cantiere())
     return StreamingResponse(io.BytesIO(pdf), media_type="application/pdf",
                              headers={"Content-Disposition": "inline; filename=comunicazione_capitaneria.pdf"})
 
@@ -162,7 +166,7 @@ async def pdf_comunicazione(cid: str):
     doc = await db.comunicazioni_capitaneria.find_one({"id": cid}, {"_id": 0})
     if not doc:
         raise HTTPException(404, "Comunicazione non trovata")
-    pdf = build_comunicazione_capitaneria_pdf(doc)
+    pdf = build_comunicazione_capitaneria_pdf(doc, await _cantiere())
     return StreamingResponse(io.BytesIO(pdf), media_type="application/pdf",
                              headers={"Content-Disposition": f"attachment; filename={_filename(doc)}"})
 
@@ -188,7 +192,7 @@ async def invia_email(cid: str):
             f'<p>Cordiali saluti,<br/><strong>{escape(doc.get("ditta") or s["ditta"])}</strong><br/>'
             f'{escape(doc.get("resp_nome") or "")} {escape(doc.get("resp_cognome") or "")} · tel. {escape(doc.get("resp_cellulare") or "")}</p>'
             f'</td></tr></table>')
-    pdf = build_comunicazione_capitaneria_pdf(doc)
+    pdf = build_comunicazione_capitaneria_pdf(doc, await _cantiere())
     mid = await send_email(to=to, subject=subject, html=html, attachments=[{"filename": _filename(doc), "bytes": pdf}])
     now = datetime.now(timezone.utc).isoformat()
     await db.comunicazioni_capitaneria.update_one({"id": cid}, {"$set": {"inviata_at": now, "inviata_a": to}})
