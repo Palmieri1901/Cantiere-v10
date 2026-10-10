@@ -130,14 +130,12 @@ export default function LavoriSection({ clienteId }) {
       toast.error("Data e tipo sono obbligatori");
       return;
     }
-    // Valida stock
+    // Quantità valida; se la giacenza non basta si procede comunque: il magazzino andrà in negativo
     for (const a of artSelezionati) {
       if (Number(a.quantita) <= 0) { toast.error(`Quantità non valida per ${a.nome}`); return; }
-      if (Number(a.quantita) > Number(a.giacenza)) {
-        toast.error(`${a.nome}: giacenza insufficiente (${a.giacenza} ${a.giacenza === 1 ? "pz" : "pz"} disponibili)`);
-        return;
-      }
     }
+    const inNegativo = artSelezionati.filter((a) => Number(a.quantita) > Number(a.giacenza));
+    if (inNegativo.length > 0) toast.warning(`${inNegativo.map((a) => a.nome).join(", ")}: giacenza insufficiente, il magazzino andrà in negativo`);
     const payload = {
       ...form,
       costo: Number(form.costo) || 0,
@@ -338,7 +336,7 @@ export default function LavoriSection({ clienteId }) {
                     <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
                       <Package className="w-3 h-3" /> Articoli dal magazzino
                     </Label>
-                    <span className="text-[11px] text-muted-foreground">Salvando verranno scaricati dalla giacenza</span>
+                    <span className="text-[11px] text-muted-foreground">Salvando verranno scaricati dalla giacenza (anche in negativo)</span>
                   </div>
 
                   {artSelezionati.length === 0 ? (
@@ -348,13 +346,13 @@ export default function LavoriSection({ clienteId }) {
                       {artSelezionati.map((a, i) => {
                         const stockKO = Number(a.quantita) > Number(a.giacenza);
                         return (
-                          <div key={a.articolo_id} className={`flex items-center gap-2 text-sm bg-card rounded-md p-2 border ${stockKO ? "border-destructive/50" : "border-border/60"}`} data-testid={`art-mag-row-${i}`}>
+                          <div key={a.articolo_id} className={`flex items-center gap-2 text-sm bg-card rounded-md p-2 border ${stockKO ? "border-amber-400/70 bg-amber-50/40" : "border-border/60"}`} data-testid={`art-mag-row-${i}`}>
                             <div className="flex-1 min-w-0">
                               <div className="font-medium truncate">
                                 {a.codice && <span className="font-mono text-xs text-muted-foreground mr-1.5">[{a.codice}]</span>}
                                 {a.nome}
                               </div>
-                              <div className="text-[10px] text-muted-foreground">Giacenza: {a.giacenza}</div>
+                              <div className={`text-[10px] ${stockKO ? "text-amber-700 font-medium" : "text-muted-foreground"}`}>Giacenza: {a.giacenza}{stockKO ? ` → ${(Number(a.giacenza) - Number(a.quantita)).toLocaleString("it-IT")} (negativa)` : ""}</div>
                             </div>
                             <Input
                               type="number" step="0.01" min="0.01"
@@ -376,7 +374,7 @@ export default function LavoriSection({ clienteId }) {
                             <div className="w-20 text-right font-mono-num text-xs font-semibold">
                               {fmtEuro(Number(a.quantita || 0) * Number(a.prezzo_unitario || 0))}
                             </div>
-                            {stockKO && <AlertTriangle className="w-3.5 h-3.5 text-destructive shrink-0" title="Giacenza insufficiente" />}
+                            {stockKO && <AlertTriangle className="w-3.5 h-3.5 text-amber-600 shrink-0" title="Giacenza insufficiente: il magazzino andrà in negativo" />}
                             <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => removeArt(i)} data-testid={`art-mag-del-${i}`}>
                               <Trash2 className="w-3.5 h-3.5 text-destructive" />
                             </Button>

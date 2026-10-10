@@ -720,3 +720,6 @@ Backend spezzato in moduli (`server.py` ora 112 righe, prima 2761):
 
 ## 2026-06 – App dipendenti: articoli non in magazzino
 - NuovoLavoro.jsx (PWA): riquadro "Altri articoli (non in magazzino)" + pulsante "Aggiungi articolo" (descrizione, q.tà, prezzo); Coda.jsx invia articoli_liberi; dipendenti.py li salva in lavori_pending e li passa a LavoroCreate in approvazione (costo = manodopera + liberi). ApprovaDialog e PendingTab li mostrano. Testato via API: pending → approva → costo 70 (60 manodopera + 10 articoli).
+
+## 2026-06 – Scorte negative consentite nei lavori
+- LavoriSection: rimosso il blocco "giacenza insufficiente"; ora avviso ambra e salvataggio consentito, il magazzino va in negativo (backend già lo permetteva; movimenti e ripristino in eliminazione verificati: 0 → -3 → 0).
