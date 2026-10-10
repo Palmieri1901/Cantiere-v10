@@ -690,3 +690,6 @@ Backend spezzato in moduli (`server.py` ora 112 righe, prima 2761):
 
 ## 2026-06 – Capitaneria: mittente email, ora, misure
 - Mittente email configurabile (Impostazioni → "Nome mittente email", default "GEB Nautica") passato a send_email(from_name). Fix perdita focus nel form (componente Sec spostato fuori dal render). Ora con input type=time; lunghezza/pescaggio/larghezza numerici con suffisso mt, stampati nel PDF come "7,50 mt".
+
+## 2026-06 – Capitaneria: stato invio leggibile da cellulare
+- ArchivioPorto: su schermi piccoli elenco a schede con badge "Inviata gg/mm/aaaa" (verde) o "Da inviare" (ambra) + pulsante "Invia email"; tabella desktop con stesso badge; contatore "N da inviare" nell intestazione.
