@@ -596,7 +596,7 @@ def build_conto_esterno_pdf(est: dict, lavori: list, cantiere_doc: dict, anno=No
         elems.append(Paragraph(contatti, small))
 
     elems.append(Paragraph("DETTAGLIO LAVORI", h2))
-    rows = [["DATA", "LAVORO", "ORE", "IMPORTO"]]
+    rows = [["DATA", "DESCRIZIONE", "Q.TÀ", "PREZZO", "IMPORTO"]]
     totale = 0.0
     ore_tot = 0.0
     for l in lavori:
@@ -606,19 +606,25 @@ def build_conto_esterno_pdf(est: dict, lavori: list, cantiere_doc: dict, anno=No
             testo += f"<br/><font size=7 color='#5B6478'>eseguito da {l['dipendente']}</font>"
         if l.get("materiali"):
             testo += f"<br/><font size=7 color='#5B6478'>Materiali: {l['materiali']}</font>"
-        for it in (l.get("articoli_magazzino") or []):
-            testo += f"<br/><font size=7 color='#5B6478'>· {it.get('nome', '')} × {it.get('quantita'):g} — {_euro(float(it.get('totale') or 0))}</font>"
-        for it in (l.get("articoli_liberi") or []):
-            testo += f"<br/><font size=7 color='#5B6478'>· {it.get('descrizione', '')} × {float(it.get('quantita') or 0):g} — {_euro(float(it.get('totale') or 0))}</font>"
+        articoli = [(it.get("nome", ""), float(it.get("quantita") or 0), float(it.get("prezzo_unitario") or 0), float(it.get("totale") or 0))
+                    for it in (l.get("articoli_magazzino") or [])]
+        articoli += [(it.get("descrizione", ""), float(it.get("quantita") or 0), float(it.get("prezzo_unitario") or 0), float(it.get("totale") or 0))
+                     for it in (l.get("articoli_liberi") or [])]
         ore = float(l.get("ore") or 0)
         costo = float(l.get("costo") or 0)
+        manodopera = costo - sum(a[3] for a in articoli)
         totale += costo
         ore_tot += ore
-        rows.append([l.get("data", ""), Paragraph(testo, body), f"{ore:g}" if ore else "—", _euro(costo)])
+        if ore and manodopera > 0:
+            rows.append([l.get("data", ""), Paragraph(testo + "<br/><font size=7 color='#5B6478'>Manodopera</font>", body), f"{ore:g} h", _euro(manodopera / ore), _euro(manodopera)])
+        else:
+            rows.append([l.get("data", ""), Paragraph(testo, body), "", "", _euro(manodopera)])
+        for nome, qt, pu, tot in articoli:
+            rows.append(["", Paragraph(f"<font color='#5B6478'>· {nome}</font>", body), f"{qt:g}", _euro(pu), _euro(tot)])
     if len(rows) == 1:
-        rows.append(["—", Paragraph("Nessun lavoro registrato", body), "—", _euro(0)])
-    rows.append(["", Paragraph("<b>TOTALE</b>", body), f"{ore_tot:g}" if ore_tot else "", _euro(totale)])
-    tbl = Table(rows, colWidths=[22*mm, 112*mm, 14*mm, 38*mm], repeatRows=1)
+        rows.append(["—", Paragraph("Nessun lavoro registrato", body), "", "", _euro(0)])
+    rows.append(["", Paragraph("<b>TOTALE</b>", body), f"{ore_tot:g} h" if ore_tot else "", "", _euro(totale)])
+    tbl = Table(rows, colWidths=[20*mm, 94*mm, 16*mm, 26*mm, 30*mm], repeatRows=1)
     tbl.setStyle(TableStyle([
         ("BACKGROUND", (0, 0), (-1, 0), NAVY), ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
         ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"), ("FONTSIZE", (0, 0), (-1, -1), 8),

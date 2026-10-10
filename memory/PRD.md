@@ -714,3 +714,6 @@ Backend spezzato in moduli (`server.py` ora 112 righe, prima 2761):
 
 ## 2026-06 – Lavori: articoli non in magazzino con prezzo
 - Lavoro.articoli_liberi [{descrizione, quantita, prezzo_unitario, totale}] (models.py, lavori.py _norm_liberi). Costo lavoro = manodopera + magazzino + liberi; PUT ora riceve costo=manodopera e somma gli articoli lato server. UI LavoriSection: riquadro "Altri articoli (non in magazzino)" con pulsante "Aggiungi articolo" (descrizione, q.tà, prezzo), badge nell elenco, righe nel PDF conto. Testato via API (131 → 115,50 su modifica) e screenshot.
+
+## 2026-06 – Conto cliente esterno: righe articoli
+- PDF conto esterno (pdf_builders build_conto_esterno): colonne DATA/DESCRIZIONE/Q.TÀ/PREZZO/IMPORTO; riga manodopera (ore × tariffa) + una riga per ogni articolo (magazzino e liberi) con quantità, prezzo unitario e importo nella colonna totali.
