@@ -376,7 +376,7 @@ export default function Impostazioni() {
 
       {/* Backup & Restore */}
       <Card className="p-6 mt-6" data-testid="backup-card">
-        <div className="flex items-start justify-between flex-wrap gap-4">
+        <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
           <div className="min-w-0">
             <div className="flex items-center gap-1.5 label-mini mb-2">
               <Database className="w-3.5 h-3.5" /> Backup & Ripristino
@@ -387,15 +387,15 @@ export default function Impostazioni() {
               Puoi conservare il file come archivio o ripristinarlo su un altro dispositivo.
             </p>
           </div>
-          <div className="flex gap-2 shrink-0">
-            <Button asChild variant="outline" data-testid="btn-backup-download">
+          <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto shrink-0">
+            <Button asChild variant="outline" className="w-full sm:w-auto" data-testid="btn-backup-download">
               <a href={`${API}/backup`} download>
                 <Download className="w-4 h-4 mr-2" />
                 Scarica backup
               </a>
             </Button>
             <input ref={restoreRef} type="file" accept="application/json,.json" hidden onChange={onRestoreSelected} data-testid="input-restore-file" />
-            <Button variant="outline" onClick={() => restoreRef.current?.click()} data-testid="btn-restore-open">
+            <Button variant="outline" className="w-full sm:w-auto" onClick={() => restoreRef.current?.click()} data-testid="btn-restore-open">
               <Upload className="w-4 h-4 mr-2" />
               Ripristina da file
             </Button>
