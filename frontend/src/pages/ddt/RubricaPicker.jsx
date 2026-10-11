@@ -25,7 +25,7 @@ export default function RubricaPicker({ indirizzi, value, onPick, onSaved, prefi
   return (
     <div className="flex flex-wrap items-center gap-2">
       <BookUser className="w-4 h-4 text-muted-foreground" />
-      <select className="h-8 rounded-md border border-input bg-background px-2 text-sm flex-1 min-w-[220px]" value="" onChange={(e) => { const a = indirizzi.find((x) => x.id === e.target.value); if (a) onPick(a); }} data-testid={`${prefix}-rubrica`}>
+      <select className="h-8 rounded-md border border-input bg-background px-2 text-sm flex-1 min-w-0 w-full sm:w-auto sm:min-w-[220px]" value="" onChange={(e) => { const a = indirizzi.find((x) => x.id === e.target.value); if (a) onPick(a); }} data-testid={`${prefix}-rubrica`}>
         <option value="">Richiama dalla rubrica…</option>
         {indirizzi.map((a) => <option key={a.id} value={a.id}>{destToText(a)}</option>)}
       </select>

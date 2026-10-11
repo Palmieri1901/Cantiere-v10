@@ -759,3 +759,6 @@ Backend spezzato in moduli (`server.py` ora 112 righe, prima 2761):
 
 ## 2026-06 – Schede mobile DDT, Rubrica e Gommoni
 - DdtTab, RubricaTab, gommoni/CatalogoTab: schede compatte su schermi < md (tabella hidden md:block). Larghezza pagina = schermo.
+
+## 2026-06 – DDT: dialog indirizzo fuori schermo
+- ui/dialog.jsx: DialogContent max-h-[92vh] overflow-y-auto, p-4 sm:p-6 (globale). IndirizzoDialog larghezza adattiva; DdtDialog scroll interno solo da md; select rubrica w-full su mobile. Testato iteration_23.

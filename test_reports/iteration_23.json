@@ -1,0 +1,28 @@
+{
+  "summary": "Frontend-only Playwright regression on BUG fix for DDT dialogs (Rubrica Nuovo indirizzo + Nuovo DDT Cessionario) at viewports mobile 390x740 and desktop_small 1280x600. Login with password 'admin' OK. On /ddt → tab 'Rubrica indirizzi' → 'Nuovo indirizzo' (btn-new-indirizzo), dialog-indirizzo opens with rub-nome visible inside the viewport on BOTH viewports (mobile box x=25,y=110,w=340,h=36 inside 390x740; desktop_small x=329,y=210,w=305,h=36 inside 1280x600). No horizontal page overflow in either case (document.documentElement.scrollWidth == clientWidth). Dialog bounding box fits within viewport width in both cases. Filled nome 'Cliente Test QA', indirizzo 'Via Prova 1', CAP 57030, città 'Marciana', prov 'LI', tel '333'. btn-save-indirizzo scroll_into_view works and click triggers successful save (toast 'Indirizzo salvato' visible, dialog closes, new row/card appears in rubrica). On tab 'Documenti di trasporto' → 'Nuovo DDT' dialog-ddt opens without horizontal page overflow at both viewports; ces-nome and ces-rubrica reachable via scroll_into_view; ces-rubrica fits within viewport width (mobile w=227 within x+w<=viewport, desktop w=882 within 1280). Selecting 'Cliente Test QA · Via Prova 1 · 57030 Marciana (LI)' from ces-rubrica populates ces-nome='Cliente Test QA'. Escape closes dialog cleanly. Cleanup: deleted all 'Cliente Test QA' entries from rubrica via btn-del-indirizzo-* + confirm-ok (2 leftover rows removed), final leftover count=0. BUG FIX VERIFIED on both viewports.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "dialog-ddt mobile 390", "issues": ["ces-nome input reports bounding box width 405px while viewport is 390px (col-span-2 input slightly overflows its grid cell at narrow widths). The input is clipped by DialogContent so page-level horizontal scrollWidth stays equal to clientWidth and functionally the fix works, but the input itself is still slightly cropped on the right at 390px. Minor cosmetic — consider min-w-0 on the grid children or reducing input padding on mobile."]}
+    ]
+  },
+  "test_report_links": [],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "ui/dialog.jsx: max-h-[92vh] overflow-y-auto + p-4 sm:p-6 is the right fix; keeps dialog within viewport and keeps internal scroll working.",
+    "RubricaTab.jsx IndirizzoDialog: w-[calc(100vw-1rem)] sm:w-full with max-w-2xl correctly caps width on mobile. Good.",
+    "DdtDialog.jsx: `md:max-h-[70vh] md:overflow-y-auto` scope limiting internal scroll to desktop is correct; relies on DialogContent's own max-h-[92vh] overflow on mobile — verified in practice.",
+    "DestinatarioFields grid uses md:grid-cols-6 with col-span-2 cells. On mobile (390) with grid-cols-2 the Input inside a col-span-2 wrapper plus Field padding appears to compute to ~405px width exceeding viewport; recommend adding `min-w-0` to the col-span wrappers (`<div className=\"col-span-2 min-w-0 ...\">`) so Inputs inside flex/grid don't push outside. Not a blocker, but a cleaner fix.",
+    "RubricaPicker.jsx: select has `min-w-[220px]` and `flex-1` which stays inside dialog at 390 (confirmed w=227). Good."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "n/a (frontend-only)", "frontend": "100% (all spec checks passed on both viewports)"},
+  "test_credentials": "password 'admin' (per /app/memory/test_credentials.md)",
+  "seed_data_creation": "Created 'Cliente Test QA' indirizzo twice (once per viewport test). Both entries deleted during cleanup via btn-del-indirizzo-* + confirm-ok. Final leftover count = 0.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "The DialogContent fix (max-h-[92vh] overflow-y-auto + mobile padding + dialog max-w-2xl w-[calc(100vw-1rem)]) is working. One minor leftover cosmetic: inside dialog-ddt on 390px viewport, ces-nome input bounding-box width (405) exceeds viewport width (390) because grid children aren't min-w-0; input is clipped by DialogContent so overall page doesn't overflow and user can still type (scrolling the dialog brings it into view). Suggest adding min-w-0 to the col-span wrappers in DestinatarioFields.jsx. Rubrica dialog (IndirizzoDialog) does not have this issue because of its narrower max-w-2xl + different grid.",
+  "rca of the issue": "Original BUG RCA: default shadcn DialogContent had no max-h / overflow-y and used translate centered positioning, which on short viewports (iPhone-ish 390x740 and small 1280x600) pushed first fields (nome/ragione sociale) above the top edge, making them invisible/unfillable. FIX: added max-h-[92vh] overflow-y-auto + reduced mobile padding (p-4 sm:p-6) to global DialogContent, made IndirizzoDialog width adaptive (w-[calc(100vw-1rem)] sm:w-full max-w-2xl), limited DdtDialog internal scroll to md+, and expanded rubrica select full width on mobile. Verified rub-nome and ces-nome are now visible/scrollable-to and btn-save-indirizzo is reachable + saves correctly on both viewports."
+}
