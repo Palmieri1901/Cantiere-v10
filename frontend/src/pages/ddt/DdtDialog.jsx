@@ -54,7 +54,7 @@ export default function DdtDialog({ value, indirizzi, onReloadRubrica, onClose, 
           <DialogTitle>{form.id ? `DDT n. ${form.numero}/${form.anno}` : "Nuovo DDT"}</DialogTitle>
           <DialogDescription>Compila il documento di trasporto; il foglio di destinazione si genera automaticamente dai dati del destinatario.</DialogDescription>
         </DialogHeader>
-        <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-2">
+        <div className="space-y-4 md:max-h-[70vh] md:overflow-y-auto md:pr-2">
           <Card className="p-4">
             <div className="label-mini mb-2">Documento</div>
             <div className="grid grid-cols-2 md:grid-cols-6 gap-3">

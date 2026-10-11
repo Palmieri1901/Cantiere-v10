@@ -25,7 +25,7 @@ function IndirizzoDialog({ value, onClose, onSaved }) {
   };
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-2xl" data-testid="dialog-indirizzo">
+      <DialogContent className="max-w-2xl w-[calc(100vw-1rem)] sm:w-full" data-testid="dialog-indirizzo">
         <DialogHeader><DialogTitle>{form.id ? "Modifica indirizzo" : "Nuovo indirizzo"}</DialogTitle></DialogHeader>
         <div className="space-y-3">
           <DestinatarioFields value={form} onChange={(v) => setForm((f) => ({ ...f, ...v }))} prefix="rub" />
