@@ -2,7 +2,7 @@ import { Clock } from "lucide-react";
 
 const fmtGiorno = (iso) => new Date(iso + "T00:00:00").toLocaleDateString("it-IT", { weekday: "long", day: "numeric", month: "long" });
 
-export default function ElencoEventi({ eventi, tipi, onEvento }) {
+export default function ElencoEventi({ eventi, tipi, onEvento, onGiorno }) {
   const tipo = (id) => tipi.find((t) => t.id === id) || { nome: "Altro", colore: "#6b7280" };
   const gruppi = eventi.reduce((acc, e) => { (acc[e.data] ||= []).push(e); return acc; }, {});
   const giorni = Object.keys(gruppi).sort();
@@ -16,7 +16,7 @@ export default function ElencoEventi({ eventi, tipi, onEvento }) {
         <div className="space-y-4">
           {giorni.map((d) => (
             <div key={d}>
-              <div className="text-sm font-semibold capitalize mb-1.5">{fmtGiorno(d)}</div>
+              <button onClick={() => onGiorno(d)} className="text-sm font-semibold capitalize mb-1.5 hover:text-primary" data-testid={`elenco-giorno-${d}`}>{fmtGiorno(d)}</button>
               <div className="space-y-1.5">
                 {gruppi[d].map((e) => {
                   const t = tipo(e.tipo_id);

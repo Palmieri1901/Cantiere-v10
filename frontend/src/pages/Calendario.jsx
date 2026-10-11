@@ -7,6 +7,7 @@ import MeseGriglia from "@/pages/calendario/MeseGriglia";
 import ElencoEventi from "@/pages/calendario/ElencoEventi";
 import EventoDialog from "@/pages/calendario/EventoDialog";
 import TipiDialog from "@/pages/calendario/TipiDialog";
+import GiornoDialog from "@/pages/calendario/GiornoDialog";
 
 export const MESI = ["Gennaio", "Febbraio", "Marzo", "Aprile", "Maggio", "Giugno", "Luglio", "Agosto", "Settembre", "Ottobre", "Novembre", "Dicembre"];
 const oggi = new Date();
@@ -18,6 +19,7 @@ export default function Calendario() {
   const [tipi, setTipi] = useState([]);
   const [conteggi, setConteggi] = useState({});
   const [editing, setEditing] = useState(null);
+  const [giorno, setGiorno] = useState(null);
   const [tipiOpen, setTipiOpen] = useState(false);
 
   const loadTipi = () => api.get("/calendario/tipi").then((r) => setTipi(r.data));
@@ -66,9 +68,10 @@ export default function Calendario() {
         {tipi.map((t) => <span key={t.id} className="inline-flex items-center gap-1.5 text-xs text-muted-foreground"><span className="w-2.5 h-2.5 rounded-full" style={{ background: t.colore }} /> {t.nome}</span>)}
       </div>
 
-      <MeseGriglia anno={anno} mese={mese} eventi={eventi} tipi={tipi} onGiorno={nuovo} onEvento={setEditing} />
-      <ElencoEventi eventi={eventi} tipi={tipi} onEvento={setEditing} />
+      <MeseGriglia anno={anno} mese={mese} eventi={eventi} tipi={tipi} onGiorno={setGiorno} onEvento={setEditing} />
+      <ElencoEventi eventi={eventi} tipi={tipi} onEvento={setEditing} onGiorno={setGiorno} />
 
+      <GiornoDialog data={giorno} eventi={eventi} tipi={tipi} onClose={() => setGiorno(null)} onNuovo={nuovo} onModifica={setEditing} onChanged={load} />
       <EventoDialog evento={editing} tipi={tipi} onClose={() => setEditing(null)} onSaved={load} />
       <TipiDialog open={tipiOpen} onOpenChange={setTipiOpen} tipi={tipi} onSaved={(t) => { setTipi(t); load(); }} />
     </div>
