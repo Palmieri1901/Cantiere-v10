@@ -3,7 +3,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { Mic, MicOff, Send, Sparkles, Check, X, Volume2, VolumeX, Loader2 } from "lucide-react";
+import { Mic, MicOff, Send, Sparkles, Check, X, Volume2, VolumeX, Loader2, Ear } from "lucide-react";
 import { useVoce } from "./useVoce";
 
 const ESEMPI = ["Scarica 2 filtri olio per Rossi", "Quanti filtri olio ho in magazzino?", "Nuovo lavoro antivegetativa 3 ore a Bianchi", "Appuntamento alaggio Verdi venerdì alle 9", "Che appuntamenti ho domani?"];
@@ -36,7 +36,31 @@ export default function HallWidget({ interpreta, esegui, onCompila, esempi = ESE
     } finally { setBusy(false); }
   }, [testo, busy, msgs, interpreta, voceOn]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const { supportato, ascolto, parziale, avvia, stop, parla } = useVoce({ onFinal: invia });
+  const onErrore = useCallback((msg) => { toast.error(msg, { duration: 8000 }); setMsgs((m) => [...m, { ruolo: "hall", testo: msg, errore: true }]); }, []);
+  const { supportato, ascolto, parziale, avvia, stop, parla, wakeAttivo, avviaWake, stopWake } = useVoce({ onFinal: invia, onErrore });
+  const [wakeOn, setWakeOn] = useState(() => localStorage.getItem("hall_wake") === "on");
+  const inviaRef = useRef(invia); inviaRef.current = invia;
+  const avviaRef = useRef(avvia); avviaRef.current = avvia;
+
+  const onWake = useCallback((resto) => {
+    setOpen(true);
+    if (navigator.vibrate) navigator.vibrate(40);
+    if (resto && resto.split(" ").length >= 2) inviaRef.current(resto);
+    else { parla("Dimmi"); setTimeout(() => avviaRef.current(), 700); }
+  }, [parla]);
+
+  // Riattiva l'ascolto della parola "Hall" quando il pannello è chiuso e non si sta già ascoltando
+  useEffect(() => {
+    if (!wakeOn || !supportato) { stopWake(); return; }
+    if (open || ascolto) { stopWake(); return; }
+    avviaWake(onWake);
+    return stopWake;
+  }, [wakeOn, open, ascolto, supportato, avviaWake, stopWake, onWake]);
+
+  const toggleWake = () => {
+    const n = !wakeOn; setWakeOn(n); localStorage.setItem("hall_wake", n ? "on" : "off");
+    toast[n ? "success" : "info"](n ? "Ascolto attivo: di' «Hall» seguito dal comando" : "Ascolto della parola «Hall» disattivato");
+  };
 
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth" }); }, [msgs, pendente, parziale]);
   useEffect(() => { localStorage.setItem("hall_voce", voceOn ? "on" : "off"); if (!voceOn) window.speechSynthesis?.cancel(); }, [voceOn]);
@@ -55,7 +79,8 @@ export default function HallWidget({ interpreta, esegui, onCompila, esempi = ESE
 
   return (
     <>
-      <button onClick={() => setOpen(true)} className={`fixed right-4 bottom-24 md:bottom-6 z-40 h-14 w-14 rounded-full bg-primary text-primary-foreground shadow-lg shadow-primary/30 grid place-items-center hover:scale-105 active:scale-95 transition-transform ${className}`} title="Hall, assistente vocale" data-testid="hall-fab">
+      <button onClick={() => setOpen(true)} className={`fixed right-4 bottom-24 md:bottom-6 z-40 h-14 w-14 rounded-full bg-primary text-primary-foreground shadow-lg shadow-primary/30 grid place-items-center hover:scale-105 active:scale-95 transition-transform ${className}`} title={wakeAttivo ? "Hall in ascolto: di' «Hall»" : "Hall, assistente vocale"} data-testid="hall-fab">
+        {wakeAttivo && <span className="absolute inset-0 rounded-full border-2 border-primary animate-ping opacity-60" data-testid="hall-wake-indicator" />}
         <Mic className="w-6 h-6" />
       </button>
       <Sheet open={open} onOpenChange={(o) => { setOpen(o); if (!o) { stop(); window.speechSynthesis?.cancel(); } }}>
@@ -63,9 +88,12 @@ export default function HallWidget({ interpreta, esegui, onCompila, esempi = ESE
           <SheetHeader className="px-5 pt-5 pb-3 border-b border-border text-left">
             <div className="flex items-center justify-between gap-2">
               <SheetTitle className="font-display flex items-center gap-2"><span className="w-8 h-8 rounded-full bg-primary/10 grid place-items-center"><Sparkles className="w-4 h-4 text-primary" /></span> Hall</SheetTitle>
-              <Button variant="ghost" size="sm" onClick={() => setVoceOn((v) => !v)} data-testid="hall-toggle-voce">{voceOn ? <Volume2 className="w-4 h-4 mr-1.5" /> : <VolumeX className="w-4 h-4 mr-1.5" />}{voceOn ? "Voce on" : "Voce off"}</Button>
+              <div className="flex items-center gap-1">
+                {supportato && <Button variant={wakeOn ? "default" : "ghost"} size="sm" onClick={toggleWake} className={wakeOn ? "bg-primary hover:bg-primary/90" : ""} data-testid="hall-toggle-wake"><Ear className="w-4 h-4 mr-1.5" />{wakeOn ? "«Hall» attivo" : "Di' «Hall»"}</Button>}
+                <Button variant="ghost" size="sm" onClick={() => setVoceOn((v) => !v)} data-testid="hall-toggle-voce">{voceOn ? <Volume2 className="w-4 h-4 mr-1.5" /> : <VolumeX className="w-4 h-4 mr-1.5" />}{voceOn ? "Voce on" : "Voce off"}</Button>
+              </div>
             </div>
-            <SheetDescription>Detta un comando o una domanda. Le modifiche vengono eseguite solo dopo la tua conferma.</SheetDescription>
+            <SheetDescription>Premi il microfono e detta il comando (oppure scrivi). Con «Di' Hall» attivo basta dire "Hall" seguito dal comando, senza toccare lo schermo. Le modifiche vengono eseguite solo dopo la tua conferma.</SheetDescription>
           </SheetHeader>
 
           <div className="flex-1 overflow-y-auto px-5 py-4 space-y-3" data-testid="hall-messaggi">
