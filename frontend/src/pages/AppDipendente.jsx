@@ -5,6 +5,7 @@ import NuovoLavoro from "@/pages/app-dipendente/NuovoLavoro";
 import Coda from "@/pages/app-dipendente/Coda";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { confirmDialog } from "@/components/ConfirmDialog";
 import { RefreshCw, LogOut, Wifi, WifiOff, Sailboat } from "lucide-react";
 
 export default function AppDipendente() {
@@ -36,6 +37,23 @@ export default function AppDipendente() {
 
   const salvaCoda = (c) => { mobileStore.setCoda(c); setCoda(c); };
 
+  const pendenti = coda.filter((x) => !x.inviato).length;
+
+  useEffect(() => {
+    if (!logged) return;
+    const h = (e) => { e.preventDefault(); e.returnValue = ""; };
+    window.addEventListener("beforeunload", h);
+    return () => window.removeEventListener("beforeunload", h);
+  }, [logged]);
+
+  const esci = async () => {
+    const msg = pendenti > 0
+      ? `Hai ${pendenti} ${pendenti === 1 ? "lavoro non ancora inviato" : "lavori non ancora inviati"} al cantiere. Uscendo dovrai reinserire la chiave: i lavori restano salvati sul telefono. Vuoi uscire?`
+      : "Vuoi uscire dall'app? Per rientrare dovrai reinserire la chiave.";
+    if (!await confirmDialog(msg, { title: "Esci dall'app", okLabel: "Esci" })) return;
+    mobileStore.logout(); setLogged(false);
+  };
+
   const sincronizza = async () => {
     const daInviare = coda.filter((x) => !x.inviato);
     if (daInviare.length === 0) return toast.info("Niente da inviare");
@@ -51,8 +69,6 @@ export default function AppDipendente() {
 
   if (!logged) return <LoginKey onLogged={() => setLogged(true)} />;
 
-  const pendenti = coda.filter((x) => !x.inviato).length;
-
   return (
     <div className="min-h-screen bg-background flex flex-col max-w-lg mx-auto" data-testid="app-dipendente">
       <header className="px-4 py-3 border-b border-border/60 bg-card flex items-center gap-3 sticky top-0 z-10">
@@ -64,7 +80,7 @@ export default function AppDipendente() {
           </div>
         </div>
         <Button size="icon" variant="ghost" onClick={() => aggiornaDati(false)} title="Aggiorna clienti" data-testid="btn-aggiorna-dati"><RefreshCw className="w-4 h-4" /></Button>
-        <Button size="icon" variant="ghost" onClick={() => { mobileStore.logout(); setLogged(false); }} title="Esci" data-testid="btn-mobile-logout"><LogOut className="w-4 h-4" /></Button>
+        <Button size="icon" variant="ghost" onClick={esci} title="Esci" data-testid="btn-mobile-logout"><LogOut className="w-4 h-4" /></Button>
       </header>
 
       <main className="flex-1 p-4 pb-24">

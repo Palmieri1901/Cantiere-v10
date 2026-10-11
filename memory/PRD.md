@@ -765,3 +765,6 @@ Backend spezzato in moduli (`server.py` ora 112 righe, prima 2761):
 
 ## 2026-10-11 — Restyling mobile 'Lavori da approvare'
 - ✅ `dipendenti/PendingTab.jsx`: lista trasformata in schede impilate (header data/origine/costo, cliente a tutta larghezza, chip Dipendente/Ore/Articoli, pulsanti Approva/Rifiuta a tutta larghezza in fondo). `Dipendenti.jsx`: tab a capo, padding/titolo ridotti su mobile. Verificato con screenshot 412px.
+
+## 2026-10-11 — App dipendente: conferma uscita
+- ✅ `AppDipendente.jsx`: il pulsante Esci apre un ConfirmDialog ('Esci dall'app'), con avviso del numero di lavori non ancora inviati. Aggiunto `beforeunload` quando loggato per chiedere conferma alla chiusura della scheda/app. Verificato con screenshot.
