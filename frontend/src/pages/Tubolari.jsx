@@ -145,7 +145,7 @@ export default function Tubolari() {
             Preventivi per sostituzione tubolari di gommoni con calcolo automatico e PDF.
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           <Button variant="outline" onClick={() => setConfigOpen(true)} data-testid="btn-tubolari-config">
             <Settings2 className="w-4 h-4 mr-1.5" /> Prezzi & Impostazioni
           </Button>

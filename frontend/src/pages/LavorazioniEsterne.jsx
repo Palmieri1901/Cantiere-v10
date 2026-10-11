@@ -87,8 +87,8 @@ export default function LavorazioniEsterne() {
       ) : (
         <div className="border border-border rounded-md divide-y divide-border">
           {visibili.map((e) => (
-            <div key={e.id} className="p-3 flex items-center gap-3 hover:bg-muted/40 cursor-pointer" onClick={() => setOpen(e)} data-testid={`esterno-row-${e.id}`}>
-              <div className="flex-1 min-w-0">
+            <div key={e.id} className="p-3 flex items-center gap-3 flex-wrap hover:bg-muted/40 cursor-pointer" onClick={() => setOpen(e)} data-testid={`esterno-row-${e.id}`}>
+              <div className="flex-1 min-w-[180px]">
                 <div className="font-medium text-sm">{e.nome}{e.telefono && <span className="text-muted-foreground font-normal"> · {e.telefono}</span>}</div>
                 <div className="text-xs text-muted-foreground">{e.n} {e.n === 1 ? "lavoro" : "lavori"} · {e.ore} h{e.ultimo ? ` · ultimo ${e.ultimo}` : ""}{e.note ? ` · ${e.note}` : ""}</div>
               </div>

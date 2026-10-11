@@ -76,7 +76,7 @@ export default function Mezzi() {
             <Button size="sm" variant="outline" className="rounded-l-none border-l-0 px-2 text-destructive" onClick={() => eliminaMezzo(m)} title="Elimina" data-testid={`mezzo-del-${m.id}`}><Trash2 className="w-3 h-3" /></Button>
           </div>
         ))}
-        {mezzi.length === 0 && <span className="text-sm text-muted-foreground">Nessun mezzo: aggiungine uno con il pulsante "Mezzo".</span>}
+        {mezzi.length === 0 && <span className="text-muted-foreground text-sm basis-full">Nessun mezzo: aggiungine uno con il pulsante "Mezzo".</span>}
       </div>
 
       <TabellaAnno r={riep} meseSel={mese} onMese={setMese} />

@@ -747,3 +747,6 @@ Backend spezzato in moduli (`server.py` ora 112 righe, prima 2761):
 
 ## 2026-06 – Home: scheda backup su mobile
 - Home.jsx: card "Backup completo & Ripristino" e promemoria backup con pulsanti impilati a tutta larghezza su schermi piccoli.
+
+## 2026-06 – Controllo mobile completo (390px)
+- Verificate tutte le pagine e i tab con script di overflow: corretti TabsList (flex-wrap, h-auto globale in ui/tabs.jsx), pulsanti header Tubolari e Magazzino (flex-wrap), riga clienti esterni (flex-wrap), Home/Impostazioni backup. Tabelle larghe restano scorrevoli orizzontalmente nel loro riquadro senza allargare la pagina.

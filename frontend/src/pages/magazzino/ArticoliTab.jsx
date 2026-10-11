@@ -319,7 +319,7 @@ export default function ArticoliTab() {
           <Button variant="outline" onClick={() => setRicarichiOpen(true)} data-testid="btn-ricarichi-categoria">
             <Percent className="w-4 h-4 mr-1.5" /> Ricarichi categoria
           </Button>
-          <div className="ml-auto flex gap-2">
+          <div className="ml-auto flex gap-2 flex-wrap">
             <Button variant="outline" onClick={() => setExportOpen(true)} data-testid="btn-listino-pdf">
               <FileDown className="w-4 h-4 mr-1.5" /> Listino PDF
             </Button>
