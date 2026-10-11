@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { mobileStore, uid } from "@/lib/mobileStore";
 import { Button } from "@/components/ui/button";
 import { ArticoloPicker } from "@/components/ArticoloPicker";
+import { BarcodeButton } from "@/components/BarcodeButton";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -28,6 +29,14 @@ export default function NuovoLavoro({ onSaved }) {
   const cliente = clienti.find((c) => c.id === f.cliente_id) || (f.cliente_nuovo ? { id: "", cognome: f.cliente_nuovo, nome: "", tipo_barca: "Nuovo cliente (non in archivio)" } : null);
 
   const addArt = (id) => { if (!id || f.articoli.some((a) => a.articolo_id === id)) return; set("articoli", [...f.articoli, { articolo_id: id, quantita: 1 }]); };
+  const scansiona = (code) => {
+    const c = code.trim().toLowerCase();
+    const art = articoli.find((a) => (a.barcode || "").toLowerCase() === c || (a.codice || "").toLowerCase() === c);
+    if (!art) return toast.error(`Nessun articolo con codice ${code}: aggiorna i dati o cercalo per nome`);
+    if (f.articoli.some((a) => a.articolo_id === art.id)) set("articoli", f.articoli.map((a) => a.articolo_id === art.id ? { ...a, quantita: (Number(a.quantita) || 0) + 1 } : a));
+    else addArt(art.id);
+    toast.success(`Aggiunto: ${art.nome}`);
+  };
   const addLibero = () => set("articoli_liberi", [...f.articoli_liberi, { descrizione: "", quantita: 1, prezzo_unitario: "" }]);
   const setLibero = (i, k, v) => set("articoli_liberi", f.articoli_liberi.map((x, j) => j === i ? { ...x, [k]: v } : x));
 
@@ -100,7 +109,10 @@ export default function NuovoLavoro({ onSaved }) {
               </div>
             );
           })}
-          <ArticoloPicker articoli={articoli} exclude={f.articoli.map((a) => a.articolo_id)} onSelect={(a) => addArt(a.id)} showPrezzo={false} placeholder="+ Cerca articolo (codice o nome)…" testId="select-mobile-articolo" />
+          <div className="flex gap-2">
+            <div className="flex-1"><ArticoloPicker articoli={articoli} exclude={f.articoli.map((a) => a.articolo_id)} onSelect={(a) => addArt(a.id)} showPrezzo={false} placeholder="+ Cerca articolo (codice o nome)…" testId="select-mobile-articolo" /></div>
+            <BarcodeButton label="" size="icon" className="h-10 w-10 shrink-0" onCode={scansiona} testId="btn-mobile-barcode" />
+          </div>
         </div>
       )}
 

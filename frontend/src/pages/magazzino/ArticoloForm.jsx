@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { toast } from "sonner";
 import { Camera, X, Image as ImageIcon, Package } from "lucide-react";
 import { EMPTY_ART, FormField } from "./common";
+import { BarcodeButton } from "@/components/BarcodeButton";
 
 export default function ArticoloForm({ open, onOpenChange, value, fornitori, onSaved }) {
   const [form, setForm] = useState(EMPTY_ART);
@@ -67,6 +68,12 @@ export default function ArticoloForm({ open, onOpenChange, value, fornitori, onS
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-[65vh] overflow-y-auto pr-1">
           <FormField label="Codice">
             <Input value={form.codice} onChange={(e) => set("codice", e.target.value)} data-testid="input-codice" />
+          </FormField>
+          <FormField label="Codice a barre (EAN)">
+            <div className="flex gap-2">
+              <Input value={form.barcode || ""} onChange={(e) => set("barcode", e.target.value)} placeholder="Scansiona o digita" className="font-mono-num" data-testid="input-barcode" />
+              <BarcodeButton label="" size="icon" onCode={(c) => set("barcode", c)} testId="btn-barcode-articolo" />
+            </div>
           </FormField>
           <FormField label="Fornitore">
             <Select value={form.fornitore_id || "none"} onValueChange={(v) => set("fornitore_id", v === "none" ? null : v)}>

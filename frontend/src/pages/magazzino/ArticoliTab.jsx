@@ -16,10 +16,11 @@ import { toast } from "sonner";
 import {
   Plus, Search, Trash2, Pencil, FileDown, FileSpreadsheet,
   Camera, ScanLine, AlertTriangle, ArrowDownCircle, ArrowUpCircle,
-  Filter, ShoppingCart, Percent,
+  Filter, ShoppingCart, Percent, ScanBarcode,
 } from "lucide-react";
 import { EMPTY_ART } from "./common";
 import ArticoloForm from "./ArticoloForm";
+import ScanBarcodeDialog from "./ScanBarcodeDialog";
 import ScanArticoloDialog from "./ScanArticoloDialog";
 import ScanDDTDialog from "./ScanDDTDialog";
 import RicarichiCategoriaDialog from "./RicarichiCategoriaDialog";
@@ -40,6 +41,7 @@ export default function ArticoliTab() {
   const [editing, setEditing] = useState(null);
   const [confirmDelete, setConfirmDelete] = useState(null);
   const [scanOpen, setScanOpen] = useState(false);
+  const [barcodeOpen, setBarcodeOpen] = useState(false);
   const [ddtOpen, setDdtOpen] = useState(false);
   const [exportForn, setExportForn] = useState("all");
   const [exportCat, setExportCat] = useState("all");
@@ -310,6 +312,9 @@ export default function ArticoliTab() {
           <Button onClick={() => { setEditing({ ...EMPTY_ART }); setFormOpen(true); }} className="bg-primary hover:bg-primary/90" data-testid="btn-nuovo-articolo">
             <Plus className="w-4 h-4 mr-1.5" /> Nuovo articolo
           </Button>
+          <Button variant="outline" onClick={() => setBarcodeOpen(true)} className="border-primary/40 text-primary hover:bg-primary/5" data-testid="btn-scan-barcode">
+            <ScanBarcode className="w-4 h-4 mr-1.5" /> Scansiona codice a barre
+          </Button>
           <Button variant="outline" onClick={() => setScanOpen(true)} data-testid="btn-scan-articolo">
             <Camera className="w-4 h-4 mr-1.5" /> Scan articolo (AI)
           </Button>
@@ -397,6 +402,13 @@ export default function ArticoliTab() {
         value={editing}
         fornitori={fornitori}
         onSaved={() => { setFormOpen(false); load(); }}
+      />
+      <ScanBarcodeDialog
+        open={barcodeOpen}
+        onOpenChange={setBarcodeOpen}
+        onChanged={load}
+        onEdit={(a) => { setEditing(a); setFormOpen(true); }}
+        onNuovo={(code) => { setEditing({ ...EMPTY_ART, barcode: code }); setFormOpen(true); }}
       />
 
       <ScanArticoloDialog

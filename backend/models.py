@@ -502,6 +502,7 @@ class Articolo(BaseModel):
     model_config = ConfigDict(extra="ignore")
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     codice: str = ""
+    barcode: str = ""
     nome: str
     descrizione: Optional[str] = ""
     categoria: Optional[str] = ""
@@ -519,6 +520,7 @@ class Articolo(BaseModel):
 
 class ArticoloCreate(BaseModel):
     codice: Optional[str] = ""
+    barcode: Optional[str] = ""
     nome: str
     descrizione: Optional[str] = ""
     categoria: Optional[str] = ""
@@ -555,6 +557,8 @@ class MovimentoCreate(BaseModel):
     motivo: Optional[str] = ""
     data: Optional[str] = None
     note: Optional[str] = ""
+    cliente_id: Optional[str] = None
+    cliente_nome: Optional[str] = ""
 
 
 class ScanArticoloRequest(BaseModel):

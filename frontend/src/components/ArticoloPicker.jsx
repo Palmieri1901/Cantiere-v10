@@ -10,7 +10,7 @@ export function ArticoloPicker({ articoli = [], onSelect, placeholder = "Cerca a
     const s = q.trim().toLowerCase();
     if (s.length < 1) return [];
     return articoli
-      .filter((a) => !exclude.includes(a.id) && `${a.codice || ""} ${a.nome || ""} ${a.categoria || ""}`.toLowerCase().includes(s))
+      .filter((a) => !exclude.includes(a.id) && `${a.codice || ""} ${a.barcode || ""} ${a.nome || ""} ${a.categoria || ""}`.toLowerCase().includes(s))
       .slice(0, 12);
   }, [q, articoli, exclude]);
 

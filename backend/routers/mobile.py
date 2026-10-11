@@ -49,7 +49,7 @@ async def clienti(dip: dict = Depends(get_dipendente)):
 
 @router.get("/articoli")
 async def articoli(dip: dict = Depends(get_dipendente)):
-    return await db.articoli.find({}, {"_id": 0, "id": 1, "codice": 1, "nome": 1, "quantita": 1, "unita": 1}).sort("nome", 1).to_list(5000)
+    return await db.articoli.find({}, {"_id": 0, "id": 1, "codice": 1, "barcode": 1, "nome": 1, "quantita": 1, "unita": 1}).sort("nome", 1).to_list(5000)
 
 
 @router.post("/lavori")

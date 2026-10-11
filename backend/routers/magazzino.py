@@ -131,12 +131,24 @@ async def list_articoli(
         query["categoria"] = categoria
     if q:
         rx = {"$regex": re.escape(q), "$options": "i"}
-        query["$or"] = [{"codice": rx}, {"nome": rx}, {"descrizione": rx}]
+        query["$or"] = [{"codice": rx}, {"barcode": rx}, {"nome": rx}, {"descrizione": rx}]
     docs = await db.articoli.find(query, {"_id": 0}).sort("nome", 1).to_list(5000)
     articoli = [Articolo(**_to_dt(d)) for d in docs]
     if sotto_scorta:
         articoli = [a for a in articoli if a.quantita <= a.scorta_minima]
     return articoli
+
+
+@router.get("/articoli/barcode/{codice}")
+async def articolo_by_barcode(codice: str):
+    c = codice.strip()
+    if not c:
+        raise HTTPException(400, "Codice vuoto")
+    rx = {"$regex": f"^{re.escape(c)}$", "$options": "i"}
+    doc = await db.articoli.find_one({"$or": [{"barcode": rx}, {"codice": rx}]}, {"_id": 0})
+    if not doc:
+        return {"trovato": False, "codice": c}
+    return {"trovato": True, "codice": c, "articolo": Articolo(**_to_dt(doc)).model_dump()}
 
 
 @router.get("/articoli/categorie", response_model=List[str])
@@ -225,6 +237,8 @@ async def create_movimento(payload: MovimentoCreate):
         motivo=payload.motivo or "",
         data=payload.data or datetime.now().strftime("%Y-%m-%d"),
         note=payload.note or "",
+        cliente_id=payload.cliente_id,
+        cliente_nome=payload.cliente_nome or "",
     )
     await db.movimenti_magazzino.insert_one(mv.model_dump())
     await db.articoli.update_one(

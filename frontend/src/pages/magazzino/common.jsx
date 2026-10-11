@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import { Eye, EyeOff, Copy } from "lucide-react";
 
 export const EMPTY_ART = {
-  codice: "", nome: "", descrizione: "", categoria: "",
+  codice: "", barcode: "", nome: "", descrizione: "", categoria: "",
   fornitore_id: null, prezzo_acquisto: 0, prezzo_listino: 0,
   quantita: 0, scorta_minima: 0, unita_misura: "pz",
   immagine_base64: "", note: "",
