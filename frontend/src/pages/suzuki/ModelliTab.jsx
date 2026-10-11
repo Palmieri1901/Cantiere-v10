@@ -87,7 +87,34 @@ export default function ModelliTab() {
         </Button>
       </div>
 
-      <Card className="overflow-hidden">
+      {/* Schede compatte per telefono */}
+      <div className="md:hidden space-y-2" data-testid="modelli-cards-mobile">
+        {!loading && filtered.map((m) => {
+          const netto = m.prezzo_listino * (1 - (m.sconto_perc_1 || 0) / 100) * (1 - (m.sconto_perc_2 || 0) / 100);
+          return (
+            <Card key={m.id} className="p-3" data-testid={`card-modello-${m.id}`}>
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <div className="font-semibold leading-tight">{m.modello} <span className="font-mono-num text-muted-foreground font-normal">{m.potenza_hp ? `${m.potenza_hp} HP` : ""}</span></div>
+                  <div className="text-xs text-muted-foreground">{[m.codice, m.categoria].filter(Boolean).join(" · ") || "—"}</div>
+                  {Number(m.prezzo_offerta) > 0 && <span className="mt-1 inline-flex items-center rounded-full bg-orange-100 text-orange-700 text-[10px] font-bold px-2 py-0.5 uppercase">Offerta {fmt(m.prezzo_offerta)}</span>}
+                </div>
+                <div className="text-right shrink-0">
+                  <div className="font-mono-num font-semibold text-primary">{fmt(netto)}</div>
+                  <div className="text-[11px] text-muted-foreground font-mono-num">listino {fmt(m.prezzo_listino)}{m.sconto_perc_1 ? ` · −${m.sconto_perc_1}%` : ""}{m.sconto_perc_2 ? ` −${m.sconto_perc_2}%` : ""}</div>
+                </div>
+              </div>
+              <div className="flex justify-end gap-1 mt-1">
+                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setEditing({ ...m })} data-testid={`m-edit-${m.id}`}><Pencil className="w-3.5 h-3.5" /></Button>
+                <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => remove(m.id)} data-testid={`m-del-${m.id}`}><Trash2 className="w-3.5 h-3.5" /></Button>
+              </div>
+            </Card>
+          );
+        })}
+        {!loading && filtered.length === 0 && <Card className="p-8 text-center text-muted-foreground">Nessun modello.</Card>}
+      </div>
+
+      <Card className="overflow-hidden hidden md:block">
         <div className="overflow-x-auto">
           <table className="w-full text-sm" data-testid="table-modelli">
             <thead className="bg-muted/50 text-xs uppercase tracking-wider text-muted-foreground">

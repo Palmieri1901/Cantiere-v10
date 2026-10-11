@@ -750,3 +750,6 @@ Backend spezzato in moduli (`server.py` ora 112 righe, prima 2761):
 
 ## 2026-06 – Controllo mobile completo (390px)
 - Verificate tutte le pagine e i tab con script di overflow: corretti TabsList (flex-wrap, h-auto globale in ui/tabs.jsx), pulsanti header Tubolari e Magazzino (flex-wrap), riga clienti esterni (flex-wrap), Home/Impostazioni backup. Tabelle larghe restano scorrevoli orizzontalmente nel loro riquadro senza allargare la pagina.
+
+## 2026-06 – Schede mobile: clienti e Suzuki
+- Clienti.jsx e suzuki/ModelliTab.jsx: su schermi < md elenco a schede compatte (nome, posto/barca/lunghezza, badge sosta/pagamento, totale, azioni); tabella nascosta su mobile (hidden md:block). Nessuno scorrimento laterale.

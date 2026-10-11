@@ -273,7 +273,46 @@ export default function Clienti() {
         </div>
       </Card>
 
-      <Card className="overflow-hidden">
+      {/* Schede compatte per telefono */}
+      <div className="md:hidden space-y-3" data-testid="clienti-cards-mobile">
+        {!loading && filtered.map((c) => (
+          <Card key={c.id} className="p-3 space-y-2" data-testid={`card-cliente-${c.id}`}>
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0">
+                <div className="font-semibold text-base leading-tight">{c.cognome} {c.nome}</div>
+                <div className="text-xs text-muted-foreground">{c.posto_barca ? `Posto #${String(c.posto_barca).padStart(3, "0")} · ` : ""}{c.tipo_barca} · {c.lunghezza} m{c.telefono ? ` · ${c.telefono}` : ""}</div>
+              </div>
+              <div className="font-mono-num font-semibold text-right shrink-0">{fmtEuro(totale(c))}</div>
+            </div>
+            <div className="flex items-center justify-between gap-2 flex-wrap">
+              <div className="flex gap-1.5 flex-wrap">
+                <Badge variant="outline" className={c.tipo_sosta === "dentro" ? "border-primary/50 text-primary bg-primary/5" : c.tipo_sosta === "fuori_sede" ? "border-chart-3/50 text-chart-3 bg-chart-3/5" : "border-chart-2/50"}>
+                  {c.tipo_sosta === "dentro" ? "Coperto" : c.tipo_sosta === "fuori_sede" ? "Fuori sede" : c.tipo_sosta === "temporanea" ? "Piazzale (temp.)" : "Su piazzale"}
+                </Badge>
+                {c.pagato
+                  ? <Badge className="bg-emerald-100 text-emerald-800 border-emerald-300 hover:bg-emerald-100"><CheckCircle2 className="w-3 h-3 mr-1" /> Pagato</Badge>
+                  : <Badge variant="outline" className="border-destructive/40 text-destructive bg-destructive/5"><XCircle className="w-3 h-3 mr-1" /> Non pagato</Badge>}
+              </div>
+              <div className="flex gap-0.5">
+                <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => togglePagato(c)} data-testid={`m-toggle-pagato-${c.id}`}>{c.pagato ? <XCircle className="w-4 h-4 text-destructive" /> : <CheckCircle2 className="w-4 h-4 text-emerald-600" />}</Button>
+                <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setDettaglio(c)} data-testid={`m-dettaglio-${c.id}`}><Eye className="w-4 h-4" /></Button>
+                <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => openPdfPreview(c, "preventivo")} data-testid={`m-pdf-${c.id}`}><FileText className="w-4 h-4" /></Button>
+                <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => openPdfPreview(c, "contratto")} data-testid={`m-pdf-contratto-${c.id}`}><FileSignature className="w-4 h-4" /></Button>
+                <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => { setEditing(c); setFormOpen(true); }} data-testid={`m-edit-${c.id}`}><Pencil className="w-4 h-4" /></Button>
+                <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setDeleteTarget(c)} data-testid={`m-delete-${c.id}`}><Trash2 className="w-4 h-4 text-destructive" /></Button>
+              </div>
+            </div>
+          </Card>
+        ))}
+        {!loading && filtered.length === 0 && (
+          <Card className="p-8 text-center">
+            <div className="text-muted-foreground mb-3">Nessun cliente trovato.</div>
+            <Button variant="outline" onClick={() => { setEditing(null); setFormOpen(true); }}><Plus className="w-4 h-4 mr-2" /> Aggiungi il primo cliente</Button>
+          </Card>
+        )}
+      </div>
+
+      <Card className="overflow-hidden hidden md:block">
         <Table>
           <TableHeader>
             <TableRow className="bg-muted/40">
