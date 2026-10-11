@@ -738,3 +738,6 @@ Backend spezzato in moduli (`server.py` ora 112 righe, prima 2761):
 
 ## 2026-06 – Listino PDF compatto
 - /tariffe/listino.pdf: gruppi distribuiti su due colonne bilanciate, font/padding ridotti; resta in 1 pagina A4 anche con 6 servizi extra.
+
+## 2026-06 – Listino PDF: logo grande a sinistra
+- Intestazione listino: logo 42x32mm a sinistra, nome azienda e contatti subito a destra del logo.

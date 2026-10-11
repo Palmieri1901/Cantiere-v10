@@ -154,15 +154,17 @@ async def listino_prezzi_pdf():
         try:
             import base64 as _b64
             raw = _b64.b64decode(logo_b64.split(",")[-1] if "," in logo_b64 else logo_b64)
-            img = Image(io.BytesIO(raw), width=22*mm, height=22*mm, kind="proportional")
-            header_tbl = Table([[left_col, img]], colWidths=[150*mm, 30*mm])
+            img = Image(io.BytesIO(raw), width=42*mm, height=32*mm, kind="proportional")
+            img.hAlign = "LEFT"
+            header_tbl = Table([[img, left_col]], colWidths=[46*mm, 134*mm])
         except Exception:
             header_tbl = Table([[left_col, ""]], colWidths=[150*mm, 30*mm])
     else:
         header_tbl = Table([[left_col, ""]], colWidths=[150*mm, 30*mm])
     header_tbl.setStyle(TableStyle([
-        ("VALIGN", (0,0), (-1,-1), "TOP"),
-        ("ALIGN", (1,0), (1,0), "RIGHT"),
+        ("VALIGN", (0,0), (-1,-1), "MIDDLE"),
+        ("ALIGN", (0,0), (0,0), "LEFT"),
+        ("LEFTPADDING", (0,0), (-1,-1), 0),
         ("TOPPADDING", (0,0), (-1,-1), 0),
         ("BOTTOMPADDING", (0,0), (-1,-1), 0),
     ]))
