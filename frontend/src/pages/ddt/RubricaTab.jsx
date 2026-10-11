@@ -54,7 +54,23 @@ export default function RubricaTab({ indirizzi, onReload }) {
       <div className="flex justify-end">
         <Button onClick={() => setEditing({ ...EMPTY_INDIRIZZO })} className="bg-primary" data-testid="btn-new-indirizzo"><Plus className="w-4 h-4 mr-2" /> Nuovo indirizzo</Button>
       </div>
-      <Card className="overflow-hidden">
+      <div className="md:hidden space-y-2" data-testid="indirizzi-cards-mobile">
+        {indirizzi.length === 0 && <Card className="p-8 text-center text-muted-foreground">Rubrica vuota.</Card>}
+        {indirizzi.map((a) => (
+          <Card key={a.id} className="p-3 flex items-start justify-between gap-2" data-testid={`card-indirizzo-${a.id}`}>
+            <div className="min-w-0">
+              <div className="font-semibold leading-tight">{a.nome}</div>
+              <div className="text-xs text-muted-foreground">{[a.indirizzo, [a.cap, a.citta, a.provincia && `(${a.provincia})`].filter(Boolean).join(" ")].filter(Boolean).join(" · ") || "—"}</div>
+              <div className="text-xs text-muted-foreground">{[a.telefono, a.codice_cliente && `cod. ${a.codice_cliente}`].filter(Boolean).join(" · ")}</div>
+            </div>
+            <div className="flex gap-1 shrink-0">
+              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setEditing({ ...a })} data-testid={`m-edit-indirizzo-${a.id}`}><Pencil className="w-4 h-4" /></Button>
+              <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => remove(a.id)} data-testid={`m-del-indirizzo-${a.id}`}><Trash2 className="w-4 h-4" /></Button>
+            </div>
+          </Card>
+        ))}
+      </div>
+      <Card className="overflow-hidden hidden md:block">
         <table className="w-full text-sm" data-testid="table-indirizzi">
           <thead className="bg-muted/50 text-xs uppercase tracking-wider text-muted-foreground">
             <tr><th className="text-left px-4 py-3">Nome</th><th className="text-left px-4 py-3">Indirizzo</th><th className="text-left px-4 py-3">Città</th><th className="text-left px-4 py-3">Telefono</th><th className="text-left px-4 py-3">Cod. cliente</th><th className="w-24"></th></tr>

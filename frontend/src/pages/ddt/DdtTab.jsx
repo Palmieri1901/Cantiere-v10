@@ -55,7 +55,30 @@ export default function DdtTab({ indirizzi, onReloadRubrica }) {
         <Button onClick={() => setEditing({ ...EMPTY_DDT, anno, righe: [{ quantita: 1, descrizione: "", prezzo_unitario: 0 }] })} className="bg-primary" data-testid="btn-new-ddt"><Plus className="w-4 h-4 mr-2" /> Nuovo DDT</Button>
       </div>
 
-      <Card className="overflow-hidden">
+      <div className="md:hidden space-y-2" data-testid="ddt-cards-mobile">
+        {items.length === 0 && <Card className="p-8 text-center text-muted-foreground">Nessun DDT per il {anno}.</Card>}
+        {items.map((d) => (
+          <Card key={d.id} className="p-3" data-testid={`card-ddt-${d.id}`}>
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0">
+                <div className="font-mono font-semibold">DDT {d.numero}/{d.anno} <span className="text-muted-foreground font-sans font-normal text-xs">· {d.data}</span></div>
+                <div className="font-semibold leading-tight mt-0.5">{d.cessionario?.nome}</div>
+                <div className="text-xs text-muted-foreground">{destToText({ ...d.cessionario, nome: "" })}</div>
+                <div className="text-xs text-muted-foreground mt-0.5">Dest.: {d.destinazione_idem ? "Idem" : destToText(d.destinazione)}</div>
+                <div className="text-xs mt-0.5">{d.causale || "—"} · {d.righe?.length || 0} righe</div>
+              </div>
+            </div>
+            <div className="flex justify-end gap-1 mt-1">
+              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => open(d, "ddt")} data-testid={`m-pdf-ddt-${d.id}`}><FileText className="w-4 h-4" /></Button>
+              <Button variant="ghost" size="icon" className="h-8 w-8 text-primary" onClick={() => open(d, "foglio")} data-testid={`m-foglio-ddt-${d.id}`}><Tag className="w-4 h-4" /></Button>
+              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setEditing({ ...d })} data-testid={`m-edit-ddt-${d.id}`}><Pencil className="w-4 h-4" /></Button>
+              <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => remove(d.id)} data-testid={`m-del-ddt-${d.id}`}><Trash2 className="w-4 h-4" /></Button>
+            </div>
+          </Card>
+        ))}
+      </div>
+
+      <Card className="overflow-hidden hidden md:block">
         <div className="overflow-x-auto">
           <table className="w-full text-sm" data-testid="table-ddt">
             <thead className="bg-muted/50 text-xs uppercase tracking-wider text-muted-foreground">

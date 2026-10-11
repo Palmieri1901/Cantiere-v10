@@ -52,7 +52,33 @@ export default function CatalogoTab() {
         </Button>
       </div>
 
-      <Card className="overflow-hidden">
+      <div className="md:hidden space-y-2" data-testid="gommoni-cards-mobile">
+        {!loading && items.length === 0 && <Card className="p-8 text-center text-muted-foreground">Nessun gommone.</Card>}
+        {!loading && items.map((m) => (
+          <Card key={m.id} className="p-3" data-testid={`card-gommone-${m.id}`}>
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0">
+                <div className="font-semibold text-base leading-tight">{m.modello}</div>
+                <div className="text-xs text-muted-foreground font-mono-num mt-0.5">
+                  {[m.lunghezza_m && `${m.lunghezza_m} m`, m.larghezza_m && `L ${m.larghezza_m} m`, m.diametro_tubolare_cm && `Ø ${m.diametro_tubolare_cm} cm`, m.portata_persone && `${m.portata_persone} pers.`, m.potenza_max_hp && `${m.potenza_max_hp} HP`].filter(Boolean).join(" · ") || "—"}
+                </div>
+                {m.tessuto && <div className="text-xs text-muted-foreground">{m.tessuto}</div>}
+              </div>
+              <div className="font-mono-num font-semibold text-primary shrink-0">{fmt(m.prezzo_pubblico)}</div>
+            </div>
+            <div className="flex items-center justify-between gap-2 mt-2 flex-wrap">
+              <div className="flex flex-wrap gap-1"><DocumentoButton modello={m} tipo="presentazione" onChanged={load} /><DocumentoButton modello={m} tipo="omologazione" onChanged={load} /></div>
+              <div className="flex gap-1">
+                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => window.open(`${API}/gommoni/caratteristiche.pdf?modello_id=${m.id}&_t=${Date.now()}`, "_blank")} data-testid={`m-scheda-gommone-${m.id}`}><FileText className="w-4 h-4" /></Button>
+                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setEditing({ ...m })} data-testid={`m-edit-gommone-${m.id}`}><Pencil className="w-4 h-4" /></Button>
+                <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => remove(m.id)} data-testid={`m-del-gommone-${m.id}`}><Trash2 className="w-4 h-4" /></Button>
+              </div>
+            </div>
+          </Card>
+        ))}
+      </div>
+
+      <Card className="overflow-hidden hidden md:block">
         <div className="overflow-x-auto">
           <table className="w-full text-sm" data-testid="table-gommoni">
             <thead className="bg-muted/50 text-xs uppercase tracking-wider text-muted-foreground">

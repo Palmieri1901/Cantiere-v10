@@ -756,3 +756,6 @@ Backend spezzato in moduli (`server.py` ora 112 righe, prima 2761):
 
 ## 2026-06 – Gommoni: accessori optional sempre inseribili
 - prezzoAccessorio: taglia senza prezzo specifico → prezzo base; PreventivoGommoneDialog non filtra più gli accessori senza prezzo per la taglia (mostra "prezzo da inserire", importo modificabile). Causa del bug "non mi fa inserire accessori su serie Job".
+
+## 2026-06 – Schede mobile DDT, Rubrica e Gommoni
+- DdtTab, RubricaTab, gommoni/CatalogoTab: schede compatte su schermi < md (tabella hidden md:block). Larghezza pagina = schermo.
