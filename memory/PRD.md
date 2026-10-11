@@ -753,3 +753,6 @@ Backend spezzato in moduli (`server.py` ora 112 righe, prima 2761):
 
 ## 2026-06 – Schede mobile: clienti e Suzuki
 - Clienti.jsx e suzuki/ModelliTab.jsx: su schermi < md elenco a schede compatte (nome, posto/barca/lunghezza, badge sosta/pagamento, totale, azioni); tabella nascosta su mobile (hidden md:block). Nessuno scorrimento laterale.
+
+## 2026-06 – Gommoni: accessori optional sempre inseribili
+- prezzoAccessorio: taglia senza prezzo specifico → prezzo base; PreventivoGommoneDialog non filtra più gli accessori senza prezzo per la taglia (mostra "prezzo da inserire", importo modificabile). Causa del bug "non mi fa inserire accessori su serie Job".

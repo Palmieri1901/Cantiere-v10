@@ -39,12 +39,12 @@ export default function PreventivoGommoneDialog({ value, gommoni, accessori, mot
     setForm((f) => ({ ...f, motore_modello: `Suzuki ${m.modello}`, motore_prezzo: m.prezzo_offerta || m.prezzo_pubblico || 0 }));
   };
   const { taglia, serie } = parseModello(form.modello || "");
-  const accessoriDisponibili = accessori.filter((a) => (!a.serie || !serie || a.serie === serie) && (!taglia || prezzoAccessorio(a, taglia) !== null) && !(form.accessori_serie || []).includes(a.nome));
+  const accessoriDisponibili = accessori.filter((a) => (!a.serie || !serie || a.serie === serie) && !(form.accessori_serie || []).includes(a.nome));
   const addAccessorio = (aid) => {
     const a = accessori.find((x) => x.id === aid);
     if (!a) return;
-    const netto = taglia ? prezzoAccessorio(a, taglia) : (a.prezzo || 0);
-    const diSerie = netto === 0;
+    const netto = taglia ? (prezzoAccessorio(a, taglia) ?? 0) : (a.prezzo || 0);
+    const diSerie = netto === 0 && (a.di_serie || []).includes(taglia);
     const prezzoIncl = diSerie ? 0 : Math.round((netto || 0) * (1 + iva / 100) * 100) / 100;
     setForm((f) => ({ ...f, accessori: [...(f.accessori || []), { accessorio_id: a.id, nome: diSerie ? `${a.nome} (di serie)` : a.nome, prezzo: prezzoIncl, quantita: 1 }] }));
   };
@@ -155,7 +155,8 @@ export default function PreventivoGommoneDialog({ value, gommoni, accessori, mot
                 <option value="">+ Aggiungi accessorio{serie ? ` (serie ${serie}${taglia ? ` · ${taglia}` : ""})` : ""}…</option>
                 {accessoriDisponibili.map((a) => {
                   const n = taglia ? prezzoAccessorio(a, taglia) : a.prezzo;
-                  return <option key={a.id} value={a.id}>{a.nome} — {n === 0 ? "di serie" : `${fmt(n * (1 + iva / 100))} IVA incl.`}</option>;
+                  const diSerie = taglia && (a.di_serie || []).includes(taglia);
+                  return <option key={a.id} value={a.id}>{a.nome} — {diSerie ? "di serie" : n ? `${fmt(n * (1 + iva / 100))} IVA incl.` : "prezzo da inserire"}</option>;
                 })}
               </Select>
             </div>

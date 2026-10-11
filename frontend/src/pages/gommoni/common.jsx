@@ -37,8 +37,8 @@ export const prezzoAccessorio = (a, taglia) => {
   if ((a.di_serie || []).includes(taglia)) return 0;
   const p = (a.prezzi_per_modello || {})[taglia];
   if (p != null && p > 0) return p;
-  if (Object.keys(a.prezzi_per_modello || {}).length === 0 && !(a.di_serie || []).length) return a.prezzo || null;
-  return null;
+  // Taglia senza prezzo specifico: si usa il prezzo base (se presente)
+  return a.prezzo > 0 ? a.prezzo : null;
 };
 
 export const EMPTY_PREV_GOMMONE = {
