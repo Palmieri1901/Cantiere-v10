@@ -25,6 +25,11 @@ async def get_tariffe():
 async def update_tariffe(payload: TariffeUpdate):
     current = await get_tariffe_doc()
     updates = {k: v for k, v in payload.model_dump().items() if v is not None}
+    if "servizi_extra" in updates:
+        updates["servizi_extra"] = [
+            {"nome": str(s.get("nome") or "").strip(), "unita": str(s.get("unita") or "forfait").strip(), "prezzo": float(s.get("prezzo") or 0)}
+            for s in updates["servizi_extra"] if str(s.get("nome") or "").strip()
+        ]
     new_data = current.model_dump()
     new_data.update(updates)
     new_data["updated_at"] = datetime.now(timezone.utc)
@@ -229,6 +234,11 @@ async def listino_prezzi_pdf():
     ]
 
     tariffe_dict = t.model_dump()
+    extra = [s for s in (tariffe_dict.get("servizi_extra") or []) if str(s.get("nome") or "").strip()]
+    if extra:
+        groups.append(("ALTRI SERVIZI", [(str(s["nome"]).strip(), f"__extra_{i}", str(s.get("unita") or "forfait")) for i, s in enumerate(extra)]))
+        for i, s in enumerate(extra):
+            tariffe_dict[f"__extra_{i}"] = float(s.get("prezzo") or 0)
     for titolo, voci in groups:
         elems.append(Paragraph(titolo, h2))
         rows = [["VOCE", "UNITÀ", "IMPORTO"]]

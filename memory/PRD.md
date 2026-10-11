@@ -732,3 +732,6 @@ Backend spezzato in moduli (`server.py` ora 112 righe, prima 2761):
 
 ## 2026-06 – Nuova sezione Consumi e ricavi mezzi
 - routers/mezzi.py: CRUD mezzi (db.mezzi) e movimenti (db.mezzi_movimenti: mezzo_id, data, categoria incasso/carburante/riparazione/biglietti/pedaggio/assicurazione/altro, importo, descrizione); /mezzi/riepilogo (12 mesi + totale anno, filtro mezzo), /mezzi/anni, /mezzi/riepilogo.pdf (A4 orizzontale). Frontend /mezzi (Mezzi.jsx + mezzi/TabellaAnno, MezziDialogs), tile Home + nav. Home riepilogo: mezzi_movimenti.
+
+## 2026-06 – Listino: altri servizi e prezzi
+- Tariffe.servizi_extra [{nome, unita, prezzo}] (models, PUT /tariffe normalizza). Pagina Tariffe: card "Altri servizi e prezzi" con "Aggiungi servizio" (nome, unità, prezzo, elimina). Listino PDF: sezione "ALTRI SERVIZI" in coda. Token test salvato in /app/memory/tmp/tok.
