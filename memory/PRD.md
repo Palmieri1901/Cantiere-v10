@@ -744,3 +744,6 @@ Backend spezzato in moduli (`server.py` ora 112 righe, prima 2761):
 
 ## 2026-06 – Impostazioni: backup su mobile
 - Card Backup & Ripristino: pulsanti impilati a tutta larghezza su schermi piccoli (flex-col, w-full), affiancati da sm in su.
+
+## 2026-06 – Home: scheda backup su mobile
+- Home.jsx: card "Backup completo & Ripristino" e promemoria backup con pulsanti impilati a tutta larghezza su schermi piccoli.

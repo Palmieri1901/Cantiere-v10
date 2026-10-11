@@ -193,23 +193,25 @@ export default function Home() {
       {/* Backup & Ripristino */}
       <div className="max-w-6xl mx-auto px-6 md:px-10 pb-14">
         {backupInfo?.scaduto && (
-          <div className="mb-4 flex items-start gap-3 rounded-lg border-2 border-amber-400 bg-amber-50 px-4 py-3 text-amber-900" data-testid="backup-reminder">
-            <AlertTriangle className="w-5 h-5 shrink-0 mt-0.5 text-amber-600" />
-            <div className="flex-1 text-sm">
-              <div className="font-semibold">Promemoria backup</div>
-              <div>
-                {backupInfo.ultimo_backup
-                  ? <>L'ultimo backup risale a <b>{backupInfo.giorni} giorni</b> fa ({new Date(backupInfo.ultimo_backup).toLocaleDateString("it-IT")}). Ti consigliamo di salvarne uno nuovo.</>
-                  : <>Non è mai stato eseguito un backup. Salva subito una copia di sicurezza di tutti i dati.</>}
+          <div className="mb-4 flex flex-col sm:flex-row items-stretch sm:items-start gap-3 rounded-lg border-2 border-amber-400 bg-amber-50 px-4 py-3 text-amber-900" data-testid="backup-reminder">
+            <div className="flex items-start gap-3 flex-1">
+              <AlertTriangle className="w-5 h-5 shrink-0 mt-0.5 text-amber-600" />
+              <div className="flex-1 text-sm">
+                <div className="font-semibold">Promemoria backup</div>
+                <div>
+                  {backupInfo.ultimo_backup
+                    ? <>L'ultimo backup risale a <b>{backupInfo.giorni} giorni</b> fa ({new Date(backupInfo.ultimo_backup).toLocaleDateString("it-IT")}). Ti consigliamo di salvarne uno nuovo.</>
+                    : <>Non è mai stato eseguito un backup. Salva subito una copia di sicurezza di tutti i dati.</>}
+                </div>
               </div>
             </div>
-            <Button size="sm" onClick={doBackup} disabled={backingUp} className="bg-amber-600 hover:bg-amber-700 text-white shrink-0" data-testid="btn-backup-reminder">
+            <Button size="sm" onClick={doBackup} disabled={backingUp} className="bg-amber-600 hover:bg-amber-700 text-white shrink-0 w-full sm:w-auto" data-testid="btn-backup-reminder">
               <Download className="w-4 h-4 mr-1.5" /> Salva backup ora
             </Button>
           </div>
         )}
         <Card className="p-6" data-testid="home-backup">
-          <div className="flex items-start justify-between flex-wrap gap-4">
+          <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
             <div className="min-w-0">
               <div className="flex items-center gap-1.5 label-mini mb-2">
                 <Database className="w-3.5 h-3.5" /> Backup dati
@@ -227,13 +229,13 @@ export default function Home() {
                 vengono conservate al massimo <b>3 copie</b>, le più vecchie si eliminano automaticamente.
               </p>
             </div>
-            <div className="flex gap-2 shrink-0">
-              <Button variant="outline" size="lg" onClick={doBackup} disabled={backingUp} data-testid="btn-home-backup-download">
+            <div className="flex flex-col sm:flex-row gap-2 w-full lg:w-auto shrink-0">
+              <Button variant="outline" size="lg" className="w-full sm:w-auto" onClick={doBackup} disabled={backingUp} data-testid="btn-home-backup-download">
                 <Download className="w-4 h-4 mr-2" />
                 {backingUp ? "Salvataggio…" : "Salva backup"}
               </Button>
               <input ref={restoreRef} type="file" accept="application/json,.json" hidden onChange={onRestoreSelected} data-testid="input-home-restore-file" />
-              <Button variant="outline" size="lg" onClick={() => restoreRef.current?.click()} data-testid="btn-home-restore-open">
+              <Button variant="outline" size="lg" className="w-full sm:w-auto" onClick={() => restoreRef.current?.click()} data-testid="btn-home-restore-open">
                 <Upload className="w-4 h-4 mr-2" />
                 Recupera backup
               </Button>
