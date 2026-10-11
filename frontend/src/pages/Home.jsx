@@ -4,7 +4,7 @@ import { api, API } from "@/lib/api";
 import { salvaBackupInCartella } from "@/lib/backupFolder";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Sailboat, MapPin, Phone, Mail, Clock, ArrowRight, Anchor, Building2, Globe, Database, Download, Upload, AlertTriangle, Settings, Package, Ship, LifeBuoy, Truck, Smartphone, HardHat, Landmark } from "lucide-react";
+import { Sailboat, MapPin, Phone, Mail, Clock, ArrowRight, Anchor, Building2, Globe, Database, Download, Upload, AlertTriangle, Settings, Package, Ship, LifeBuoy, Truck, Smartphone, HardHat, Landmark, CalendarDays } from "lucide-react";
 import { ModuleTile } from "@/components/ModuleTile";
 import { toast } from "sonner";
 import {
@@ -130,6 +130,7 @@ export default function Home() {
             <ModuleTile to="/ddt" icon={Truck} title="DDT & Destinazione" desc="Documenti di trasporto e rubrica" stat={r?.ddt} statLabel={`DDT ${r?.anno || ""}`} testId="cta-ddt" />
             <ModuleTile to="/capitaneria" icon={Landmark} title="Comunicazione Capitaneria" desc="Alaggio/varo: Marina di Campo e Marciana Marina" stat={r?.capitaneria} statLabel="comunicazioni" testId="cta-capitaneria" />
             <ModuleTile to="/mezzi" icon={Truck} title="Consumi e ricavi mezzi" desc="Camion e mezzi: carburante, riparazioni, pedaggi, incassi" stat={r?.mezzi_movimenti} statLabel={`movimenti ${r?.anno || ""}`} testId="cta-mezzi" />
+            <ModuleTile to="/calendario" icon={CalendarDays} title="Calendario" desc="Appuntamenti, alaggi, vari e scadenze mese per mese" stat={r?.calendario_mese} statLabel="appuntamenti questo mese" testId="cta-calendario" />
           </div>
           <div className="mt-6">
             <Link to="/impostazioni" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors" data-testid="cta-impostazioni">
