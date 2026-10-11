@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { NavLink, Outlet, useLocation, Link, useNavigate } from "react-router-dom";
 import { LayoutDashboard, Users, Grid3x3, Settings2, Sailboat, Building2, Home as HomeIcon, FileBarChart, FileSignature, LogOut, User, Package, Ship, ChevronDown, List, SlidersHorizontal, LifeBuoy, Truck, Smartphone, HardHat, FileBadge, Anchor, CalendarDays } from "lucide-react";
+import HallGestionale from "@/components/hall/HallGestionale";
 import { cn } from "@/lib/utils";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
@@ -250,6 +251,7 @@ export default function Layout() {
         </div>
         <Outlet />
       </main>
+      <HallGestionale />
     </div>
   );
 }

@@ -69,3 +69,23 @@ async def vision(system: str, prompt: str, images_b64: List[str]) -> str:
     if emergent_key:
         return await _emergent(emergent_key, system, prompt, images)
     raise HTTPException(500, "Nessuna chiave AI configurata: imposta GEMINI_API_KEY nel file .env")
+
+
+async def testo(system: str, prompt: str) -> str:
+    """Generazione testo: Claude Sonnet 5 via chiave Emergent, altrimenti Gemini diretto."""
+    emergent_key = os.environ.get("EMERGENT_LLM_KEY", "").strip()
+    if emergent_key:
+        from emergentintegrations.llm.chat import LlmChat, UserMessage, TextDelta, StreamDone
+        from datetime import datetime
+        chat = LlmChat(api_key=emergent_key, session_id=f"hall-{datetime.now().timestamp()}", system_message=system).with_model("anthropic", "claude-sonnet-5")
+        chunks: List[str] = []
+        async for ev in chat.stream_message(UserMessage(text=prompt)):
+            if isinstance(ev, TextDelta):
+                chunks.append(ev.content)
+            elif isinstance(ev, StreamDone):
+                break
+        return "".join(chunks)
+    gemini_key = os.environ.get("GEMINI_API_KEY", "").strip()
+    if gemini_key:
+        return await _gemini_direct(gemini_key, system, prompt, [])
+    raise HTTPException(500, "Nessuna chiave AI configurata")

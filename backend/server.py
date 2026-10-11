@@ -20,7 +20,7 @@ from fastapi import Depends
 from routers import (
     tariffe, clienti, lavori, stats, export,
     cantiere, backup, preventivo, report, anni, contratti, magazzino, tubolari, suzuki, gommoni, ddt,
-    dipendenti, mobile, esterni, servizio, capitaneria, mezzi, aggiornamenti, calendario,
+    dipendenti, mobile, esterni, servizio, capitaneria, mezzi, aggiornamenti, calendario, assistente,
 )
 
 
@@ -58,10 +58,12 @@ api_router.include_router(capitaneria.router)
 api_router.include_router(mezzi.router)
 api_router.include_router(aggiornamenti.router)
 api_router.include_router(calendario.router)
+api_router.include_router(assistente.router)
 
 app.include_router(api_router)
 app.include_router(auth_router)
 app.include_router(mobile.router)
+app.include_router(assistente.mobile_router)
 app.include_router(capitaneria.public_router)
 
 app.add_middleware(

@@ -1,5 +1,6 @@
-import { useMemo, useState } from "react";
-import { mobileStore, uid } from "@/lib/mobileStore";
+import { useCallback, useMemo, useState } from "react";
+import { mobileStore, mobileApi, uid } from "@/lib/mobileStore";
+import HallWidget from "@/components/hall/HallWidget";
 import { Button } from "@/components/ui/button";
 import { ArticoloPicker } from "@/components/ArticoloPicker";
 import { BarcodeButton } from "@/components/BarcodeButton";
@@ -38,6 +39,17 @@ export default function NuovoLavoro({ onSaved }) {
     toast.success(`Aggiunto: ${art.nome}`);
   };
   const addLibero = () => set("articoli_liberi", [...f.articoli_liberi, { descrizione: "", quantita: 1, prezzo_unitario: "" }]);
+  const compilaDaHall = useCallback((p) => {
+    setF((s) => {
+      const cl = p.cliente_id && clienti.find((c) => c.id === p.cliente_id);
+      const arts = (p.articoli || []).filter((a) => articoli.some((x) => x.id === a.articolo_id)).map((a) => ({ articolo_id: a.articolo_id, quantita: Number(a.quantita) || 1 }));
+      return { ...s, cliente_id: cl ? cl.id : s.cliente_id, cliente_nuovo: !cl && p.cliente_nome ? p.cliente_nome : s.cliente_nuovo,
+        tipo: TIPI.includes(p.tipo) ? p.tipo : s.tipo, descrizione: p.descrizione || s.descrizione, ore: p.ore != null ? String(p.ore) : s.ore,
+        articoli: arts.length ? arts : s.articoli };
+    });
+    setQ("");
+  }, [clienti, articoli]);
+  const hallInterpreta = useCallback((testo, storia) => mobileApi().post("/assistente", { testo, storia }, { timeout: 60000 }).then((r) => r.data), []);
   const setLibero = (i, k, v) => set("articoli_liberi", f.articoli_liberi.map((x, j) => j === i ? { ...x, [k]: v } : x));
 
   const salva = () => {
@@ -56,6 +68,7 @@ export default function NuovoLavoro({ onSaved }) {
 
   return (
     <div className="space-y-4" data-testid="nuovo-lavoro-mobile">
+      {navigator.onLine && <HallWidget interpreta={hallInterpreta} esegui={async () => ({})} onCompila={compilaDaHall} esempi={["Lavoro per Rossi, antivegetativa, 3 ore, usato 2 litri di antivegetativa", "Pulizia carena a Bianchi, 2 ore"]} />}
       <div className="space-y-1.5">
         <L>Cliente</L>
         {cliente ? (
