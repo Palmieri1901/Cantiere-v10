@@ -32,7 +32,7 @@ export default function HallWidget({ interpreta, esegui, onCompila, esempi = ESE
       if (r.richiede_conferma && r.azione !== "non_capito") setPendente(r);
       if (voceOn) parla(r.risposta || r.riepilogo);
     } catch (e) {
-      const err = e.response?.data?.detail || "Hall non è raggiungibile al momento";
+      const err = e.response?.data?.detail || "GEB non è raggiungibile al momento";
       setMsgs((m) => [...m, { ruolo: "hall", testo: err, errore: true }]);
     } finally { setBusy(false); }
   }, [testo, busy, msgs, interpreta, voceOn]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -60,7 +60,7 @@ export default function HallWidget({ interpreta, esegui, onCompila, esempi = ESE
 
   const toggleWake = () => {
     const n = !wakeOn; setWakeOn(n); localStorage.setItem("hall_wake", n ? "on" : "off");
-    toast[n ? "success" : "info"](n ? "Ascolto attivo: di' «Hall» seguito dal comando" : "Ascolto della parola «Hall» disattivato");
+    toast[n ? "success" : "info"](n ? "Ascolto attivo: di' «GEB» seguito dal comando" : "Ascolto della parola «GEB» disattivato");
   };
 
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth" }); }, [msgs, pendente, parziale]);
@@ -80,7 +80,7 @@ export default function HallWidget({ interpreta, esegui, onCompila, esempi = ESE
 
   return (
     <>
-      <button onClick={() => { sbloccaAudio(); setOpen(true); }} className={`fixed right-4 bottom-24 md:bottom-6 z-40 h-14 w-14 rounded-full bg-primary text-primary-foreground shadow-lg shadow-primary/30 grid place-items-center hover:scale-105 active:scale-95 transition-transform ${className}`} title={wakeAttivo ? "Hall in ascolto: di' «Hall»" : "Hall, assistente vocale"} data-testid="hall-fab">
+      <button onClick={() => { sbloccaAudio(); setOpen(true); }} className={`fixed right-4 bottom-24 md:bottom-6 z-40 h-14 w-14 rounded-full bg-primary text-primary-foreground shadow-lg shadow-primary/30 grid place-items-center hover:scale-105 active:scale-95 transition-transform ${className}`} title={wakeAttivo ? "GEB in ascolto: di' «GEB»" : "GEB, assistente vocale"} data-testid="hall-fab">
         {wakeAttivo && <span className="absolute inset-0 rounded-full border-2 border-primary animate-ping opacity-60" data-testid="hall-wake-indicator" />}
         <Mic className="w-6 h-6" />
       </button>
@@ -88,20 +88,20 @@ export default function HallWidget({ interpreta, esegui, onCompila, esempi = ESE
         <SheetContent side="bottom" className="h-[85vh] sm:h-[80vh] rounded-t-2xl p-0 flex flex-col max-w-2xl mx-auto" data-testid="hall-sheet">
           <SheetHeader className="px-5 pt-5 pb-3 border-b border-border text-left">
             <div className="flex items-center justify-between gap-2">
-              <SheetTitle className="font-display flex items-center gap-2"><span className="w-8 h-8 rounded-full bg-primary/10 grid place-items-center"><Sparkles className="w-4 h-4 text-primary" /></span> Hall</SheetTitle>
+              <SheetTitle className="font-display flex items-center gap-2"><span className="w-8 h-8 rounded-full bg-primary/10 grid place-items-center"><Sparkles className="w-4 h-4 text-primary" /></span> GEB</SheetTitle>
               <div className="flex items-center gap-1">
-                {supportato && <Button variant={wakeOn ? "default" : "ghost"} size="sm" onClick={toggleWake} className={wakeOn ? "bg-primary hover:bg-primary/90" : ""} data-testid="hall-toggle-wake"><Ear className="w-4 h-4 mr-1.5" />{wakeOn ? "«Hall» attivo" : "Di' «Hall»"}</Button>}
+                {supportato && <Button variant={wakeOn ? "default" : "ghost"} size="sm" onClick={toggleWake} className={wakeOn ? "bg-primary hover:bg-primary/90" : ""} data-testid="hall-toggle-wake"><Ear className="w-4 h-4 mr-1.5" />{wakeOn ? "«GEB» attivo" : "Di' «GEB»"}</Button>}
                 <Button variant="ghost" size="sm" onClick={() => { const n = !voceOn; setVoceOn(n); if (n) { sbloccaAudio(); parla("Audio attivo"); } }} data-testid="hall-toggle-voce">{voceOn ? <Volume2 className="w-4 h-4 mr-1.5" /> : <VolumeX className="w-4 h-4 mr-1.5" />}{voceOn ? "Voce on" : "Voce off"}</Button>
               </div>
             </div>
-            <SheetDescription>Premi il microfono e detta il comando (oppure scrivi). Con «Di' Hall» attivo basta dire "Hall" seguito dal comando, senza toccare lo schermo. Le modifiche vengono eseguite solo dopo la tua conferma.</SheetDescription>
+            <SheetDescription>Premi il microfono e detta il comando (oppure scrivi). Con «Di' GEB» attivo basta dire "GEB" seguito dal comando, senza toccare lo schermo. Le modifiche vengono eseguite solo dopo la tua conferma.</SheetDescription>
           </SheetHeader>
 
           <div className="flex-1 overflow-y-auto px-5 py-4 space-y-3" data-testid="hall-messaggi">
             {inIframe && (
               <div className="rounded-lg border border-amber-300 bg-amber-50 text-amber-900 p-3 text-xs space-y-2" data-testid="hall-avviso-iframe">
                 <div className="font-semibold">Audio e microfono bloccati nell'anteprima</div>
-                <div>Stai usando il gestionale dentro il riquadro di Emergent: il browser non permette voce e microfono in questa modalità. Apri l'app in una scheda a parte per usare Hall a voce.</div>
+                <div>Stai usando il gestionale dentro il riquadro di Emergent: il browser non permette voce e microfono in questa modalità. Apri l'app in una scheda a parte per usare GEB a voce.</div>
                 <Button size="sm" variant="outline" className="border-amber-400 bg-white" onClick={() => window.open(window.location.href, "_blank", "noopener")} data-testid="hall-apri-scheda"><ExternalLink className="w-3.5 h-3.5 mr-1.5" /> Apri in una nuova scheda</Button>
               </div>
             )}
@@ -127,7 +127,7 @@ export default function HallWidget({ interpreta, esegui, onCompila, esempi = ESE
                 </div>
               </div>
             )}
-            {busy && <div className="flex items-center gap-2 text-xs text-muted-foreground"><Loader2 className="w-3.5 h-3.5 animate-spin" /> Hall sta pensando…</div>}
+            {busy && <div className="flex items-center gap-2 text-xs text-muted-foreground"><Loader2 className="w-3.5 h-3.5 animate-spin" /> GEB sta pensando…</div>}
             {ascolto && <div className="text-sm italic text-muted-foreground" data-testid="hall-parziale">{parziale || "Ti ascolto…"}</div>}
             <div ref={endRef} />
           </div>

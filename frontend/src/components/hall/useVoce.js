@@ -62,10 +62,10 @@ export function useVoce({ onFinal, onErrore }) {
     setTimeout(() => { try { synth.resume(); synth.speak(u); } catch { /* ignora */ } }, 80);
   }, []);
 
-  // Ascolto continuo della parola di attivazione "Hall"
+  // Ascolto continuo della parola di attivazione "GEB" (pronunce: geb, gheb, jeb, g e b)
   const wakeRef = useRef(null);
   const [wakeAttivo, setWakeAttivo] = useState(false);
-  const WAKE = /\b(hall|hal|holl|hol|all|al|ol|oll)\b[\s,.:!]*/i;
+  const WAKE = /\b(geb|gheb|jeb|gep|ghep|gebbe|ghebbe|g\.?\s?e\.?\s?b\.?)\b[\s,.:!]*/i;
 
   const stopWake = useCallback(() => { const w = wakeRef.current; wakeRef.current = null; w?.abort(); setWakeAttivo(false); }, []);
 

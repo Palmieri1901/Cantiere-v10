@@ -1,4 +1,4 @@
-"""Assistente vocale 'Hall': interpreta comandi in italiano e li trasforma in azioni sul gestionale."""
+"""Assistente vocale 'GEB': interpreta comandi in italiano e li trasforma in azioni sul gestionale."""
 import json
 import re
 from datetime import datetime, timedelta
@@ -60,7 +60,7 @@ def _system(cl, articoli, tipi_cal, contesto):
 - "info_cliente": {cliente_id} — ricerca, richiede_conferma false""" % (TIPI_LAVORO, righe_tipi)
     azioni_dip = """
 - "compila_lavoro": {cliente_id?, cliente_nome?, tipo (uno di %s), descrizione, ore, articoli: [{articolo_id, quantita}]} — compila il modulo del lavoro sul telefono, richiede_conferma true""" % TIPI_LAVORO if contesto == "dipendente" else ""
-    return f"""Sei Hall, l'assistente vocale del gestionale di un cantiere nautico (rimessaggio barche, gommoni, motori Suzuki).
+    return f"""Sei GEB, l'assistente vocale del gestionale GEBnautica, un cantiere nautico (rimessaggio barche, gommoni, motori Suzuki).
 Oggi è {oggi.strftime('%A %d/%m/%Y')} ({oggi.strftime('%Y-%m-%d')}). Rispondi SOLO con un oggetto JSON valido, senza testo attorno né markdown.
 
 Schema: {{"azione": string, "parametri": object, "riepilogo": string, "risposta": string, "richiede_conferma": boolean}}
@@ -72,7 +72,7 @@ Azioni disponibili:
 - "risposta": {{}} — quando non c'è un'azione (saluti, chiarimenti, dato mancante): spiega in "risposta" cosa manca
 - "non_capito": {{}} — richiesta non comprensibile{azioni_extra}{azioni_dip}
 
-Regole: usa SEMPRE gli id esatti dagli elenchi sotto; abbina i nomi anche se pronunciati in modo approssimativo (dettatura vocale); se il cliente o l'articolo non esiste, usa "risposta" dicendolo. Interpreta date relative (domani, venerdì prossimo). Quantità in numeri. Se mancano dati essenziali (es. cliente per un lavoro) chiedi con "risposta".
+Regole: il comando può iniziare con il tuo nome ("GEB", "Gheb", "Jeb"): ignoralo. Usa SEMPRE gli id esatti dagli elenchi sotto; abbina i nomi anche se pronunciati in modo approssimativo (dettatura vocale); se il cliente o l'articolo non esiste, usa "risposta" dicendolo. Interpreta date relative (domani, venerdì prossimo). Quantità in numeri. Se mancano dati essenziali (es. cliente per un lavoro) chiedi con "risposta".
 
 CLIENTI (id | cognome nome | barca):
 {righe_cl}
@@ -145,14 +145,14 @@ async def _esegui(azione: str, p: dict) -> dict:
         cl = await db.clienti.find_one({"id": p.get("cliente_id")}, {"_id": 0}) if p.get("cliente_id") else None
         mv = await create_movimento(MovimentoCreate(
             articolo_id=p["articolo_id"], tipo="scarico" if azione == "scarico_articolo" else "carico",
-            quantita=float(p.get("quantita", 1)), motivo="Assistente Hall",
+            quantita=float(p.get("quantita", 1)), motivo="Assistente GEB",
             cliente_id=cl["id"] if cl else None, cliente_nome=f"{cl.get('cognome','')} {cl.get('nome','')}".strip() if cl else ""))
         return {"messaggio": f"Fatto. Giacenza aggiornata: {mv.quantita_dopo:g}.", "movimento": mv.model_dump(mode='json')}
     if azione == "nuovo_lavoro":
         lav = await create_lavoro(LavoroCreate(
             cliente_id=p["cliente_id"], data=p.get("data") or datetime.now().strftime("%Y-%m-%d"),
             tipo=p.get("tipo") if p.get("tipo") in TIPI_LAVORO else "Altro", descrizione=p.get("descrizione", ""),
-            ore=float(p.get("ore") or 0), costo=float(p.get("costo") or 0), dipendente="Hall"))
+            ore=float(p.get("ore") or 0), costo=float(p.get("costo") or 0), dipendente="GEB"))
         return {"messaggio": "Lavoro registrato nella scheda del cliente.", "lavoro": lav.model_dump(mode='json')}
     if azione == "nuovo_appuntamento":
         ev = await crea_evento(EventoIn(data=p["data"], ora=p.get("ora") or "", titolo=p.get("titolo") or "Appuntamento", tipo_id=p.get("tipo_id") or "altro", note=p.get("note") or ""))
