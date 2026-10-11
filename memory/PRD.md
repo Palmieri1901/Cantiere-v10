@@ -735,3 +735,6 @@ Backend spezzato in moduli (`server.py` ora 112 righe, prima 2761):
 
 ## 2026-06 – Listino: altri servizi e prezzi
 - Tariffe.servizi_extra [{nome, unita, prezzo}] (models, PUT /tariffe normalizza). Pagina Tariffe: card "Altri servizi e prezzi" con "Aggiungi servizio" (nome, unità, prezzo, elimina). Listino PDF: sezione "ALTRI SERVIZI" in coda. Token test salvato in /app/memory/tmp/tok.
+
+## 2026-06 – Listino PDF compatto
+- /tariffe/listino.pdf: gruppi distribuiti su due colonne bilanciate, font/padding ridotti; resta in 1 pagina A4 anche con 6 servizi extra.

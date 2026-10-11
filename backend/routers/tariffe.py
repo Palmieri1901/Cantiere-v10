@@ -239,32 +239,45 @@ async def listino_prezzi_pdf():
         groups.append(("ALTRI SERVIZI", [(str(s["nome"]).strip(), f"__extra_{i}", str(s.get("unita") or "forfait")) for i, s in enumerate(extra)]))
         for i, s in enumerate(extra):
             tariffe_dict[f"__extra_{i}"] = float(s.get("prezzo") or 0)
+    col_w = [52*mm, 20*mm, 17*mm]
+    group_tables = []
     for titolo, voci in groups:
-        elems.append(Paragraph(titolo, h2))
         rows = [["VOCE", "UNITÀ", "IMPORTO"]]
         for label, key, unit in voci:
             val = tariffe_dict.get(key, 0) or 0
-            rows.append([label, unit, _euro(float(val))])
-        tbl = Table(rows, colWidths=[100*mm, 40*mm, 40*mm])
+            rows.append([Paragraph(label, body), unit, _euro(float(val))])
+        tbl = Table(rows, colWidths=col_w)
         n = len(rows) - 1
         tbl.setStyle(TableStyle([
             ("BACKGROUND", (0,0), (-1,0), NAVY),
             ("TEXTCOLOR", (0,0), (-1,0), colors.white),
             ("FONTNAME", (0,0), (-1,0), "Helvetica-Bold"),
-            ("FONTSIZE", (0,0), (-1,0), 7),
+            ("FONTSIZE", (0,0), (-1,0), 6.5),
             ("ALIGN", (2,0), (2,-1), "RIGHT"),
             ("ALIGN", (1,0), (1,-1), "CENTER"),
             ("FONTNAME", (0,1), (-1,n), "Helvetica"),
-            ("FONTSIZE", (0,1), (-1,n), 8),
+            ("FONTSIZE", (0,1), (-1,n), 7.5),
             ("TEXTCOLOR", (0,1), (-1,n), NAVY),
             ("ROWBACKGROUNDS", (0,1), (-1,n), [colors.white, SAND]),
             ("LINEBELOW", (0,1), (-1,n), 0.3, colors.HexColor("#D9D9D9")),
-            ("TOPPADDING", (0,0), (-1,-1), 1),
-            ("BOTTOMPADDING", (0,0), (-1,-1), 1),
-            ("LEFTPADDING", (0,0), (-1,-1), 6),
-            ("RIGHTPADDING", (0,0), (-1,-1), 6),
+            ("TOPPADDING", (0,0), (-1,-1), 0.8),
+            ("BOTTOMPADDING", (0,0), (-1,-1), 0.8),
+            ("LEFTPADDING", (0,0), (-1,-1), 4),
+            ("RIGHTPADDING", (0,0), (-1,-1), 4),
+            ("VALIGN", (0,0), (-1,-1), "MIDDLE"),
         ]))
-        elems.append(tbl)
+        group_tables.append((len(rows) + 2, [Paragraph(titolo, h2), tbl]))
+
+    # Distribuzione su due colonne bilanciate per altezza (così il listino resta in un foglio A4)
+    left, right, hl, hr = [], [], 0, 0
+    for weight, flow in group_tables:
+        if hl <= hr:
+            left += flow; hl += weight
+        else:
+            right += flow; hr += weight
+    two_col = Table([[left, right]], colWidths=[90*mm, 90*mm])
+    two_col.setStyle(TableStyle([("VALIGN", (0,0), (-1,-1), "TOP"), ("LEFTPADDING", (0,0), (-1,-1), 0), ("RIGHTPADDING", (0,0), (0,0), 3*mm), ("RIGHTPADDING", (1,0), (1,0), 0), ("TOPPADDING", (0,0), (-1,-1), 0)]))
+    elems.append(two_col)
 
     elems.append(Spacer(1, 2*mm))
     elems.append(Paragraph(
