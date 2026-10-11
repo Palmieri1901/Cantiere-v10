@@ -1,0 +1,38 @@
+{
+  "summary": "Full backend + frontend testing of the Hall AI voice assistant. 13/13 backend tests pass (interpreta, esegui whitelist, scarico/carico stock verification, nuovo_appuntamento, nuovo_lavoro, mobile 401, mobile compila_lavoro). Frontend gestionale /: hall-fab visible on Home and /magazzino, hall-sheet opens with 5 example chips + input + send + mic + voice toggle; info-articolo query answered correctly ('Anodo alluminio Suzuki FB: 9 pz …'); scarico shows hall-conferma; cancel removes card without side-effects; confirm executes and 'Fatto. Giacenza aggiornata: 8.' displayed; stock verified via API and restored to 10. Employee app /app-dipendente: localStorage login works, hall-fab visible, Hall confirms and prefills tipo=Pulizia, ore=2, descrizione='Pulizia carena'. However, the CLIENT prefill does NOT match the archive: UI shows 'anselmi paolo — Nuovo cliente (non in archivio)' even though mobile/assistente returns the correct cliente_id (77b24317-...) that IS present in /api/mobile/clienti.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [
+      {
+        "flow": "Employee /app-dipendente → Hall → compila_lavoro",
+        "issue": "compilaDaHall in NuovoLavoro.jsx reads `const clienti = mobileStore.clienti();` only at render time. If sync happens after mount, the component does not re-render on localStorage change, so the useCallback closure captures the stale (empty) list and clienti.find(... === p.cliente_id) returns undefined. Result: cliente_nuovo is set to p.cliente_nome and the UI shows 'Nuovo cliente (non in archivio)' instead of linking to the real client. Reproduced reliably even after clicking the sync button (19 clienti in localStorage) because NuovoLavoro was mounted before sync.",
+        "affected_selectors": ["[data-testid=\"hall-conferma-si\"]", "cliente header text"]
+      }
+    ],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_hall_assistente.py",
+    "/app/test_reports/pytest/hall_results.xml"
+  ],
+  "action_items": [
+    "In frontend/src/pages/app-dipendente/NuovoLavoro.jsx make the clienti/articoli lists reactive (e.g. useSyncExternalStore on localStorage, or re-read inside compilaDaHall: `const list = mobileStore.clienti(); const cl = p.cliente_id && list.find(...)`). Also consider auto-syncing clienti/articoli on first mount when online so the Hall flow works end-to-end without a manual refresh click."
+  ],
+  "critical_code_review_comments": [
+    "assistente.py _parse() silently falls back to non_capito on JSON errors — acceptable, but consider logging the raw LLM output for debugging.",
+    "/api/assistente/esegui whitelist correctly excludes read-only actions; however there is no CSRF/origin check beyond the cookie — fine if cookies are SameSite=Lax (default).",
+    "NuovoLavoro.jsx reads mobileStore.clienti() synchronously each render but there is no subscription mechanism; any localStorage sync won't propagate until an unrelated re-render.",
+    "assistente.py builds a very large system prompt (all clienti+articoli) every call — may hit token limits in future; consider truncation/vector search."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_hall_assistente.py (new)"
+  ],
+  "success_rate": {"backend": "100%", "frontend": "85% (one integration bug on employee app client prefill)"},
+  "test_credentials": "Gestionale password=admin. Temp employee key created and deleted (PM-2K8Q-VM65-TKAU on dipendente id 8e3d3c05-e28b-4862-ae8e-5d063f347839 — cleaned up).",
+  "seed_data_creation": "Created and removed temp dipendente 'TEST_HallUI'. Stock of articolo 7a96b8c2-… restored to 10. Any test events/lavori created in pytest run were deleted by the tests themselves.",
+  "retest_needed": true,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Backend is solid. The only remaining issue is the frontend employee app client prefill race (NuovoLavoro.jsx). After the fix, retest by: (1) login to /app-dipendente with a fresh key, click sync header button, open Hall FAB in Nuovo lavoro tab, 'lavoro per anselmi, pulizia carena 2 ore' → confirm → verify the client header shows 'Anselmi Paolo' and 'gommone' (not 'Nuovo cliente non in archivio').",
+  "rca of the issue": "NuovoLavoro.jsx line 19: `const clienti = mobileStore.clienti();` reads localStorage synchronously at render. mobileStore has no React subscription, so after the user clicks the refresh/sync button (which writes to localStorage), NuovoLavoro doesn't re-render until some other state change. compilaDaHall's useCallback deps [clienti, articoli] therefore keep the stale empty array. When Hall returns cliente_id, `clienti.find(...)` returns undefined → fallback path sets cliente_nuovo. Fix: use useSyncExternalStore or re-read mobileStore.clienti() inside the callback, and/or trigger an auto-sync + state refresh on mount."
+}

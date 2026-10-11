@@ -40,15 +40,16 @@ export default function NuovoLavoro({ onSaved }) {
   };
   const addLibero = () => set("articoli_liberi", [...f.articoli_liberi, { descrizione: "", quantita: 1, prezzo_unitario: "" }]);
   const compilaDaHall = useCallback((p) => {
+    const clientiAgg = mobileStore.clienti(), articoliAgg = mobileStore.articoli();
     setF((s) => {
-      const cl = p.cliente_id && clienti.find((c) => c.id === p.cliente_id);
-      const arts = (p.articoli || []).filter((a) => articoli.some((x) => x.id === a.articolo_id)).map((a) => ({ articolo_id: a.articolo_id, quantita: Number(a.quantita) || 1 }));
-      return { ...s, cliente_id: cl ? cl.id : s.cliente_id, cliente_nuovo: !cl && p.cliente_nome ? p.cliente_nome : s.cliente_nuovo,
+      const cl = p.cliente_id && clientiAgg.find((c) => c.id === p.cliente_id);
+      const arts = (p.articoli || []).filter((a) => articoliAgg.some((x) => x.id === a.articolo_id)).map((a) => ({ articolo_id: a.articolo_id, quantita: Number(a.quantita) || 1 }));
+      return { ...s, cliente_id: cl ? cl.id : s.cliente_id, cliente_nuovo: !cl && p.cliente_nome ? p.cliente_nome : (cl ? "" : s.cliente_nuovo),
         tipo: TIPI.includes(p.tipo) ? p.tipo : s.tipo, descrizione: p.descrizione || s.descrizione, ore: p.ore != null ? String(p.ore) : s.ore,
         articoli: arts.length ? arts : s.articoli };
     });
     setQ("");
-  }, [clienti, articoli]);
+  }, []);
   const hallInterpreta = useCallback((testo, storia) => mobileApi().post("/assistente", { testo, storia }, { timeout: 60000 }).then((r) => r.data), []);
   const setLibero = (i, k, v) => set("articoli_liberi", f.articoli_liberi.map((x, j) => j === i ? { ...x, [k]: v } : x));
 
