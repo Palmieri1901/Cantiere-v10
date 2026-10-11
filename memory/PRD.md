@@ -768,3 +768,9 @@ Backend spezzato in moduli (`server.py` ora 112 righe, prima 2761):
 
 ## 2026-10-11 — App dipendente: conferma uscita
 - ✅ `AppDipendente.jsx`: il pulsante Esci apre un ConfirmDialog ('Esci dall'app'), con avviso del numero di lavori non ancora inviati. Aggiunto `beforeunload` quando loggato per chiedere conferma alla chiusura della scheda/app. Verificato con screenshot.
+
+## 2026-10-11 — Aggiornamento automatico da GitHub (installazione Oracle)
+- ✅ `deploy/updater/` (Dockerfile + updater.py): micro-servizio HTTP (porta 9000, token `UPDATER_TOKEN`) che fa `git fetch` per lo stato, e su `/update`: mongodump pre-update in `deploy/backups/`, `git reset --hard origin/<branch>`, `docker compose up -d --build backend frontend`; `/rollback` torna al commit precedente.
+- ✅ `docker-compose.yml`: nuovo servizio `updater` (monta `${PROJECT_DIR}` allo stesso path + docker.sock); backend riceve `UPDATER_URL`. `.env.example` + INSTALLAZIONE.md §3b aggiornati (PROJECT_DIR, UPDATER_TOKEN, UPDATE_BRANCH).
+- ✅ Backend `routers/aggiornamenti.py` (/api/aggiornamenti/stato|progresso|log|avvia|ripristina) → proxy verso updater; senza env restituisce `disponibile:false` con messaggio "solo su installazione Oracle".
+- ✅ Frontend `impostazioni/AggiornamentiCard.jsx`: versione installata, Controlla aggiornamenti, lista novità, Aggiorna ora (conferma), progresso con polling e ricarica automatica, Ripristina versione precedente. Testato in anteprima con updater locale (stato OK, rollback senza precedente → errore gestito).

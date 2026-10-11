@@ -14,10 +14,26 @@ services:
     env_file: .env
     environment:
       MONGO_URL: mongodb://mongo:27017
+      UPDATER_URL: http://updater:9000
     depends_on:
       - mongo
     expose:
       - "8001"
+
+  # Aggiornamento automatico da GitHub (tasto "Aggiorna ora" in Impostazioni)
+  updater:
+    build:
+      context: ..
+      dockerfile: deploy/updater/Dockerfile
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      PROJECT_DIR: ${PROJECT_DIR}
+    volumes:
+      - ${PROJECT_DIR}:${PROJECT_DIR}
+      - /var/run/docker.sock:/var/run/docker.sock
+    expose:
+      - "9000"
 
   frontend:
     build:

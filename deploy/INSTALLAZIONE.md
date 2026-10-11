@@ -36,6 +36,24 @@ docker compose pull && docker compose up -d --build   # aggiornamento dopo modif
 docker compose down                   # arresto (i dati restano nel volume mongo_data)
 ```
 
+## 3b. Aggiornamento con un tasto (Impostazioni → Aggiornamenti)
+Il servizio `updater` controlla GitHub e, su richiesta, esegue `git pull` + rebuild dei container. Serve che il progetto sia stato
+installato con `git clone` dal repository GitHub (ramo `main`).
+
+Configurazione una tantum nel file `deploy/.env`:
+```
+PROJECT_DIR=/home/ubuntu/portomare      # percorso assoluto della cartella clonata (pwd dentro la cartella)
+UPDATER_TOKEN=$(openssl rand -hex 24)   # token segreto qualsiasi
+UPDATE_BRANCH=main
+```
+Poi, **solo la prima volta**, aggiorna a mano per installare il servizio:
+```bash
+cd /home/ubuntu/portomare && git pull && cd deploy && docker compose up -d --build
+```
+Da quel momento in Impostazioni → Aggiornamenti trovi: versione installata, **Controlla aggiornamenti** (elenco delle novità su GitHub),
+**Aggiorna ora** (backup automatico del DB in `deploy/backups/pre-update-*.gz`, pull, rebuild, ricarica automatica) e
+**Ripristina versione precedente**. Log in `deploy/backups/updater.log`.
+
 ## 4. Backup
 - Il servizio `backup` esegue ogni giorno un `mongodump` in `deploy/backups/` (conservati 14 giorni). Copia questa cartella altrove (NAS, cloud).
 - Dal programma (Home → Backup) puoi sempre salvare/ripristinare un JSON completo.
