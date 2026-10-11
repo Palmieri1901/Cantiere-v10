@@ -37,7 +37,7 @@ export default function HallWidget({ interpreta, esegui, onCompila, esempi = ESE
   }, [testo, busy, msgs, interpreta, voceOn]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const onErrore = useCallback((msg) => { toast.error(msg, { duration: 8000 }); setMsgs((m) => [...m, { ruolo: "hall", testo: msg, errore: true }]); }, []);
-  const { supportato, ascolto, parziale, avvia, stop, parla, wakeAttivo, avviaWake, stopWake } = useVoce({ onFinal: invia, onErrore });
+  const { supportato, ascolto, parziale, avvia, stop, parla, sbloccaAudio, wakeAttivo, avviaWake, stopWake } = useVoce({ onFinal: invia, onErrore });
   const [wakeOn, setWakeOn] = useState(() => localStorage.getItem("hall_wake") === "on");
   const inviaRef = useRef(invia); inviaRef.current = invia;
   const avviaRef = useRef(avvia); avviaRef.current = avvia;
@@ -79,18 +79,18 @@ export default function HallWidget({ interpreta, esegui, onCompila, esempi = ESE
 
   return (
     <>
-      <button onClick={() => setOpen(true)} className={`fixed right-4 bottom-24 md:bottom-6 z-40 h-14 w-14 rounded-full bg-primary text-primary-foreground shadow-lg shadow-primary/30 grid place-items-center hover:scale-105 active:scale-95 transition-transform ${className}`} title={wakeAttivo ? "Hall in ascolto: di' «Hall»" : "Hall, assistente vocale"} data-testid="hall-fab">
+      <button onClick={() => { sbloccaAudio(); setOpen(true); }} className={`fixed right-4 bottom-24 md:bottom-6 z-40 h-14 w-14 rounded-full bg-primary text-primary-foreground shadow-lg shadow-primary/30 grid place-items-center hover:scale-105 active:scale-95 transition-transform ${className}`} title={wakeAttivo ? "Hall in ascolto: di' «Hall»" : "Hall, assistente vocale"} data-testid="hall-fab">
         {wakeAttivo && <span className="absolute inset-0 rounded-full border-2 border-primary animate-ping opacity-60" data-testid="hall-wake-indicator" />}
         <Mic className="w-6 h-6" />
       </button>
-      <Sheet open={open} onOpenChange={(o) => { setOpen(o); if (!o) { stop(); window.speechSynthesis?.cancel(); } }}>
+      <Sheet open={open} onOpenChange={(o) => { setOpen(o); if (!o) stop(); }}>
         <SheetContent side="bottom" className="h-[85vh] sm:h-[80vh] rounded-t-2xl p-0 flex flex-col max-w-2xl mx-auto" data-testid="hall-sheet">
           <SheetHeader className="px-5 pt-5 pb-3 border-b border-border text-left">
             <div className="flex items-center justify-between gap-2">
               <SheetTitle className="font-display flex items-center gap-2"><span className="w-8 h-8 rounded-full bg-primary/10 grid place-items-center"><Sparkles className="w-4 h-4 text-primary" /></span> Hall</SheetTitle>
               <div className="flex items-center gap-1">
                 {supportato && <Button variant={wakeOn ? "default" : "ghost"} size="sm" onClick={toggleWake} className={wakeOn ? "bg-primary hover:bg-primary/90" : ""} data-testid="hall-toggle-wake"><Ear className="w-4 h-4 mr-1.5" />{wakeOn ? "«Hall» attivo" : "Di' «Hall»"}</Button>}
-                <Button variant="ghost" size="sm" onClick={() => setVoceOn((v) => !v)} data-testid="hall-toggle-voce">{voceOn ? <Volume2 className="w-4 h-4 mr-1.5" /> : <VolumeX className="w-4 h-4 mr-1.5" />}{voceOn ? "Voce on" : "Voce off"}</Button>
+                <Button variant="ghost" size="sm" onClick={() => { const n = !voceOn; setVoceOn(n); if (n) { sbloccaAudio(); parla("Audio attivo"); } }} data-testid="hall-toggle-voce">{voceOn ? <Volume2 className="w-4 h-4 mr-1.5" /> : <VolumeX className="w-4 h-4 mr-1.5" />}{voceOn ? "Voce on" : "Voce off"}</Button>
               </div>
             </div>
             <SheetDescription>Premi il microfono e detta il comando (oppure scrivi). Con «Di' Hall» attivo basta dire "Hall" seguito dal comando, senza toccare lo schermo. Le modifiche vengono eseguite solo dopo la tua conferma.</SheetDescription>
@@ -100,7 +100,7 @@ export default function HallWidget({ interpreta, esegui, onCompila, esempi = ESE
             {msgs.length === 0 && (
               <div className="space-y-2">
                 <div className="text-xs text-muted-foreground">Prova a dire:</div>
-                <div className="flex flex-wrap gap-1.5">{esempi.map((e) => <button key={e} onClick={() => invia(e)} className="text-xs rounded-full border border-border px-3 py-1.5 hover:bg-muted" data-testid="hall-esempio">{e}</button>)}</div>
+                <div className="flex flex-wrap gap-1.5">{esempi.map((e) => <button key={e} onClick={() => { sbloccaAudio(); invia(e); }} className="text-xs rounded-full border border-border px-3 py-1.5 hover:bg-muted" data-testid="hall-esempio">{e}</button>)}</div>
               </div>
             )}
             {msgs.map((m, i) => (
@@ -114,7 +114,7 @@ export default function HallWidget({ interpreta, esegui, onCompila, esempi = ESE
                 <div className="text-sm font-medium">{pendente.riepilogo}</div>
                 {pendente.azione === "compila_lavoro" && pendente.parametri.articoli_dettaglio?.length > 0 && <div className="text-xs text-muted-foreground">Articoli: {pendente.parametri.articoli_dettaglio.map((a) => `${a.quantita}× ${a.nome}`).join(", ")}</div>}
                 <div className="flex gap-2">
-                  <Button onClick={conferma} disabled={busy} className="flex-1 bg-primary hover:bg-primary/90" data-testid="hall-conferma-si"><Check className="w-4 h-4 mr-1.5" /> Conferma</Button>
+                  <Button onClick={() => { sbloccaAudio(); conferma(); }} disabled={busy} className="flex-1 bg-primary hover:bg-primary/90" data-testid="hall-conferma-si"><Check className="w-4 h-4 mr-1.5" /> Conferma</Button>
                   <Button variant="outline" onClick={() => setPendente(null)} data-testid="hall-conferma-no"><X className="w-4 h-4 mr-1.5" /> Annulla</Button>
                 </div>
               </div>
@@ -126,9 +126,9 @@ export default function HallWidget({ interpreta, esegui, onCompila, esempi = ESE
 
           <div className="px-4 py-3 border-t border-border bg-card flex items-center gap-2">
             {supportato ? (
-              <Button size="icon" onClick={ascolto ? stop : avvia} className={`h-12 w-12 rounded-full shrink-0 ${ascolto ? "bg-destructive hover:bg-destructive/90 animate-pulse" : "bg-primary hover:bg-primary/90"}`} data-testid="hall-mic">{ascolto ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}</Button>
+              <Button size="icon" onClick={() => { sbloccaAudio(); ascolto ? stop() : avvia(); }} className={`h-12 w-12 rounded-full shrink-0 ${ascolto ? "bg-destructive hover:bg-destructive/90 animate-pulse" : "bg-primary hover:bg-primary/90"}`} data-testid="hall-mic">{ascolto ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}</Button>
             ) : <span className="text-[11px] text-muted-foreground w-24">Dettatura non supportata: scrivi</span>}
-            <form className="flex-1 flex gap-2" onSubmit={(e) => { e.preventDefault(); invia(); }}>
+            <form className="flex-1 flex gap-2" onSubmit={(e) => { e.preventDefault(); sbloccaAudio(); invia(); }}>
               <Input value={testo} onChange={(e) => setTesto(e.target.value)} placeholder="Oppure scrivi qui…" className="h-12" data-testid="hall-input" />
               <Button type="submit" size="icon" variant="outline" disabled={busy || !testo.trim()} className="h-12 w-12 shrink-0" data-testid="hall-invia"><Send className="w-4 h-4" /></Button>
             </form>

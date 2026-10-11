@@ -41,14 +41,25 @@ export function useVoce({ onFinal, onErrore }) {
 
   useEffect(() => () => recRef.current?.abort(), []);
 
+  const uttRef = useRef(null);
+  const sbloccato = useRef(false);
+
+  // Da chiamare dentro un click/tap: su telefono l'audio parte solo se "sbloccato" da un gesto dell'utente
+  const sbloccaAudio = useCallback(() => {
+    if (!window.speechSynthesis || sbloccato.current) return;
+    try { const u = new SpeechSynthesisUtterance(" "); u.volume = 0; window.speechSynthesis.speak(u); sbloccato.current = true; } catch { /* ignora */ }
+  }, []);
+
   const parla = useCallback((testo) => {
     if (!window.speechSynthesis || !testo) return;
-    window.speechSynthesis.cancel();
+    const synth = window.speechSynthesis;
+    synth.cancel();
     const u = new SpeechSynthesisUtterance(testo);
-    u.lang = "it-IT"; u.rate = 1.05;
-    const voce = window.speechSynthesis.getVoices().find((v) => v.lang?.toLowerCase().startsWith("it"));
+    u.lang = "it-IT"; u.rate = 1.05; u.volume = 1;
+    const voce = synth.getVoices().find((v) => v.lang?.toLowerCase().replace("_", "-").startsWith("it"));
     if (voce) u.voice = voce;
-    window.speechSynthesis.speak(u);
+    uttRef.current = u;
+    setTimeout(() => { try { synth.resume(); synth.speak(u); } catch { /* ignora */ } }, 80);
   }, []);
 
   // Ascolto continuo della parola di attivazione "Hall"
@@ -90,5 +101,5 @@ export function useVoce({ onFinal, onErrore }) {
 
   useEffect(() => () => { wakeRef.current?.abort(); }, []);
 
-  return { supportato, ascolto, parziale, avvia, stop, parla, wakeAttivo, avviaWake, stopWake };
+  return { supportato, ascolto, parziale, avvia, stop, parla, sbloccaAudio, wakeAttivo, avviaWake, stopWake };
 }
