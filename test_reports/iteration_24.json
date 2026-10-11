@@ -1,0 +1,27 @@
+{
+  "summary": "Full E2E testing of Calendario module (backend + frontend). Backend: 14/14 pytest cases passed covering tipi CRUD (default 3 types, UUID assignment, 400 on empty), eventi CRUD (create/list by month/year, conteggio-mesi, update, delete, 400/404 edge cases), and home riepilogo 'calendario_mese' field. Frontend: all critical flows validated — Home tile (cta-calendario) navigates to /calendario, page renders mese-griglia with giorno-N cells, clicking a day opens EventoDialog with date prefilled (2026-10-20 verified), creating event shows chip in grid and row in elenco-eventi, clicking chip opens edit mode and update persists, delete uses custom ConfirmDialog (NOT window.confirm) and removes event, month navigation (prev/succ/select/oggi) works, select-mese shows counts in parentheses, Tipi dialog adds new type (TEST_Consegna) which appears in legenda-tipi and evento-tipi. Mobile 390px: no horizontal overflow, dots render instead of chips. All TEST_ data cleaned up and default tipi restored.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "EventoDialog / TipiDialog / ConfirmDialog", "issues": ["Console warning: 'Missing Description or aria-describedby for DialogContent' — minor a11y warning from Radix UI, not functional"]}
+    ]
+  },
+  "test_report_links": ["/app/backend/tests/test_calendario.py", "/app/test_reports/pytest/calendario_results.xml"],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "backend/routers/calendario.py: GET /conteggio-mesi returns dict with int keys which JSON serializes as string keys — frontend accesses conteggi[i+1] where i+1 is number; works because JS coerces, but explicit casting would be clearer.",
+    "No input validation on 'data' field format (YYYY-MM-DD) — invalid date strings would be stored as-is. Consider adding regex validator in EventoIn.",
+    "No pagination on /calendario/eventi (hard limit 5000) — fine for cantiere scale but worth noting.",
+    "A11y: add DialogDescription to EventoDialog and TipiDialog to resolve Radix warnings."
+  ],
+  "updated_files": ["/app/backend/tests/test_calendario.py"],
+  "success_rate": {"backend": "100% (14/14)", "frontend": "100% core flows"},
+  "test_credentials": "password: admin",
+  "seed_data_creation": "No persistent seed; all TEST_ events + TEST_Consegna tipo created and cleaned up via API.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Calendario module is fully functional. Default tipi (alaggio/varo/altro) have been restored after testing. If testing again, note that the public URL is in frontend/.env and login is just POST /api/auth/login {password:'admin'} which sets httpOnly cookie.",
+  "rca of the issue": "No issues found."
+}

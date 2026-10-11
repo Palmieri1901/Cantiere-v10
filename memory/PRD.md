@@ -774,3 +774,7 @@ Backend spezzato in moduli (`server.py` ora 112 righe, prima 2761):
 - ✅ `docker-compose.yml`: nuovo servizio `updater` (monta `${PROJECT_DIR}` allo stesso path + docker.sock); backend riceve `UPDATER_URL`. `.env.example` + INSTALLAZIONE.md §3b aggiornati (PROJECT_DIR, UPDATER_TOKEN, UPDATE_BRANCH).
 - ✅ Backend `routers/aggiornamenti.py` (/api/aggiornamenti/stato|progresso|log|avvia|ripristina) → proxy verso updater; senza env restituisce `disponibile:false` con messaggio "solo su installazione Oracle".
 - ✅ Frontend `impostazioni/AggiornamentiCard.jsx`: versione installata, Controlla aggiornamenti, lista novità, Aggiorna ora (conferma), progresso con polling e ricarica automatica, Ripristina versione precedente. Testato in anteprima con updater locale (stato OK, rollback senza precedente → errore gestito).
+
+## 2026-10-11 — Modulo Calendario (/calendario)
+- ✅ Backend `routers/calendario.py`: tipi modificabili (app_settings id=calendario_tipi, default Alaggio/Varo/Altro con colore), eventi (collection `calendario_eventi`: data, ora, titolo, tipo_id, note) CRUD + conteggio-mesi; `home_riepilogo.calendario_mese`.
+- ✅ Frontend `Calendario.jsx` + `calendario/{MeseGriglia,ElencoEventi,EventoDialog,TipiDialog}.jsx`: vista mese grande, selettore mese/anno + frecce + Oggi, legenda, chip colorati (puntini su mobile), elenco del mese per giorno, dialog nuovo/modifica/elimina, dialog tipi (nome+colore, aggiungi/rimuovi). Tile in Home + voce sidebar. Testato iteration_24 (14/14 backend, frontend OK, mobile OK).
