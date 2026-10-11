@@ -3,10 +3,11 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { Mic, MicOff, Send, Sparkles, Check, X, Volume2, VolumeX, Loader2, Ear } from "lucide-react";
+import { Mic, MicOff, Send, Sparkles, Check, X, Volume2, VolumeX, Loader2, Ear, ExternalLink } from "lucide-react";
 import { useVoce } from "./useVoce";
 
 const ESEMPI = ["Scarica 2 filtri olio per Rossi", "Quanti filtri olio ho in magazzino?", "Nuovo lavoro antivegetativa 3 ore a Bianchi", "Appuntamento alaggio Verdi venerdì alle 9", "Che appuntamenti ho domani?"];
+const inIframe = (() => { try { return window.self !== window.top; } catch { return true; } })();
 
 // Hall: assistente vocale. `interpreta(testo, storia)` → risposta; `esegui(azione, parametri)` → risultato; `onCompila(parametri)` per l'app dipendenti.
 export default function HallWidget({ interpreta, esegui, onCompila, esempi = ESEMPI, className = "" }) {
@@ -97,6 +98,13 @@ export default function HallWidget({ interpreta, esegui, onCompila, esempi = ESE
           </SheetHeader>
 
           <div className="flex-1 overflow-y-auto px-5 py-4 space-y-3" data-testid="hall-messaggi">
+            {inIframe && (
+              <div className="rounded-lg border border-amber-300 bg-amber-50 text-amber-900 p-3 text-xs space-y-2" data-testid="hall-avviso-iframe">
+                <div className="font-semibold">Audio e microfono bloccati nell'anteprima</div>
+                <div>Stai usando il gestionale dentro il riquadro di Emergent: il browser non permette voce e microfono in questa modalità. Apri l'app in una scheda a parte per usare Hall a voce.</div>
+                <Button size="sm" variant="outline" className="border-amber-400 bg-white" onClick={() => window.open(window.location.href, "_blank", "noopener")} data-testid="hall-apri-scheda"><ExternalLink className="w-3.5 h-3.5 mr-1.5" /> Apri in una nuova scheda</Button>
+              </div>
+            )}
             {msgs.length === 0 && (
               <div className="space-y-2">
                 <div className="text-xs text-muted-foreground">Prova a dire:</div>
