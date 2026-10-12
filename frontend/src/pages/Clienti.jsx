@@ -14,7 +14,8 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle
 } from "@/components/ui/alert-dialog";
-import { Plus, Search, Pencil, Trash2, FileSpreadsheet, FileDown, FileText, FileSignature, Eye, CheckCircle2, XCircle, AlertCircle, History } from "lucide-react";
+import { Plus, Search, Pencil, Trash2, FileSpreadsheet, FileDown, FileText, FileSignature, Eye, CheckCircle2, XCircle, AlertCircle, History, Merge } from "lucide-react";
+import { UnisciDialog } from "@/components/UnisciDialog";
 import { toast } from "sonner";
 import ClienteForm from "@/pages/ClienteForm";
 import ClienteDettaglio from "@/pages/ClienteDettaglio";
@@ -36,6 +37,7 @@ export default function Clienti() {
   const [editing, setEditing] = useState(null);
   const [dettaglio, setDettaglio] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
+  const [unisciTarget, setUnisciTarget] = useState(null);
   const [openStorico, setOpenStorico] = useState(false);
   const [openPreventivoVeloce, setOpenPreventivoVeloce] = useState(false);
   const [nominativi, setNominativi] = useState([]);
@@ -299,6 +301,7 @@ export default function Clienti() {
                 <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => openPdfPreview(c, "preventivo")} data-testid={`m-pdf-${c.id}`}><FileText className="w-4 h-4" /></Button>
                 <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => openPdfPreview(c, "contratto")} data-testid={`m-pdf-contratto-${c.id}`}><FileSignature className="w-4 h-4" /></Button>
                 <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => { setEditing(c); setFormOpen(true); }} data-testid={`m-edit-${c.id}`}><Pencil className="w-4 h-4" /></Button>
+                <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setUnisciTarget(c)} data-testid={`m-unisci-${c.id}`} title="Unisci con un altro cliente"><Merge className="w-4 h-4" /></Button>
                 <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setDeleteTarget(c)} data-testid={`m-delete-${c.id}`}><Trash2 className="w-4 h-4 text-destructive" /></Button>
               </div>
             </div>
@@ -396,6 +399,9 @@ export default function Clienti() {
                       <Button size="icon" variant="ghost" onClick={() => { setEditing(c); setFormOpen(true); }} data-testid={`btn-edit-${c.id}`}>
                         <Pencil className="w-4 h-4" />
                       </Button>
+                      <Button size="icon" variant="ghost" onClick={() => setUnisciTarget(c)} data-testid={`btn-unisci-${c.id}`} title="Unisci con un altro cliente (doppione)">
+                        <Merge className="w-4 h-4" />
+                      </Button>
                       <Button size="icon" variant="ghost" onClick={() => setDeleteTarget(c)} data-testid={`btn-delete-${c.id}`}>
                         <Trash2 className="w-4 h-4 text-destructive" />
                       </Button>
@@ -491,6 +497,8 @@ export default function Clienti() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <UnisciDialog sorgente={unisciTarget ? { id: unisciTarget.id, label: `${unisciTarget.cognome} ${unisciTarget.nome}`.trim() } : null} candidati={clienti.map((c) => ({ id: c.id, label: `${c.cognome} ${c.nome}`.trim(), sub: `${c.tipo_barca || ""}${c.lunghezza ? ` ${c.lunghezza} m` : ""} · ${c.anno}` }))} endpoint="/clienti/unisci" onClose={() => setUnisciTarget(null)} onDone={load} />
 
       <AlertDialog open={!!deleteTarget} onOpenChange={(o) => !o && setDeleteTarget(null)}>
         <AlertDialogContent data-testid="delete-dialog">
