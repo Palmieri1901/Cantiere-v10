@@ -63,6 +63,33 @@ export default function HallWidget({ interpreta, esegui, onCompila, esempi = ESE
     toast[n ? "success" : "info"](n ? "Ascolto attivo: di' «GEB» seguito dal comando" : "Ascolto della parola «GEB» disattivato");
   };
 
+  // Pulsante trascinabile: posizione salvata, aggancio al bordo più vicino, tap = apri
+  const fabRef = useRef(null);
+  const trascino = useRef(null);
+  const [fabPos, setFabPos] = useState(() => { try { return JSON.parse(localStorage.getItem("hall_fab_pos")) || null; } catch { return null; } });
+  const clamp = (x, y) => ({ x: Math.min(Math.max(8, x), window.innerWidth - 64), y: Math.min(Math.max(8, y), window.innerHeight - 64) });
+  const fabDown = (e) => { const r = fabRef.current.getBoundingClientRect(); trascino.current = { sx: e.clientX, sy: e.clientY, ox: e.clientX - r.left, oy: e.clientY - r.top, mosso: false }; fabRef.current.setPointerCapture(e.pointerId); };
+  const fabMove = (e) => {
+    const t = trascino.current; if (!t) return;
+    if (!t.mosso && Math.hypot(e.clientX - t.sx, e.clientY - t.sy) < 8) return;
+    t.mosso = true;
+    setFabPos(clamp(e.clientX - t.ox, e.clientY - t.oy));
+  };
+  const fabUp = (e) => {
+    const t = trascino.current; if (!t) return;
+    if (t.mosso) {
+      const p = clamp(e.clientX - t.ox, e.clientY - t.oy);
+      const snap = { x: p.x + 28 < window.innerWidth / 2 ? 12 : window.innerWidth - 68, y: p.y };
+      setFabPos(snap); localStorage.setItem("hall_fab_pos", JSON.stringify(snap));
+    }
+    setTimeout(() => { trascino.current = null; }, 0);
+  };
+  const fabClick = () => { if (trascino.current?.mosso) return; sbloccaAudio(); setOpen(true); };
+  useEffect(() => {
+    const onResize = () => setFabPos((p) => (p ? clamp(p.x, p.y) : p));
+    window.addEventListener("resize", onResize); return () => window.removeEventListener("resize", onResize);
+  }, []);
+
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth" }); }, [msgs, pendente, parziale]);
   useEffect(() => { localStorage.setItem("hall_voce", voceOn ? "on" : "off"); if (!voceOn) window.speechSynthesis?.cancel(); }, [voceOn]);
 
@@ -80,7 +107,10 @@ export default function HallWidget({ interpreta, esegui, onCompila, esempi = ESE
 
   return (
     <>
-      <button onClick={() => { sbloccaAudio(); setOpen(true); }} className={`fixed right-4 bottom-24 md:bottom-6 z-40 h-14 w-14 rounded-full bg-primary text-primary-foreground shadow-lg shadow-primary/30 grid place-items-center hover:scale-105 active:scale-95 transition-transform ${className}`} title={wakeAttivo ? "GEB in ascolto: di' «GEB»" : "GEB, assistente vocale"} data-testid="hall-fab">
+      <button ref={fabRef} onPointerDown={fabDown} onPointerMove={fabMove} onPointerUp={fabUp} onPointerCancel={fabUp} onClick={fabClick}
+        style={fabPos ? { left: fabPos.x, top: fabPos.y, right: "auto", bottom: "auto" } : undefined}
+        className={`fixed right-4 bottom-24 md:bottom-6 z-40 h-14 w-14 rounded-full bg-primary text-primary-foreground shadow-lg shadow-primary/30 grid place-items-center hover:scale-105 active:scale-95 transition-transform touch-none select-none ${trascino.current ? "" : ""} ${className}`}
+        title={wakeAttivo ? "GEB in ascolto: di' «GEB»" : "GEB, assistente vocale (tieni premuto e trascina per spostare)"} data-testid="hall-fab">
         {wakeAttivo && <span className="absolute inset-0 rounded-full border-2 border-primary animate-ping opacity-60" data-testid="hall-wake-indicator" />}
         <Mic className="w-6 h-6" />
       </button>

@@ -799,3 +799,4 @@ Backend spezzato in moduli (`server.py` ora 112 righe, prima 2761):
 
 ## 2026-10-12 — Approvazione lavori: scelta del conto
 - ✅ `dipendenti/ClientePicker.jsx` + `ApprovaDialog.jsx`: in approvazione si sceglie sempre a chi attribuire il lavoro — "Somma a cliente esistente" (elenco unico clienti rimessaggio + clienti esterni, ricerca, suggerimenti in base al nome dettato, pre-selezione automatica se c'è corrispondenza) oppure "Nuovo cliente esterno". Anche se il dipendente ha indicato un cliente trovato, si può cambiare. Backend: la voce pending approvata registra il cliente scelto.
+- ✅ (2026-10-12) Pulsante GEB trascinabile (pointer events, soglia 8px tap/drag, aggancio al bordo sinistro/destro, posizione salvata in localStorage hall_fab_pos, clamp al resize). Verificato con Playwright.
