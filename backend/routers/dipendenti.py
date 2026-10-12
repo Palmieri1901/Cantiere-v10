@@ -195,8 +195,14 @@ async def approva_pending(pid: str, payload: ApprovaIn):
         articoli_liberi=merged.get("articoli_liberi") or None,
     )
     lavoro = await create_lavoro(lc)
+    cl = await db.clienti.find_one({"id": merged["cliente_id"]}, {"_id": 0, "nome": 1, "cognome": 1})
+    if cl:
+        nome_cl = f"{cl.get('cognome','')} {cl.get('nome','')}".strip()
+    else:
+        est = await db.clienti_esterni.find_one({"id": merged["cliente_id"]}, {"_id": 0, "nome": 1})
+        nome_cl = (est or {}).get("nome", p.get("cliente_nome", ""))
     await db.lavori_pending.update_one({"id": pid}, {"$set": {
-        "stato": "approvato", "lavoro_id": lavoro.id,
+        "stato": "approvato", "lavoro_id": lavoro.id, "cliente_id": merged["cliente_id"], "cliente_nome": nome_cl, "cliente_trovato": True,
         "approvato_at": datetime.now(timezone.utc).isoformat(),
     }})
     return lavoro

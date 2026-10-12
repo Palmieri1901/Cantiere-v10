@@ -796,3 +796,6 @@ Backend spezzato in moduli (`server.py` ora 112 righe, prima 2761):
 - ✅ (2026-10-11) Hall audio: sblocco della sintesi vocale al primo tap (FAB/mic/invia/conferma/esempi) perché su telefono l'audio parte solo dopo un gesto; `parla()` con cancel+resume+ritardo 80ms, riferimento all'utterance (bug GC), voce italiana. Toggle "Voce on" ora dice "Audio attivo" come prova. Chiusura pannello non interrompe più la risposta vocale.
 - (2026-10-11) Hall: avviso in pannello quando l'app gira in iframe (anteprima Emergent): audio/microfono bloccati, pulsante "Apri in una nuova scheda".
 - (2026-10-11) Assistente rinominato da Hall a GEB (UI, prompt, parola di attivazione «GEB», motivo movimenti).
+
+## 2026-10-12 — Approvazione lavori: scelta del conto
+- ✅ `dipendenti/ClientePicker.jsx` + `ApprovaDialog.jsx`: in approvazione si sceglie sempre a chi attribuire il lavoro — "Somma a cliente esistente" (elenco unico clienti rimessaggio + clienti esterni, ricerca, suggerimenti in base al nome dettato, pre-selezione automatica se c'è corrispondenza) oppure "Nuovo cliente esterno". Anche se il dipendente ha indicato un cliente trovato, si può cambiare. Backend: la voce pending approvata registra il cliente scelto.
