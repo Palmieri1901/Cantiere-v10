@@ -3,17 +3,19 @@ import { mobileStore, mobileApi } from "@/lib/mobileStore";
 import LoginKey from "@/pages/app-dipendente/LoginKey";
 import NuovoLavoro from "@/pages/app-dipendente/NuovoLavoro";
 import Coda from "@/pages/app-dipendente/Coda";
+import HomeDipendente from "@/pages/app-dipendente/HomeDipendente";
+import Listino from "@/pages/app-dipendente/Listino";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { confirmDialog } from "@/components/ConfirmDialog";
-import { RefreshCw, LogOut, Wifi, WifiOff, Sailboat } from "lucide-react";
+import { RefreshCw, LogOut, Wifi, WifiOff, Sailboat, Home, ClipboardPlus, Package, Send } from "lucide-react";
 
 export default function AppDipendente() {
   const [logged, setLogged] = useState(!!mobileStore.getKey());
   const [online, setOnline] = useState(navigator.onLine);
   const [coda, setCoda] = useState(mobileStore.coda());
   const [syncing, setSyncing] = useState(false);
-  const [view, setView] = useState("nuovo");
+  const [view, setView] = useState("home");
 
   useEffect(() => {
     const on = () => setOnline(true), off = () => setOnline(false);
@@ -26,7 +28,7 @@ export default function AppDipendente() {
       const a = mobileApi();
       const [c, ar] = await Promise.all([a.get("/clienti"), a.get("/articoli")]);
       mobileStore.setClienti(c.data); mobileStore.setArticoli(ar.data);
-      if (!silent) toast.success(`Aggiornati ${c.data.length} clienti`);
+      if (!silent) toast.success(`Aggiornati ${c.data.length} clienti e ${ar.data.length} articoli`);
     } catch (e) {
       if (e.response?.status === 401) { mobileStore.logout(); setLogged(false); toast.error("Chiave non più valida"); }
       else if (!silent) toast.error("Impossibile aggiornare: sei offline?");
@@ -79,21 +81,24 @@ export default function AppDipendente() {
             {online ? <><Wifi className="w-3 h-3 text-emerald-600" /> Online</> : <><WifiOff className="w-3 h-3 text-amber-600" /> Offline · i lavori restano sul telefono</>}
           </div>
         </div>
-        <Button size="icon" variant="ghost" onClick={() => aggiornaDati(false)} title="Aggiorna clienti" data-testid="btn-aggiorna-dati"><RefreshCw className="w-4 h-4" /></Button>
+        <Button size="icon" variant="ghost" onClick={() => aggiornaDati(false)} title="Aggiorna clienti e listino" data-testid="btn-aggiorna-dati"><RefreshCw className="w-4 h-4" /></Button>
         <Button size="icon" variant="ghost" onClick={esci} title="Esci" data-testid="btn-mobile-logout"><LogOut className="w-4 h-4" /></Button>
       </header>
 
       <main className="flex-1 p-4 pb-24">
-        {view === "nuovo"
-          ? <NuovoLavoro onSaved={(l) => { salvaCoda([l, ...coda]); toast.success("Lavoro salvato sul telefono"); setView("coda"); }} />
-          : <Coda coda={coda} setCoda={salvaCoda} onSync={sincronizza} syncing={syncing} online={online} />}
+        {view === "home" && <HomeDipendente pendenti={pendenti} onScegli={setView} />}
+        {view === "nuovo" && <NuovoLavoro onSaved={(l) => { salvaCoda([l, ...coda]); toast.success("Lavoro salvato sul telefono"); setView("coda"); }} />}
+        {view === "listino" && <Listino />}
+        {view === "coda" && <Coda coda={coda} setCoda={salvaCoda} onSync={sincronizza} syncing={syncing} online={online} />}
       </main>
 
-      <nav className="fixed bottom-0 left-0 right-0 max-w-lg mx-auto grid grid-cols-2 border-t border-border/60 bg-card">
-        <button onClick={() => setView("nuovo")} className={`py-3 text-sm font-medium ${view === "nuovo" ? "text-primary" : "text-muted-foreground"}`} data-testid="tab-nuovo-lavoro">+ Nuovo lavoro</button>
-        <button onClick={() => setView("coda")} className={`py-3 text-sm font-medium ${view === "coda" ? "text-primary" : "text-muted-foreground"}`} data-testid="tab-coda">
-          Da inviare {pendenti > 0 && <span className="ml-1 inline-flex items-center justify-center min-w-5 h-5 px-1.5 rounded-full bg-primary text-primary-foreground text-[11px]" data-testid="coda-badge">{pendenti}</span>}
-        </button>
+      <nav className="fixed bottom-0 left-0 right-0 max-w-lg mx-auto grid grid-cols-4 border-t border-border/60 bg-card">
+        {[["home", Home, "Home"], ["nuovo", ClipboardPlus, "Lavoro"], ["listino", Package, "Listino"], ["coda", Send, "Da inviare"]].map(([id, Icon, label]) => (
+          <button key={id} onClick={() => setView(id)} className={`py-2 flex flex-col items-center gap-0.5 text-[11px] font-medium relative ${view === id ? "text-primary" : "text-muted-foreground"}`} data-testid={`tab-${id === "nuovo" ? "nuovo-lavoro" : id}`}>
+            <Icon className="w-5 h-5" />{label}
+            {id === "coda" && pendenti > 0 && <span className="absolute top-1 right-1/4 min-w-4 h-4 px-1 rounded-full bg-primary text-primary-foreground text-[10px] grid place-items-center" data-testid="coda-badge">{pendenti}</span>}
+          </button>
+        ))}
       </nav>
     </div>
   );

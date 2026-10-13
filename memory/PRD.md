@@ -804,3 +804,7 @@ Backend spezzato in moduli (`server.py` ora 112 righe, prima 2761):
 ## 2026-10-12 — Unisci clienti doppi
 - ✅ Backend `routers/unisci.py`: POST /api/clienti/unisci e /api/esterni/unisci {principale_id, secondario_id, anteprima} → sposta lavori, lavori_pending, movimenti_magazzino (cliente_id) e preventivi_esterni (esterno_id) sul principale, elimina il secondario; con anteprima=true restituisce solo i conteggi (lavori, totale €, da approvare, movimenti, preventivi).
 - ✅ Frontend `components/UnisciDialog.jsx` (ricerca principale, candidati simili in cima, anteprima, conferma) + icona "Unisci" nelle righe/schede di Clienti (btn-unisci-/m-unisci-) e Lavorazioni esterne (btn-unisci-esterno-). Verificato: esterni via API (1 lavoro 40€ spostato), rimessaggio via UI (scheda duplicata eliminata, lavoro passato al principale).
+
+## 2026-10-13 — App dipendenti: Home con saluto + Listino magazzino
+- ✅ `app-dipendente/HomeDipendente.jsx`: schermata iniziale con data, "Buongiorno/Buon pomeriggio/Buonasera, <nome>!" e tre scelte grandi (Aggiungi lavoro → pagina inserimento, Listino magazzino, Da inviare con badge). Nav inferiore a 4 tab con icone (Home, Lavoro, Listino, Da inviare).
+- ✅ `app-dipendente/Listino.jsx`: ricerca per nome/codice/barcode/categoria + scanner, schede con codice, categoria, giacenza, prezzo vendita e IVA incl. Dati da `/api/mobile/articoli` (ora include categoria, unita_misura, prezzo_listino) salvati sul telefono (offline OK).
