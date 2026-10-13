@@ -35,7 +35,7 @@ export function UnisciDialog({ sorgente, candidati, endpoint, onClose, onDone })
     try {
       const r = await api.post(endpoint, { principale_id: principale.id, secondario_id: sorgente.id });
       toast.success(`Uniti: ${r.data.lavori} lavori spostati su ${r.data.principale}`);
-      onDone(); onClose();
+      onClose(); onDone();
     } catch (e) { toast.error(e.response?.data?.detail || "Unione non riuscita"); }
     finally { setBusy(false); }
   };
@@ -58,7 +58,7 @@ export function UnisciDialog({ sorgente, candidati, endpoint, onClose, onDone })
               </button>
             ))}
           </div>
-          {principale && (
+          {principale && sorgente && (
             <div className="rounded-md border border-amber-300 bg-amber-50 p-3 text-xs space-y-1.5" data-testid="unisci-anteprima">
               <div className="flex items-center gap-2 font-medium text-sm"><span className="line-through text-muted-foreground">{sorgente.label}</span><ArrowRight className="w-4 h-4" /><span>{principale.label}</span></div>
               {anteprima ? (
