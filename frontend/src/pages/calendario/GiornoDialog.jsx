@@ -3,7 +3,7 @@ import { confirmDialog } from "@/components/ConfirmDialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Clock, CalendarDays } from "lucide-react";
+import { Plus, Pencil, Trash2, Clock, CalendarDays, StickyNote } from "lucide-react";
 
 const fmtGiorno = (iso) => new Date(iso + "T00:00:00").toLocaleDateString("it-IT", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
 
@@ -38,6 +38,8 @@ export default function GiornoDialog({ data, eventi, tipi, onClose, onNuovo, onM
                     {e.ora ? <span className="inline-flex items-center gap-1 text-sm font-mono-num font-semibold"><Clock className="w-3.5 h-3.5 text-muted-foreground" /> {e.ora}</span> : <span className="text-xs text-muted-foreground">Tutto il giorno</span>}
                   </div>
                   <div className="font-medium text-base mt-1.5 leading-snug break-words">{e.titolo}</div>
+                  {e.cliente_nome && <div className="text-xs text-muted-foreground mt-0.5">Cliente: {e.cliente_nome}{e.cliente_barca ? ` · ${e.cliente_barca}` : ""}</div>}
+                  {e.cliente_memo && <div className="mt-2 rounded-md border border-amber-300 bg-amber-50 p-2 text-xs text-amber-950 flex gap-2" data-testid={`giorno-memo-${e.id}`}><StickyNote className="w-4 h-4 shrink-0 text-amber-700" /><span className="whitespace-pre-wrap">{e.cliente_memo}</span></div>}
                   {e.note && <div className="text-sm text-muted-foreground mt-1 whitespace-pre-wrap break-words">{e.note}</div>}
                 </div>
                 <div className="flex flex-col gap-1 shrink-0">

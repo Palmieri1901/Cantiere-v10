@@ -27,6 +27,21 @@ class EventoIn(BaseModel):
     titolo: str
     tipo_id: str = "altro"
     note: Optional[str] = ""
+    cliente_id: Optional[str] = None
+
+
+async def _arricchisci(eventi):
+    ids = [e["cliente_id"] for e in eventi if e.get("cliente_id")]
+    if not ids:
+        return eventi
+    cl = {c["id"]: c for c in await db.clienti.find({"id": {"$in": ids}}, {"_id": 0, "id": 1, "nome": 1, "cognome": 1, "memo": 1, "tipo_barca": 1}).to_list(len(ids))}
+    for e in eventi:
+        c = cl.get(e.get("cliente_id"))
+        if c:
+            e["cliente_nome"] = f"{c.get('cognome','')} {c.get('nome','')}".strip()
+            e["cliente_memo"] = c.get("memo") or ""
+            e["cliente_barca"] = c.get("tipo_barca") or ""
+    return eventi
 
 
 def _now():
@@ -58,7 +73,7 @@ async def list_eventi(anno: int, mese: Optional[int] = None):
         q = {"data": {"$regex": f"^{anno}-{mese:02d}-"}}
     else:
         q = {"data": {"$regex": f"^{anno}-"}}
-    return await db.calendario_eventi.find(q, {"_id": 0}).sort([("data", 1), ("ora", 1)]).to_list(5000)
+    return await _arricchisci(await db.calendario_eventi.find(q, {"_id": 0}).sort([("data", 1), ("ora", 1)]).to_list(5000))
 
 
 @router.get("/conteggio-mesi")
@@ -86,7 +101,7 @@ async def aggiorna_evento(eid: str, p: EventoIn):
     r = await db.calendario_eventi.update_one({"id": eid}, {"$set": {**p.model_dump(), "titolo": p.titolo.strip(), "updated_at": _now()}})
     if r.matched_count == 0:
         raise HTTPException(404, "Evento non trovato")
-    return await db.calendario_eventi.find_one({"id": eid}, {"_id": 0})
+    return (await _arricchisci([await db.calendario_eventi.find_one({"id": eid}, {"_id": 0})]))[0]
 
 
 @router.delete("/eventi/{eid}")

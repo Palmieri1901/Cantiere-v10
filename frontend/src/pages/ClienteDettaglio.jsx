@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { API } from "@/lib/api";
-import { FileText, Anchor, Wrench, Waves, Package } from "lucide-react";
+import { FileText, Anchor, Wrench, Waves, Package, StickyNote } from "lucide-react";
 
 const SOSTA_LABEL = {
   dentro: "Al coperto",
@@ -91,6 +91,12 @@ export default function ClienteDettaglio({ open, onOpenChange, cliente }) {
             {!c.pagato && <div className="text-xs text-amber-700 mt-1">Non pagato</div>}
           </div>
         </div>
+        {c.memo && (
+          <div className="mt-3 p-3 rounded-md border border-amber-300 bg-amber-50 text-amber-950" data-testid="dettaglio-memo">
+            <div className="label-mini mb-1 flex items-center gap-1.5 text-amber-800"><StickyNote className="w-3.5 h-3.5" /> Memo</div>
+            <div className="text-sm whitespace-pre-wrap">{c.memo}</div>
+          </div>
+        )}
 
         <Separator className="my-4" />
 

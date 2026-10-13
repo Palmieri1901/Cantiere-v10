@@ -37,7 +37,7 @@ export default function Calendario() {
     setMese(m); setAnno(a);
   };
 
-  const nuovo = (data) => setEditing({ data: data || `${anno}-${String(mese).padStart(2, "0")}-${String(oggi.getDate()).padStart(2, "0")}`, ora: "", titolo: "", tipo_id: tipi[0]?.id || "altro", note: "" });
+  const nuovo = (data) => setEditing({ data: data || `${anno}-${String(mese).padStart(2, "0")}-${String(oggi.getDate()).padStart(2, "0")}`, ora: "", titolo: "", tipo_id: tipi[0]?.id || "altro", note: "", cliente_id: null });
 
   return (
     <div className="p-4 sm:p-6 md:p-10 max-w-6xl" data-testid="calendario-page">

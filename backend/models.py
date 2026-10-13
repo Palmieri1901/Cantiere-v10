@@ -152,6 +152,7 @@ class Cliente(BaseModel):
     lavori_storico: List[dict] = Field(default_factory=list)
     override_costi: bool = False
     note_lavori: str = ""
+    memo: str = ""
     scadenza_antivegetativa: Optional[str] = None
     scadenza_manutenzione: Optional[str] = None
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
@@ -224,6 +225,7 @@ class ClienteCreate(BaseModel):
     lavorazioni_extra: Optional[List[dict]] = None
     override_costi: bool = False
     note_lavori: str = ""
+    memo: str = ""
     scadenza_antivegetativa: Optional[str] = None
     scadenza_manutenzione: Optional[str] = None
 

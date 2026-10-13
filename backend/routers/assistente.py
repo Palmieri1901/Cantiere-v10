@@ -54,7 +54,7 @@ def _system(cl, articoli, tipi_cal, contesto):
     azioni_extra = "" if contesto == "dipendente" else """
 - "scarico_articolo" / "carico_articolo": {articolo_id, quantita, cliente_id?} — richiede_conferma true
 - "nuovo_lavoro": {cliente_id, tipo (uno di %s), descrizione, ore, costo?, data (YYYY-MM-DD, default oggi)} — richiede_conferma true
-- "nuovo_appuntamento": {data YYYY-MM-DD, ora HH:MM o "", titolo, tipo_id (uno di %s), note} — richiede_conferma true
+- "nuovo_appuntamento": {data YYYY-MM-DD, ora HH:MM o "", titolo, tipo_id (uno di %s), note, cliente_id? (se l'appuntamento riguarda un cliente dell'elenco)} — richiede_conferma true
 - "nuovo_articolo": {nome, codice?, quantita?, prezzo_listino?, prezzo_acquisto?} — richiede_conferma true
 - "appuntamenti": {da YYYY-MM-DD, a YYYY-MM-DD} — ricerca, richiede_conferma false
 - "info_cliente": {cliente_id} — ricerca, richiede_conferma false""" % (TIPI_LAVORO, righe_tipi)
@@ -155,7 +155,7 @@ async def _esegui(azione: str, p: dict) -> dict:
             ore=float(p.get("ore") or 0), costo=float(p.get("costo") or 0), dipendente="GEB"))
         return {"messaggio": "Lavoro registrato nella scheda del cliente.", "lavoro": lav.model_dump(mode='json')}
     if azione == "nuovo_appuntamento":
-        ev = await crea_evento(EventoIn(data=p["data"], ora=p.get("ora") or "", titolo=p.get("titolo") or "Appuntamento", tipo_id=p.get("tipo_id") or "altro", note=p.get("note") or ""))
+        ev = await crea_evento(EventoIn(data=p["data"], ora=p.get("ora") or "", titolo=p.get("titolo") or "Appuntamento", tipo_id=p.get("tipo_id") or "altro", note=p.get("note") or "", cliente_id=p.get("cliente_id") or None))
         return {"messaggio": "Appuntamento aggiunto al calendario.", "evento": ev}
     if azione == "nuovo_articolo":
         art = await create_articolo(ArticoloCreate(nome=p["nome"], codice=p.get("codice") or "", quantita=float(p.get("quantita") or 0),

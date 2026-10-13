@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Save, Search, X, Plus } from "lucide-react";
+import { Save, Search, X, Plus, StickyNote } from "lucide-react";
 
 const TIPI = ["Riparazione", "Manutenzione motore", "Antivegetativa", "Pulizia", "Elettrico", "Altro"];
 const L = ({ children }) => <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{children}</Label>;
@@ -73,10 +73,18 @@ export default function NuovoLavoro({ onSaved }) {
       <div className="space-y-1.5">
         <L>Cliente</L>
         {cliente ? (
+          <>
           <div className="flex items-center gap-2 p-3 rounded-md border border-primary/40 bg-primary/5" data-testid="cliente-scelto">
             <div className="flex-1"><div className="font-semibold">{cliente.cognome} {cliente.nome}</div><div className="text-xs text-muted-foreground">{cliente.tipo_barca} {cliente.lunghezza ? `· ${cliente.lunghezza} m` : ""}</div></div>
             <button onClick={() => setF((s) => ({ ...s, cliente_id: "", cliente_nuovo: "" }))} data-testid="btn-cambia-cliente"><X className="w-4 h-4" /></button>
           </div>
+          {cliente.memo && (
+            <div className="flex gap-2 p-3 rounded-md border border-amber-300 bg-amber-50 text-amber-950" data-testid="cliente-memo">
+              <StickyNote className="w-5 h-5 shrink-0 text-amber-700" />
+              <div><div className="text-[11px] uppercase tracking-wide font-semibold text-amber-800">Memo del cantiere</div><div className="text-sm whitespace-pre-wrap mt-0.5">{cliente.memo}</div></div>
+            </div>
+          )}
+          </>
         ) : (
           <div className="relative">
             <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />

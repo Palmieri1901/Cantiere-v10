@@ -808,3 +808,8 @@ Backend spezzato in moduli (`server.py` ora 112 righe, prima 2761):
 ## 2026-10-13 — App dipendenti: Home con saluto + Listino magazzino
 - ✅ `app-dipendente/HomeDipendente.jsx`: schermata iniziale con data, "Buongiorno/Buon pomeriggio/Buonasera, <nome>!" e tre scelte grandi (Aggiungi lavoro → pagina inserimento, Listino magazzino, Da inviare con badge). Nav inferiore a 4 tab con icone (Home, Lavoro, Listino, Da inviare).
 - ✅ `app-dipendente/Listino.jsx`: ricerca per nome/codice/barcode/categoria + scanner, schede con codice, categoria, giacenza, prezzo vendita e IVA incl. Dati da `/api/mobile/articoli` (ora include categoria, unita_misura, prezzo_listino) salvati sul telefono (offline OK).
+
+## 2026-10-13 — Memo cliente (rimessaggio) in calendario e app dipendenti
+- ✅ Campo `memo` su Cliente/ClienteCreate; textarea "Memo" (giallo) in ClienteForm; riquadro Memo in ClienteDettaglio.
+- ✅ Calendario: eventi con `cliente_id` opzionale (ricerca cliente in EventoDialog, titolo precompilato); GET eventi arricchiti con cliente_nome/cliente_barca/cliente_memo; memo evidenziato in GiornoDialog e icona "memo" nell'elenco mensile. GEB può passare cliente_id in nuovo_appuntamento.
+- ✅ App dipendenti: /api/mobile/clienti include memo; in NuovoLavoro, scelto il cliente, compare "Memo del cantiere". Verificato con screenshot (calendario + app).

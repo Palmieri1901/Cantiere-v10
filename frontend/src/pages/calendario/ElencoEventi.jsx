@@ -1,4 +1,4 @@
-import { Clock } from "lucide-react";
+import { Clock, StickyNote } from "lucide-react";
 
 const fmtGiorno = (iso) => new Date(iso + "T00:00:00").toLocaleDateString("it-IT", { weekday: "long", day: "numeric", month: "long" });
 
@@ -28,6 +28,7 @@ export default function ElencoEventi({ eventi, tipi, onEvento, onGiorno }) {
                         <div className="text-xs text-muted-foreground flex items-center gap-2 flex-wrap mt-0.5">
                           <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-white text-[10px]" style={{ background: t.colore }}>{t.nome}</span>
                           {e.ora && <span className="inline-flex items-center gap-1 font-mono-num"><Clock className="w-3 h-3" /> {e.ora}</span>}
+                          {e.cliente_memo && <span className="inline-flex items-center gap-1 text-amber-700" title={e.cliente_memo}><StickyNote className="w-3 h-3" /> memo</span>}
                           {e.note && <span className="truncate">{e.note}</span>}
                         </div>
                       </div>

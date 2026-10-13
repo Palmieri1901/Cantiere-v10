@@ -37,6 +37,7 @@ export const EMPTY_CLIENTE = {
   costo_lavaggio_inizio: 0, costo_lavaggio_fine: 0, costo_scafo_sporco: 0,
   lavorazioni_extra: [],
   note_lavori: "",
+  memo: "",
   scadenza_antivegetativa: "", scadenza_manutenzione: "",
 };
 

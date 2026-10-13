@@ -32,7 +32,7 @@ async def me(dip: dict = Depends(get_dipendente)):
 
 @router.get("/clienti")
 async def clienti(dip: dict = Depends(get_dipendente)):
-    docs = await db.clienti.find({}, {"_id": 0, "id": 1, "nome": 1, "cognome": 1, "tipo_barca": 1, "lunghezza": 1, "anno": 1, "posto_barca": 1}).to_list(5000)
+    docs = await db.clienti.find({}, {"_id": 0, "id": 1, "nome": 1, "cognome": 1, "tipo_barca": 1, "lunghezza": 1, "anno": 1, "posto_barca": 1, "memo": 1}).to_list(5000)
     # un solo record per persona: scheda dell'anno corrente se esiste, altrimenti la più vicina
     anno_corr = datetime.now().year
     best = {}

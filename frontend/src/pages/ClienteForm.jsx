@@ -596,6 +596,9 @@ export default function ClienteForm({ open, onOpenChange, cliente, onSaved, mode
             <Field label="Note generali">
               <Textarea rows={3} placeholder="Note generiche sul cliente o sulla barca…" value={f.note_lavori} onChange={(e) => update("note_lavori", e.target.value)} data-testid="input-note" />
             </Field>
+            <Field label="Memo (promemoria che compare in calendario e nell'app dipendenti)">
+              <Textarea rows={2} placeholder="Es. Chiedere conferma antivegetativa · Chiavi nel cassetto 3 · Pagamento in sospeso…" value={f.memo || ""} onChange={(e) => update("memo", e.target.value)} className="border-amber-300 bg-amber-50/60 focus-visible:ring-amber-400" data-testid="input-memo" />
+            </Field>
           </section>
 
           <Separator />
