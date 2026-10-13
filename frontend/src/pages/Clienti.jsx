@@ -14,8 +14,9 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle
 } from "@/components/ui/alert-dialog";
-import { Plus, Search, Pencil, Trash2, FileSpreadsheet, FileDown, FileText, FileSignature, Eye, CheckCircle2, XCircle, AlertCircle, History, Merge } from "lucide-react";
+import { Plus, Search, Pencil, Trash2, FileSpreadsheet, FileDown, FileText, FileSignature, Eye, CheckCircle2, XCircle, AlertCircle, History, Merge, StickyNote } from "lucide-react";
 import { UnisciDialog } from "@/components/UnisciDialog";
+import { MemoDialog } from "@/components/MemoDialog";
 import { toast } from "sonner";
 import ClienteForm from "@/pages/ClienteForm";
 import ClienteDettaglio from "@/pages/ClienteDettaglio";
@@ -38,6 +39,7 @@ export default function Clienti() {
   const [dettaglio, setDettaglio] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [unisciTarget, setUnisciTarget] = useState(null);
+  const [memoTarget, setMemoTarget] = useState(null);
   const [openStorico, setOpenStorico] = useState(false);
   const [openPreventivoVeloce, setOpenPreventivoVeloce] = useState(false);
   const [nominativi, setNominativi] = useState([]);
@@ -300,6 +302,7 @@ export default function Clienti() {
                 <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setDettaglio(c)} data-testid={`m-dettaglio-${c.id}`}><Eye className="w-4 h-4" /></Button>
                 <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => openPdfPreview(c, "preventivo")} data-testid={`m-pdf-${c.id}`}><FileText className="w-4 h-4" /></Button>
                 <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => openPdfPreview(c, "contratto")} data-testid={`m-pdf-contratto-${c.id}`}><FileSignature className="w-4 h-4" /></Button>
+                <Button size="icon" variant="ghost" className={`h-8 w-8 ${c.memo ? "text-amber-600" : ""}`} onClick={() => setMemoTarget(c)} data-testid={`m-memo-${c.id}`} title={c.memo || "Aggiungi memo"}><StickyNote className="w-4 h-4" /></Button>
                 <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => { setEditing(c); setFormOpen(true); }} data-testid={`m-edit-${c.id}`}><Pencil className="w-4 h-4" /></Button>
                 <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setUnisciTarget(c)} data-testid={`m-unisci-${c.id}`} title="Unisci con un altro cliente"><Merge className="w-4 h-4" /></Button>
                 <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setDeleteTarget(c)} data-testid={`m-delete-${c.id}`}><Trash2 className="w-4 h-4 text-destructive" /></Button>
@@ -395,6 +398,9 @@ export default function Clienti() {
                       </Button>
                       <Button size="icon" variant="ghost" onClick={() => openPdfPreview(c, "contratto")} disabled={previewLoadingId === `contratto-${c.id}`} data-testid={`btn-pdf-contratto-${c.id}`} title="Anteprima preventivo + contratto (PDF unico)">
                         <FileSignature className="w-4 h-4" />
+                      </Button>
+                      <Button size="icon" variant="ghost" className={c.memo ? "text-amber-600" : ""} onClick={() => setMemoTarget(c)} data-testid={`btn-memo-${c.id}`} title={c.memo || "Aggiungi memo"}>
+                        <StickyNote className="w-4 h-4" />
                       </Button>
                       <Button size="icon" variant="ghost" onClick={() => { setEditing(c); setFormOpen(true); }} data-testid={`btn-edit-${c.id}`}>
                         <Pencil className="w-4 h-4" />
@@ -498,6 +504,7 @@ export default function Clienti() {
         </DialogContent>
       </Dialog>
 
+      <MemoDialog cliente={memoTarget} onClose={() => setMemoTarget(null)} onSaved={(id, memo) => setClienti((l) => l.map((x) => (x.id === id ? { ...x, memo } : x)))} />
       <UnisciDialog sorgente={unisciTarget ? { id: unisciTarget.id, label: `${unisciTarget.cognome} ${unisciTarget.nome}`.trim() } : null} candidati={clienti.map((c) => ({ id: c.id, label: `${c.cognome} ${c.nome}`.trim(), sub: `${c.tipo_barca || ""}${c.lunghezza ? ` ${c.lunghezza} m` : ""} · ${c.anno}` }))} endpoint="/clienti/unisci" onClose={() => setUnisciTarget(null)} onDone={load} />
 
       <AlertDialog open={!!deleteTarget} onOpenChange={(o) => !o && setDeleteTarget(null)}>

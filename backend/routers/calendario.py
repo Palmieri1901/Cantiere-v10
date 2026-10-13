@@ -32,11 +32,19 @@ class EventoIn(BaseModel):
 
 async def _arricchisci(eventi):
     ids = [e["cliente_id"] for e in eventi if e.get("cliente_id")]
-    if not ids:
-        return eventi
-    cl = {c["id"]: c for c in await db.clienti.find({"id": {"$in": ids}}, {"_id": 0, "id": 1, "nome": 1, "cognome": 1, "memo": 1, "tipo_barca": 1}).to_list(len(ids))}
+    cl = {c["id"]: c for c in await db.clienti.find({"id": {"$in": ids}}, {"_id": 0, "id": 1, "nome": 1, "cognome": 1, "memo": 1, "tipo_barca": 1}).to_list(len(ids))} if ids else {}
+    senza = [e for e in eventi if not e.get("cliente_id")]
+    con_memo = []
+    if senza:
+        anno = datetime.now().year
+        con_memo = await db.clienti.find({"memo": {"$nin": ["", None]}, "anno": {"$gte": anno - 1}}, {"_id": 0, "id": 1, "nome": 1, "cognome": 1, "memo": 1, "tipo_barca": 1}).to_list(2000)
     for e in eventi:
         c = cl.get(e.get("cliente_id"))
+        if not c and con_memo:
+            titolo = f" {(e.get('titolo') or '').lower()} {(e.get('note') or '').lower()} "
+            c = next((x for x in con_memo if len(x.get("cognome", "")) >= 3 and f" {x['cognome'].lower()} " in titolo.replace(",", " ").replace("-", " ").replace("—", " ")), None)
+            if c:
+                e["cliente_auto"] = True
         if c:
             e["cliente_nome"] = f"{c.get('cognome','')} {c.get('nome','')}".strip()
             e["cliente_memo"] = c.get("memo") or ""

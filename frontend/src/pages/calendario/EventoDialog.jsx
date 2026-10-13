@@ -17,6 +17,13 @@ export default function EventoDialog({ evento, tipi, onClose, onSaved }) {
   useEffect(() => { setF(evento ? { ...evento } : null); setQc(""); }, [evento]);
   useEffect(() => { if (evento && clienti.length === 0) api.get("/clienti").then((r) => setClienti(r.data)).catch(() => {}); }, [evento]); // eslint-disable-line react-hooks/exhaustive-deps
   const clienteSel = f?.cliente_id ? clienti.find((c) => c.id === f.cliente_id) : null;
+  // Riconoscimento automatico del cliente dal titolo (es. "Alaggio Rossi") → memo in automatico
+  const clienteAuto = useMemo(() => {
+    if (clienteSel || !f?.titolo) return null;
+    const t = ` ${f.titolo.toLowerCase().replace(/[,\-—]/g, " ")} `;
+    return clienti.find((c) => (c.cognome || "").length >= 3 && t.includes(` ${c.cognome.toLowerCase()} `)) || null;
+  }, [clienteSel, f?.titolo, clienti]);
+  const clienteVis = clienteSel || clienteAuto;
   const clientiFiltrati = useMemo(() => {
     const s = qc.trim().toLowerCase();
     return s.length < 2 ? [] : clienti.filter((c) => `${c.cognome} ${c.nome}`.toLowerCase().includes(s)).slice(0, 8);
@@ -28,7 +35,7 @@ export default function EventoDialog({ evento, tipi, onClose, onSaved }) {
     if (!f.data) return toast.error("Inserisci la data");
     setSaving(true);
     try {
-      const body = { data: f.data, ora: f.ora || "", titolo: f.titolo, tipo_id: f.tipo_id, note: f.note || "", cliente_id: f.cliente_id || null };
+      const body = { data: f.data, ora: f.ora || "", titolo: f.titolo, tipo_id: f.tipo_id, note: f.note || "", cliente_id: f.cliente_id || clienteAuto?.id || null };
       if (f.id) await api.put(`/calendario/eventi/${f.id}`, body); else await api.post("/calendario/eventi", body);
       toast.success(f.id ? "Appuntamento aggiornato" : "Appuntamento aggiunto"); onSaved(); onClose();
     } catch (e) { toast.error(e.response?.data?.detail || "Errore nel salvataggio"); }
@@ -72,8 +79,14 @@ export default function EventoDialog({ evento, tipi, onClose, onSaved }) {
                   )}
                 </div>
               )}
-              {clienteSel?.memo && (
-                <div className="mt-2 rounded-md border border-amber-300 bg-amber-50 p-2.5 text-xs text-amber-950 flex gap-2" data-testid="evento-memo"><StickyNote className="w-4 h-4 shrink-0 text-amber-700" /><span className="whitespace-pre-wrap">{clienteSel.memo}</span></div>
+              {!clienteSel && clienteAuto && (
+                <div className="mt-2 text-xs text-muted-foreground flex items-center gap-2" data-testid="evento-cliente-auto">
+                  Riconosciuto dal titolo: <b>{clienteAuto.cognome} {clienteAuto.nome}</b>
+                  <button type="button" onClick={() => setF((s) => ({ ...s, cliente_id: clienteAuto.id }))} className="underline text-primary" data-testid="evento-cliente-collega">collega</button>
+                </div>
+              )}
+              {clienteVis?.memo && (
+                <div className="mt-2 rounded-md border border-amber-300 bg-amber-50 p-2.5 text-xs text-amber-950 flex gap-2" data-testid="evento-memo"><StickyNote className="w-4 h-4 shrink-0 text-amber-700" /><span className="whitespace-pre-wrap">{clienteVis.memo}</span></div>
               )}
             </div>
             <div className="grid grid-cols-2 gap-3">

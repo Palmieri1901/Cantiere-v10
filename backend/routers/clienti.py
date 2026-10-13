@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 from typing import List, Optional
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
+from pydantic import BaseModel
 
 from database import db, TOTAL_POSTI
 from models import Cliente, ClienteCreate, PagatoUpdate
@@ -165,6 +166,18 @@ async def create_cliente(payload: ClienteCreate):
     cliente = Cliente(**{k: v for k, v in data.items() if v is not None or k in ("posto_barca", "scadenza_antivegetativa", "scadenza_manutenzione")})
     await db.clienti.insert_one(serialize(cliente))
     return cliente
+
+
+class MemoIn(BaseModel):
+    memo: str = ""
+
+
+@router.patch("/clienti/{cliente_id}/memo")
+async def update_memo(cliente_id: str, p: MemoIn):
+    r = await db.clienti.update_one({"id": cliente_id}, {"$set": {"memo": p.memo.strip()}})
+    if r.matched_count == 0:
+        raise HTTPException(404, "Cliente non trovato")
+    return {"id": cliente_id, "memo": p.memo.strip()}
 
 
 @router.put("/clienti/{cliente_id}", response_model=Cliente)
