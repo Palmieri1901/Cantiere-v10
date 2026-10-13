@@ -1,11 +1,30 @@
 """Serializzazione, sanitize e calcolo automatico dei costi cantiere."""
 from datetime import datetime
+import re
 from typing import List
 from fastapi import HTTPException
 from pydantic import BaseModel
 
 from database import db
 from models import Tariffe
+
+
+def capitalizza_nome(s: str) -> str:
+    """'mario rossi' → 'Mario Rossi'; gestisce apostrofi, trattini e particelle (D'Angelo, De Luca)."""
+    s = re.sub(r"\s+", " ", (s or "").strip())
+    if not s:
+        return ""
+    def cap_word(w):
+        if not w:
+            return w
+        if "'" in w:
+            a, b = w.split("'", 1)
+            return a[:1].upper() + a[1:].lower() + "'" + cap_word(b)
+        if "-" in w:
+            return "-".join(cap_word(x) for x in w.split("-"))
+        return w[:1].upper() + w[1:].lower()
+    return " ".join(cap_word(w) for w in s.split(" "))
+
 
 
 def serialize(obj: BaseModel) -> dict:

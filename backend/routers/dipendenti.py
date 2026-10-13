@@ -8,6 +8,7 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
 from database import db
+from helpers import capitalizza_nome
 from models import LavoroCreate
 from routers.lavori import create_lavoro
 
@@ -61,7 +62,7 @@ async def list_dipendenti():
 
 @router.post("/dipendenti")
 async def create_dipendente(payload: DipendenteIn):
-    nome = payload.nome.strip()
+    nome = capitalizza_nome(payload.nome)
     if not nome:
         raise HTTPException(400, "Nome obbligatorio")
     key = _gen_key()
@@ -76,7 +77,7 @@ async def create_dipendente(payload: DipendenteIn):
 
 @router.put("/dipendenti/{did}")
 async def update_dipendente(did: str, payload: DipendenteIn):
-    r = await db.dipendenti.update_one({"id": did}, {"$set": {"nome": payload.nome.strip(), "attivo": bool(payload.attivo)}})
+    r = await db.dipendenti.update_one({"id": did}, {"$set": {"nome": capitalizza_nome(payload.nome), "attivo": bool(payload.attivo)}})
     if not r.matched_count:
         raise HTTPException(404, "Dipendente non trovato")
     return _pub(await db.dipendenti.find_one({"id": did}))
@@ -112,7 +113,7 @@ async def inserisci_pending(items: list, dipendente: dict, origine: str) -> int:
             est = await db.clienti_esterni.find_one({"id": cid}, {"_id": 0, "nome": 1})
             if est:
                 cliente = {"cognome": est["nome"], "nome": "", "tipo_barca": "esterno"}
-        cliente_nome = f"{cliente.get('cognome','')} {cliente.get('nome','')}".strip() if cliente else (it.get("cliente_nome") or "")
+        cliente_nome = f"{cliente.get('cognome','')} {cliente.get('nome','')}".strip() if cliente else capitalizza_nome(it.get("cliente_nome") or "")
         doc = {
             "id": str(uuid.uuid4()), "client_uid": uid,
             "dipendente_id": dipendente.get("id"), "dipendente_nome": dipendente.get("nome", ""),

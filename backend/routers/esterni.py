@@ -8,6 +8,7 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
 from database import db
+from helpers import capitalizza_nome
 from pdf_builders import build_conto_esterno_pdf, build_preventivo_esterno_pdf
 
 router = APIRouter()
@@ -20,7 +21,7 @@ class EsternoIn(BaseModel):
 
 
 async def crea_esterno(nome: str, telefono: str = "", note: str = "") -> dict:
-    nome = (nome or "").strip()
+    nome = capitalizza_nome(nome)
     if not nome:
         raise HTTPException(400, "Nominativo obbligatorio")
     doc = {"id": str(uuid.uuid4()), "nome": nome, "telefono": telefono or "", "note": note or "",
@@ -55,7 +56,7 @@ async def create_esterno(payload: EsternoIn):
 
 @router.put("/esterni/{eid}")
 async def update_esterno(eid: str, payload: EsternoIn):
-    r = await db.clienti_esterni.update_one({"id": eid}, {"$set": {"nome": payload.nome.strip(), "telefono": payload.telefono or "", "note": payload.note or ""}})
+    r = await db.clienti_esterni.update_one({"id": eid}, {"$set": {"nome": capitalizza_nome(payload.nome), "telefono": payload.telefono or "", "note": payload.note or ""}})
     if not r.matched_count:
         raise HTTPException(404, "Cliente esterno non trovato")
     return await db.clienti_esterni.find_one({"id": eid}, {"_id": 0})

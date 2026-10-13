@@ -10,6 +10,7 @@ from pydantic import BaseModel
 from database import db, TOTAL_POSTI
 from models import Cliente, ClienteCreate, PagatoUpdate
 from helpers import (
+    capitalizza_nome,
     get_tariffe_doc, calcola_costi, serialize, deserialize_cliente,
     _sanitize_lavorazioni_extra,
 )
@@ -151,6 +152,8 @@ async def create_cliente(payload: ClienteCreate):
     auto_costi.pop("ricambi_2_dettaglio", None)
 
     data = payload.model_dump()
+    data["nome"] = capitalizza_nome(data.get("nome"))
+    data["cognome"] = capitalizza_nome(data.get("cognome"))
     if data.get("lavorazioni_extra") is not None:
         data["lavorazioni_extra"] = _sanitize_lavorazioni_extra(data["lavorazioni_extra"])
     manual_alaggio_varo = (payload.alaggio_varo_attivo and payload.destinazione_alaggio_varo == "altra")
@@ -241,6 +244,8 @@ async def update_cliente(cliente_id: str, payload: ClienteCreate):
     auto_costi.pop("ricambi_2_dettaglio", None)
 
     data = payload.model_dump()
+    data["nome"] = capitalizza_nome(data.get("nome"))
+    data["cognome"] = capitalizza_nome(data.get("cognome"))
     if data.get("lavorazioni_extra") is not None:
         data["lavorazioni_extra"] = _sanitize_lavorazioni_extra(data["lavorazioni_extra"])
     dest_effettiva = payload.destinazione_alaggio_varo or existing.get("destinazione_alaggio_varo") or "marina_di_campo"
