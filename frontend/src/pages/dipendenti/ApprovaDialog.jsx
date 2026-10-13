@@ -8,6 +8,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { ClientePicker } from "./ClientePicker";
+import { ArticoloPicker } from "@/components/ArticoloPicker";
+import { X, Plus } from "lucide-react";
 
 const TIPI = ["Antivegetativa", "Manutenzione motore", "Riparazione", "Pulizia", "Elettrico", "Altro"];
 const L = ({ children }) => <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{children}</Label>;
@@ -16,6 +18,7 @@ export default function ApprovaDialog({ item, onClose, onDone }) {
   const [f, setF] = useState(null);
   const [clienti, setClienti] = useState([]);
   const [esterni, setEsterni] = useState([]);
+  const [articoli, setArticoli] = useState([]);
   const [saving, setSaving] = useState(false);
   const [tariffa, setTariffa] = useState(0);
   const [modo, setModo] = useState("esistente");
@@ -27,8 +30,11 @@ export default function ApprovaDialog({ item, onClose, onDone }) {
     api.get("/tariffe").then((r) => Number(r.data.costo_orario_manodopera) || 0).catch(() => 0).then((rate) => {
       setTariffa(rate);
       const costo = item.costo || +(Number(item.ore || 0) * rate).toFixed(2);
-      setF({ cliente_id: item.cliente_id || "", esterno_nome: item.cliente_nome || "", data: item.data, tipo: TIPI.includes(item.tipo) ? item.tipo : "Altro", descrizione: item.descrizione, ore: item.ore, costo, materiali: item.materiali || "" });
+      setF({ cliente_id: item.cliente_id || "", esterno_nome: item.cliente_nome || "", data: item.data, tipo: TIPI.includes(item.tipo) ? item.tipo : "Altro", descrizione: item.descrizione, ore: item.ore, costo, materiali: item.materiali || "",
+        articoli_magazzino: (item.articoli_magazzino || []).map((a) => ({ articolo_id: a.articolo_id, quantita: a.quantita ?? 1, nome: a.nome })),
+        articoli_liberi: (item.articoli_liberi || []).map((a) => ({ descrizione: a.descrizione || "", quantita: a.quantita ?? 1, prezzo_unitario: a.prezzo_unitario ?? "" })) });
     });
+    api.get("/magazzino/articoli").then((r) => setArticoli(r.data)).catch(() => {});
     Promise.all([api.get("/clienti").catch(() => ({ data: [] })), api.get("/esterni").catch(() => ({ data: [] }))]).then(([c, e]) => {
       setClienti(c.data); setEsterni(e.data);
       if (item.cliente_trovato) return;
@@ -40,6 +46,8 @@ export default function ApprovaDialog({ item, onClose, onDone }) {
   }, [item]);
 
   const set = (k, v) => setF((s) => ({ ...s, [k]: v }));
+  const setArt = (i, q) => setF((s) => ({ ...s, articoli_magazzino: s.articoli_magazzino.map((a, j) => (j === i ? { ...a, quantita: q } : a)) }));
+  const setLibero = (i, k, v) => setF((s) => ({ ...s, articoli_liberi: s.articoli_liberi.map((a, j) => (j === i ? { ...a, [k]: v } : a)) }));
   const setOre = (v) => setF((s) => ({ ...s, ore: v, costo: tariffa > 0 ? +((Number(v) || 0) * tariffa).toFixed(2) : s.costo }));
 
   const approva = async () => {
@@ -49,7 +57,9 @@ export default function ApprovaDialog({ item, onClose, onDone }) {
     setSaving(true);
     try {
       const { esterno_nome, ...rest } = f;
-      const body = { ...rest, ore: Number(f.ore) || 0, costo: Number(f.costo) || 0 };
+      const body = { ...rest, ore: Number(f.ore) || 0, costo: Number(f.costo) || 0,
+        articoli_magazzino: f.articoli_magazzino.map((a) => ({ articolo_id: a.articolo_id, quantita: Number(a.quantita) || 1 })),
+        articoli_liberi: f.articoli_liberi.filter((a) => a.descrizione.trim()).map((a) => ({ descrizione: a.descrizione.trim(), quantita: Number(a.quantita) || 1, prezzo_unitario: Number(a.prezzo_unitario) || 0 })) };
       if (usaEsterno) { body.esterno_nome = esterno_nome.trim(); delete body.cliente_id; }
       await api.post(`/lavori-pending/${item.id}/approva`, body);
       toast.success(usaEsterno ? "Cliente esterno creato e lavoro salvato" : "Lavoro approvato e aggiunto alla scheda cliente");
@@ -62,7 +72,7 @@ export default function ApprovaDialog({ item, onClose, onDone }) {
 
   return (
     <Dialog open={!!item} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-[95vw] sm:max-w-lg max-h-[92vh] overflow-y-auto" data-testid="approva-dialog">
+      <DialogContent className="max-w-[95vw] sm:max-w-lg max-h-[92vh] overflow-y-auto overflow-x-hidden" data-testid="approva-dialog">
         <DialogHeader>
           <DialogTitle>Approva lavoro di {item?.dipendente_nome}</DialogTitle>
           <DialogDescription>Controlla i dati e imposta il costo manodopera prima di salvarlo nella scheda cliente.</DialogDescription>
@@ -102,18 +112,37 @@ export default function ApprovaDialog({ item, onClose, onDone }) {
               </div>
             </div>
             <div className="space-y-1.5"><L>Materiali</L><Textarea rows={2} value={f.materiali} onChange={(e) => set("materiali", e.target.value)} data-testid="input-approva-materiali" /></div>
-            {item.articoli_magazzino?.length > 0 && (
-              <div className="text-xs text-muted-foreground">Approvando verranno scaricati dal magazzino {item.articoli_magazzino.length} articoli indicati dal dipendente.</div>
-            )}
-            {item.articoli_liberi?.length > 0 && (
-              <div className="text-xs rounded-md border border-border/60 p-2 space-y-0.5" data-testid="approva-articoli-liberi">
-                <div className="font-semibold text-muted-foreground uppercase tracking-wider text-[10px]">Altri articoli (non in magazzino)</div>
-                {item.articoli_liberi.map((a, i) => (
-                  <div key={i} className="flex justify-between gap-2"><span>{a.descrizione} × {a.quantita}</span><span className="font-mono-num">{fmtEuro(Number(a.quantita || 0) * Number(a.prezzo_unitario || 0))}</span></div>
-                ))}
-                <div className="text-[11px] text-muted-foreground">Verranno aggiunti al costo del lavoro.</div>
-              </div>
-            )}
+
+            <div className="space-y-1.5 rounded-md border border-border/60 p-3" data-testid="approva-articoli-magazzino">
+              <L>Articoli dal magazzino <span className="text-muted-foreground font-normal normal-case">(scaricati all'approvazione)</span></L>
+              {f.articoli_magazzino.length === 0 && <div className="text-xs text-muted-foreground">Nessun articolo indicato: puoi aggiungerli qui sotto.</div>}
+              {f.articoli_magazzino.map((a, i) => {
+                const art = articoli.find((x) => x.id === a.articolo_id);
+                return (
+                  <div key={a.articolo_id} className="flex items-center gap-2 text-sm" data-testid={`approva-art-${a.articolo_id}`}>
+                    <span className="flex-1 min-w-0 truncate">{art?.nome || a.nome || a.articolo_id}{art && <span className="text-[11px] text-muted-foreground ml-1">· {fmtEuro(art.prezzo_listino || 0)} · giac. {Number(art.quantita)}</span>}</span>
+                    <Input type="number" min="0" step="0.5" value={a.quantita} onChange={(e) => setArt(i, e.target.value)} className="w-16 h-8 font-mono-num shrink-0" data-testid={`approva-art-qta-${a.articolo_id}`} />
+                    <button type="button" onClick={() => set("articoli_magazzino", f.articoli_magazzino.filter((_, j) => j !== i))} data-testid={`approva-art-rimuovi-${a.articolo_id}`}><X className="w-4 h-4 text-destructive" /></button>
+                  </div>
+                );
+              })}
+              <ArticoloPicker articoli={articoli} exclude={f.articoli_magazzino.map((a) => a.articolo_id)} onSelect={(a) => set("articoli_magazzino", [...f.articoli_magazzino, { articolo_id: a.id, quantita: 1 }])} placeholder="+ Aggiungi articolo dal magazzino…" testId="approva-add-articolo" />
+            </div>
+
+            <div className="space-y-1.5 rounded-md border border-border/60 p-3" data-testid="approva-articoli-liberi">
+              <div className="flex items-center justify-between"><L>Altri articoli <span className="text-muted-foreground font-normal normal-case">(non in magazzino)</span></L>
+                <Button type="button" size="sm" variant="ghost" onClick={() => set("articoli_liberi", [...f.articoli_liberi, { descrizione: "", quantita: 1, prezzo_unitario: "" }])} data-testid="approva-add-libero"><Plus className="w-3.5 h-3.5 mr-1" /> Aggiungi</Button></div>
+              {f.articoli_liberi.map((a, i) => (
+                <div key={i} className="grid grid-cols-[1fr_56px_72px_20px] gap-1.5 items-center" data-testid={`approva-libero-${i}`}>
+                  <Input value={a.descrizione} onChange={(e) => setLibero(i, "descrizione", e.target.value)} placeholder="Descrizione" className="h-8" data-testid={`approva-libero-desc-${i}`} />
+                  <Input type="number" min="0" step="0.5" value={a.quantita} onChange={(e) => setLibero(i, "quantita", e.target.value)} className="h-8 font-mono-num" data-testid={`approva-libero-qta-${i}`} />
+                  <Input type="number" min="0" step="0.01" value={a.prezzo_unitario} onChange={(e) => setLibero(i, "prezzo_unitario", e.target.value)} placeholder="€ cad." className="h-8 font-mono-num" data-testid={`approva-libero-prezzo-${i}`} />
+                  <button type="button" onClick={() => set("articoli_liberi", f.articoli_liberi.filter((_, j) => j !== i))} data-testid={`approva-libero-rimuovi-${i}`}><X className="w-4 h-4 text-destructive" /></button>
+                </div>
+              ))}
+              {f.articoli_liberi.length > 0 && <div className="text-[11px] text-muted-foreground">Totale altri articoli: {fmtEuro(f.articoli_liberi.reduce((s, a) => s + Number(a.quantita || 0) * Number(a.prezzo_unitario || 0), 0))} — aggiunto al costo del lavoro.</div>}
+            </div>
+            <div className="text-[11px] text-muted-foreground">Dopo l'approvazione potrai ancora modificare ore e articoli dalla scheda del cliente (icona matita sul lavoro).</div>
           </div>
         )}
         <DialogFooter>
