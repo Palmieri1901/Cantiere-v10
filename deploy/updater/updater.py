@@ -10,6 +10,7 @@ PROJECT_DIR = os.environ["PROJECT_DIR"]
 DEPLOY_DIR = os.path.join(PROJECT_DIR, "deploy")
 TOKEN = os.environ["UPDATER_TOKEN"]
 BRANCH = os.environ.get("UPDATE_BRANCH", "main")
+REPO = os.environ.get("UPDATE_REPO", "").strip()  # es. https://github.com/utente/cantiere-v10.git
 DB_NAME = os.environ.get("DB_NAME", "portomare")
 STATE_FILE = os.path.join(DEPLOY_DIR, "backups", "updater-state.json")
 LOG_FILE = os.path.join(DEPLOY_DIR, "backups", "updater.log")
@@ -56,9 +57,21 @@ def _commit_info(ref):
     return {"hash": h, "data": d, "messaggio": s[:160] + ("…" if len(s) > 160 else "")}
 
 
+def _allinea_remote():
+    if not REPO:
+        return
+    attuale = _run(["git", "remote", "get-url", "origin"], check=False)
+    if attuale != REPO:
+        if attuale:
+            _run(["git", "remote", "set-url", "origin", REPO])
+        else:
+            _run(["git", "remote", "add", "origin", REPO])
+
+
 def status():
     fetch_err = ""
     try:
+        _allinea_remote()
         _run(["git", "fetch", "origin", BRANCH])
     except Exception as e:
         fetch_err = str(e).splitlines()[-1][:200]
@@ -75,7 +88,7 @@ def status():
     with _lock:
         st = dict(_state)
     return {
-        "disponibile": True, "branch": BRANCH, "corrente": corrente, "remoto": remoto,
+        "disponibile": True, "branch": BRANCH, "repo": REPO or _run(["git", "remote", "get-url", "origin"], check=False), "corrente": corrente, "remoto": remoto,
         "aggiornamenti": behind, "novita": novita, "errore_fetch": fetch_err,
         "precedente": prev.get("precedente"), "backup_pre_update": prev.get("backup"),
         **st,
@@ -108,6 +121,7 @@ def do_update():
         backup = _backup_db(prev_hash[:7])
         _save_prev({"precedente": _commit_info(prev_hash), "backup": backup})
         _set(fase="Scaricamento aggiornamenti da GitHub…")
+        _allinea_remote()
         _run(["git", "fetch", "origin", BRANCH])
         _run(["git", "reset", "--hard", f"origin/{BRANCH}"])
         _rebuild()
@@ -117,16 +131,25 @@ def do_update():
         _set(stato="error", errore=str(e), fase="", terminato=datetime.now(timezone.utc).isoformat())
 
 
+def _restore_db(name):
+    _set(fase="Ripristino del database dalla copia di sicurezza…")
+    _run(["sh", "-c", f"docker compose cp ./backups/{name} mongo:/tmp/{name}"], cwd=DEPLOY_DIR)
+    _run(["docker", "compose", "exec", "-T", "mongo", "mongorestore", "--uri=mongodb://localhost:27017", "--drop", "--gzip",
+          f"--archive=/tmp/{name}"], cwd=DEPLOY_DIR)
+
+
 def do_rollback():
     try:
-        prev = _load_prev().get("precedente")
-        if not prev:
+        prev = _load_prev()
+        if not prev.get("precedente"):
             raise RuntimeError("Nessuna versione precedente registrata")
         _set(stato="running", errore="", iniziato=datetime.now(timezone.utc).isoformat(), terminato=None)
-        _set(fase=f"Ripristino versione {prev['hash']}…")
-        _run(["git", "reset", "--hard", prev["hash"]])
+        _set(fase=f"Ripristino versione {prev['precedente']['hash']}…")
+        _run(["git", "reset", "--hard", prev["precedente"]["hash"]])
+        if prev.get("backup") and os.path.exists(os.path.join(DEPLOY_DIR, "backups", prev["backup"])):
+            _restore_db(prev["backup"])
         _rebuild()
-        _set(stato="done", fase="Versione precedente ripristinata", terminato=datetime.now(timezone.utc).isoformat())
+        _set(stato="done", fase="Versione precedente ripristinata (programma e database)", terminato=datetime.now(timezone.utc).isoformat())
     except Exception as e:
         _log(f"ERRORE rollback: {e}")
         _set(stato="error", errore=str(e), fase="", terminato=datetime.now(timezone.utc).isoformat())

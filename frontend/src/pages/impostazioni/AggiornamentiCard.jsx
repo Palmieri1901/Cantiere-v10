@@ -48,13 +48,13 @@ export default function AggiornamentiCard() {
 
   const aggiorna = async () => {
     const n = stato?.aggiornamenti || 0;
-    if (!await confirmDialog(`Verrà fatto un backup del database, scaricate ${n} modifiche da GitHub e riavviato il programma (2-5 minuti). Nessuno potrà usare il gestionale durante l'aggiornamento. Procedere?`, { title: "Aggiorna il programma", okLabel: "Aggiorna ora", danger: false })) return;
+    if (!await confirmDialog(`Verrà fatta una copia di sicurezza completa del database, poi scaricate ${n} modifiche da GitHub${stato?.repo ? ` (${stato.repo.replace(/^https?:\/\/github\.com\//, "").replace(/\.git$/, "")})` : ""} e riavviato il programma (2-5 minuti). Nessuno potrà usare il gestionale durante l'aggiornamento. In caso di problemi potrai tornare indietro con "Ripristina versione precedente". Procedere?`, { title: "Aggiorna il programma", okLabel: "Aggiorna ora", danger: false })) return;
     try { await api.post("/aggiornamenti/avvia"); setFase("Avvio…"); avviaPolling(); }
     catch (e) { toast.error(e.response?.data?.detail || "Avvio non riuscito"); }
   };
 
   const ripristina = async () => {
-    if (!await confirmDialog(`Tornare alla versione ${stato?.precedente?.hash} (${fmtData(stato?.precedente?.data)})? I dati non vengono toccati; se serve puoi ripristinare anche il backup "${stato?.backup_pre_update}" dalla cartella deploy/backups.`, { title: "Ripristina versione precedente", okLabel: "Ripristina" })) return;
+    if (!await confirmDialog(`Tornare alla versione ${stato?.precedente?.hash} (${fmtData(stato?.precedente?.data)})? Verranno ripristinati sia il programma sia il database dalla copia di sicurezza "${stato?.backup_pre_update}" fatta prima dell'aggiornamento: le modifiche inserite dopo l'aggiornamento andranno perse.`, { title: "Ripristina versione precedente", okLabel: "Ripristina" })) return;
     try { await api.post("/aggiornamenti/ripristina"); setFase("Avvio ripristino…"); avviaPolling(); }
     catch (e) { toast.error(e.response?.data?.detail || "Ripristino non riuscito"); }
   };
@@ -104,6 +104,7 @@ export default function AggiornamentiCard() {
           <p className="text-sm text-muted-foreground mt-1">
             Versione installata: <span className="font-mono-num" data-testid="versione-corrente">{stato?.corrente?.hash || "—"}</span> · {fmtData(stato?.corrente?.data)}
             {stato?.corrente?.messaggio && <span className="block line-clamp-2">{stato.corrente.messaggio}</span>}
+            {stato?.repo && <span className="block text-xs mt-0.5">Sorgente: {stato.repo.replace(/^https?:\/\/github\.com\//, "").replace(/\.git$/, "")} · ramo {stato.branch}{stato?.remoto?.hash ? ` · ultima su GitHub ${stato.remoto.hash}` : ""}</span>}
           </p>
           {stato?.errore_fetch && <p className="text-xs text-destructive mt-2 flex items-center gap-1"><AlertTriangle className="w-3.5 h-3.5" /> GitHub non raggiungibile: {stato.errore_fetch}</p>}
           {stato?.stato === "error" && <p className="text-xs text-destructive mt-2 flex items-center gap-1"><AlertTriangle className="w-3.5 h-3.5" /> Ultimo aggiornamento fallito: {stato.errore}</p>}

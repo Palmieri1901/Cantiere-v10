@@ -45,14 +45,16 @@ Configurazione una tantum nel file `deploy/.env`:
 PROJECT_DIR=/home/ubuntu/portomare      # percorso assoluto della cartella clonata (pwd dentro la cartella)
 UPDATER_TOKEN=$(openssl rand -hex 24)   # token segreto qualsiasi
 UPDATE_BRANCH=main
+UPDATE_REPO=https://github.com/TUO-UTENTE/cantiere-v10.git   # repository GitHub salvato da Emergent
 ```
+Il servizio allinea automaticamente il remote `origin` a `UPDATE_REPO`, quindi puoi cambiare repository (es. passare a "cantiere v10") solo modificando il `.env` e riavviando l'updater (`docker compose up -d updater`).
 Poi, **solo la prima volta**, aggiorna a mano per installare il servizio:
 ```bash
 cd /home/ubuntu/portomare && git pull && cd deploy && docker compose up -d --build
 ```
 Da quel momento in Impostazioni → Aggiornamenti trovi: versione installata, **Controlla aggiornamenti** (elenco delle novità su GitHub),
 **Aggiorna ora** (backup automatico del DB in `deploy/backups/pre-update-*.gz`, pull, rebuild, ricarica automatica) e
-**Ripristina versione precedente**. Log in `deploy/backups/updater.log`.
+**Ripristina versione precedente** (riporta programma **e database** alla copia fatta prima dell'aggiornamento). Log in `deploy/backups/updater.log`.
 
 ## 4. Backup
 - Il servizio `backup` esegue ogni giorno un `mongodump` in `deploy/backups/` (conservati 14 giorni). Copia questa cartella altrove (NAS, cloud).
