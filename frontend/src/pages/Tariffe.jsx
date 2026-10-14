@@ -8,6 +8,7 @@ import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { Settings2, RefreshCw, Save, Waves, Anchor, Wrench, Cog, ListPlus, Plus, Trash2 } from "lucide-react";
 import { useYear } from "@/lib/year";
+import { UNITA, normUnita } from "@/lib/unita";
 
 const GROUPS = [
   {
@@ -207,7 +208,9 @@ export default function Tariffe() {
                 {t.servizi_extra.map((s, i) => (
                   <div key={i} className="flex items-center gap-2 flex-wrap sm:flex-nowrap" data-testid={`servizio-extra-${i}`}>
                     <Input value={s.nome} placeholder="Nome servizio" onChange={(e) => setT({ ...t, servizi_extra: t.servizi_extra.map((x, j) => j === i ? { ...x, nome: e.target.value } : x) })} className="flex-1 min-w-[180px] h-9" data-testid={`servizio-nome-${i}`} />
-                    <Input value={s.unita} placeholder="Unità (es. forfait, € / ora)" onChange={(e) => setT({ ...t, servizi_extra: t.servizi_extra.map((x, j) => j === i ? { ...x, unita: e.target.value } : x) })} className="w-44 h-9" data-testid={`servizio-unita-${i}`} />
+                    <select value={normUnita(s.unita).id} onChange={(e) => setT({ ...t, servizi_extra: t.servizi_extra.map((x, j) => j === i ? { ...x, unita: e.target.value } : x) })} className="w-44 h-9 rounded-md border border-input bg-background px-2 text-sm" data-testid={`servizio-unita-${i}`}>
+                      {UNITA.map((u) => <option key={u.id} value={u.id}>{u.label}</option>)}
+                    </select>
                     <div className="relative w-32 shrink-0">
                       <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">€</span>
                       <Input type="number" step="0.01" min="0" value={s.prezzo} onChange={(e) => setT({ ...t, servizi_extra: t.servizi_extra.map((x, j) => j === i ? { ...x, prezzo: e.target.value } : x) })} className="pl-10 font-mono-num text-right h-9" data-testid={`servizio-prezzo-${i}`} />

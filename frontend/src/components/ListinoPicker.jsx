@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ListChecks, Check } from "lucide-react";
+import { normUnita } from "@/lib/unita";
 
 // Voci del listino (Tariffe) con unità e domanda da porre per calcolare il totale
 const fmtQ = (n) => Number(n).toLocaleString("it-IT", { maximumFractionDigits: 2 });
@@ -25,9 +26,9 @@ export function vociListino(t) {
     { id: "manodopera", nome: "Manodopera", unita: "ore", domanda: "Ore di lavoro", prezzo: t.costo_orario_manodopera, calc: (h) => +(h * t.costo_orario_manodopera).toFixed(2), label: (h) => `Manodopera ${fmtQ(h)} h` },
   ];
   (t.servizi_extra || []).forEach((s, i) => {
-    const u = (s.unita || "").toLowerCase();
-    const aQuantita = /ora|ore|giorn|metr|km|movimento|pezzo|pz/.test(u);
-    v.push({ id: `extra_${i}`, nome: s.nome, unita: aQuantita ? s.unita : "", domanda: aQuantita ? `Quantità (${s.unita})` : null, prezzo: s.prezzo, calc: (q) => +((aQuantita ? q : 1) * s.prezzo).toFixed(2), label: (q) => (aQuantita ? `${s.nome} · ${fmtQ(q)} ${s.unita}` : s.nome) });
+    const u = normUnita(s.unita);
+    const aQuantita = !!u.domanda;
+    v.push({ id: `extra_${i}`, nome: s.nome, unita: aQuantita ? u.breve : "", domanda: u.domanda, prezzo: s.prezzo, calc: (q) => +((aQuantita ? q : 1) * s.prezzo).toFixed(2), label: (q) => (aQuantita ? `${s.nome} · ${fmtQ(q)} ${u.breve}` : s.nome) });
   });
   return v;
 }
