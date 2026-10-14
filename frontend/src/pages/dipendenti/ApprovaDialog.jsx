@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { toast } from "sonner";
 import { ClientePicker } from "./ClientePicker";
 import { ArticoloPicker } from "@/components/ArticoloPicker";
+import { ListinoPicker } from "@/components/ListinoPicker";
 import { X, Plus } from "lucide-react";
 
 const TIPI = ["Antivegetativa", "Manutenzione motore", "Riparazione", "Pulizia", "Elettrico", "Altro"];
@@ -131,7 +132,10 @@ export default function ApprovaDialog({ item, onClose, onDone }) {
 
             <div className="space-y-1.5 rounded-md border border-border/60 p-3" data-testid="approva-articoli-liberi">
               <div className="flex items-center justify-between"><L>Altri articoli <span className="text-muted-foreground font-normal normal-case">(non in magazzino)</span></L>
-                <Button type="button" size="sm" variant="ghost" onClick={() => set("articoli_liberi", [...f.articoli_liberi, { descrizione: "", quantita: 1, prezzo_unitario: "" }])} data-testid="approva-add-libero"><Plus className="w-3.5 h-3.5 mr-1" /> Aggiungi</Button></div>
+                <div className="flex gap-1">
+                  <ListinoPicker onAdd={(v) => set("articoli_liberi", [...f.articoli_liberi, { descrizione: v.descrizione, quantita: v.quantita, prezzo_unitario: v.prezzo_unitario }])} variant="ghost" testId="approva-listino" />
+                  <Button type="button" size="sm" variant="ghost" onClick={() => set("articoli_liberi", [...f.articoli_liberi, { descrizione: "", quantita: 1, prezzo_unitario: "" }])} data-testid="approva-add-libero"><Plus className="w-3.5 h-3.5 mr-1" /> Aggiungi</Button>
+                </div></div>
               {f.articoli_liberi.map((a, i) => (
                 <div key={i} className="grid grid-cols-[1fr_56px_72px_20px] gap-1.5 items-center" data-testid={`approva-libero-${i}`}>
                   <Input value={a.descrizione} onChange={(e) => setLibero(i, "descrizione", e.target.value)} placeholder="Descrizione" className="h-8" data-testid={`approva-libero-desc-${i}`} />

@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { Plus, Trash2, Package, Clock, Tag, Search } from "lucide-react";
+import { ListinoPicker } from "@/components/ListinoPicker";
 
 const L = ({ children }) => <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{children}</Label>;
 const empty = () => ({ data: new Date().toISOString().slice(0, 10), oggetto: "", righe: [], sconto_pct: 0, iva_pct: 22, note: "", validita_giorni: 30 });
@@ -70,7 +71,8 @@ export default function PreventivoEsternoDialog({ esterno, preventivo, open, onC
         <div className="space-y-2">
           <div className="flex items-center justify-between flex-wrap gap-2">
             <L>Righe</L>
-            <div className="flex gap-2">
+            <div className="flex gap-2 flex-wrap">
+              <ListinoPicker onAdd={(v) => addRiga({ tipo: "voce", descrizione: v.descrizione, quantita: v.quantita, prezzo_unitario: v.prezzo_unitario })} testId="btn-riga-listino" />
               <Button size="sm" variant="outline" onClick={() => addRiga({ tipo: "manodopera", descrizione: "Manodopera", quantita: 1, prezzo_unitario: tariffa })} data-testid="btn-riga-manodopera"><Clock className="w-3.5 h-3.5 mr-1" /> Manodopera {tariffa ? `(${tariffa} €/h)` : ""}</Button>
               <Button size="sm" variant="outline" onClick={() => addRiga({ tipo: "articolo", articolo_id: null, codice: "", descrizione: "", quantita: 1, prezzo_unitario: 0 })} data-testid="btn-riga-ricambio-esterno"><Package className="w-3.5 h-3.5 mr-1" /> Ricambio non in magazzino</Button>
               <Button size="sm" variant="outline" onClick={() => addRiga({ tipo: "voce", descrizione: "", quantita: 1, prezzo_unitario: 0 })} data-testid="btn-riga-voce"><Tag className="w-3.5 h-3.5 mr-1" /> Voce libera</Button>

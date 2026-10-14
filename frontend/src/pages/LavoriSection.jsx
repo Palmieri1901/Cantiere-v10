@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { Plus, Pencil, Trash2, Wrench, Package, AlertTriangle } from "lucide-react";
+import { ListinoPicker } from "@/components/ListinoPicker";
 
 const TIPI_LAVORO = ["Antivegetativa", "Manutenzione motore", "Riparazione", "Pulizia", "Elettrico", "Altro"];
 const STATI = [
@@ -391,7 +392,10 @@ export default function LavoriSection({ clienteId }) {
                   <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
                     <Package className="w-3 h-3" /> Altri articoli (non in magazzino)
                   </Label>
-                  <Button size="sm" variant="outline" onClick={addLibero} data-testid="btn-aggiungi-articolo"><Plus className="w-3.5 h-3.5 mr-1" /> Aggiungi articolo</Button>
+                  <div className="flex gap-1.5">
+                    <ListinoPicker onAdd={(v) => setArtLiberi((s) => [...s, { descrizione: v.descrizione, quantita: v.quantita, prezzo_unitario: v.prezzo_unitario }])} testId="btn-listino-lavoro" />
+                    <Button size="sm" variant="outline" onClick={addLibero} data-testid="btn-aggiungi-articolo"><Plus className="w-3.5 h-3.5 mr-1" /> Aggiungi articolo</Button>
+                  </div>
                 </div>
                 {artLiberi.length === 0 ? (
                   <div className="text-xs text-muted-foreground py-1">Nessun articolo: usa "Aggiungi articolo" per inserire descrizione, quantità e prezzo.</div>
