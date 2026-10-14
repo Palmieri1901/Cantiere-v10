@@ -20,7 +20,7 @@ def _norm_liberi(items) -> list:
         pu = float(it.get("prezzo_unitario") or 0)
         if not descr and qt * pu == 0:
             continue
-        out.append({"descrizione": descr, "quantita": qt, "prezzo_unitario": pu, "totale": round(qt * pu, 2)})
+        out.append({"descrizione": descr, "quantita": qt, "prezzo_unitario": pu, "totale": round(qt * pu, 2), "unita": str(it.get("unita") or "").strip()})
     return out
 
 
@@ -69,6 +69,7 @@ async def _scarica_articoli_magazzino(articoli: list, cliente: dict, lavoro_id: 
             "articolo_id": aid,
             "codice": art.get("codice", ""),
             "nome": art.get("nome", ""),
+            "unita": art.get("unita_misura") or "",
             "quantita": qt,
             "prezzo_unitario": prezzo_unit,
             "totale": qt * prezzo_unit,
@@ -249,6 +250,7 @@ async def update_lavoro(lavoro_id: str, payload: LavoroCreate):
                     "articolo_id": aid,
                     "codice": (art or {}).get("codice", "") or "",
                     "nome": (art or {}).get("nome", "") or "",
+                    "unita": (art or {}).get("unita_misura") or "",
                     "quantita": new_q,
                     "prezzo_unitario": prezzo_unit,
                     "totale": new_q * prezzo_unit,

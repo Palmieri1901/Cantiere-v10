@@ -83,7 +83,7 @@ export default function LavoriSection({ clienteId }) {
   const openEdit = (l) => {
     setEditing(l);
     setForm({ ...l, costo: +(Number(l.costo || 0) - (l.articoli_liberi || []).reduce((s, x) => s + Number(x.totale || 0), 0) - (l.articoli_magazzino || []).reduce((s, x) => s + Number(x.totale || 0), 0)).toFixed(2) });
-    setArtLiberi((l.articoli_liberi || []).map((x) => ({ descrizione: x.descrizione || "", quantita: x.quantita, prezzo_unitario: x.prezzo_unitario })));
+    setArtLiberi((l.articoli_liberi || []).map((x) => ({ descrizione: x.descrizione || "", quantita: x.quantita, prezzo_unitario: x.prezzo_unitario, unita: x.unita || "" })));
     setCostoManuale(true);
     api.get("/tariffe").then((t) => setTariffaOraria(Number(t.data.costo_orario_manodopera) || 0)).catch(() => {});
     // Ripopola gli articoli già scaricati sul lavoro così l'utente può aggiungerne/toglierne
@@ -147,7 +147,7 @@ export default function LavoriSection({ clienteId }) {
         articolo_id: a.articolo_id, quantita: Number(a.quantita), prezzo_unitario: Number(a.prezzo_unitario),
       })),
       articoli_liberi: artLiberi.filter((a) => (a.descrizione || "").trim() || Number(a.prezzo_unitario) > 0).map((a) => ({
-        descrizione: a.descrizione, quantita: Number(a.quantita) || 1, prezzo_unitario: Number(a.prezzo_unitario) || 0,
+        descrizione: a.descrizione, quantita: Number(a.quantita) || 1, prezzo_unitario: Number(a.prezzo_unitario) || 0, unita: a.unita || "",
       })),
     };
     try {
@@ -393,7 +393,7 @@ export default function LavoriSection({ clienteId }) {
                     <Package className="w-3 h-3" /> Altri articoli (non in magazzino)
                   </Label>
                   <div className="flex gap-1.5">
-                    <ListinoPicker onAdd={(v) => setArtLiberi((s) => [...s, { descrizione: v.descrizione, quantita: v.quantita, prezzo_unitario: v.prezzo_unitario }])} testId="btn-listino-lavoro" />
+                    <ListinoPicker onAdd={(v) => setArtLiberi((s) => [...s, { descrizione: v.descrizione, quantita: v.quantita, prezzo_unitario: v.prezzo_unitario, unita: v.unita }])} testId="btn-listino-lavoro" />
                     <Button size="sm" variant="outline" onClick={addLibero} data-testid="btn-aggiungi-articolo"><Plus className="w-3.5 h-3.5 mr-1" /> Aggiungi articolo</Button>
                   </div>
                 </div>
@@ -405,6 +405,7 @@ export default function LavoriSection({ clienteId }) {
                       <div key={i} className="flex items-center gap-2 text-sm bg-card rounded-md p-2 border border-border/60 flex-wrap sm:flex-nowrap" data-testid={`art-lib-row-${i}`}>
                         <Input value={a.descrizione} onChange={(e) => updateLibero(i, "descrizione", e.target.value)} placeholder="Descrizione articolo" className="flex-1 min-w-[140px] h-8" data-testid={`art-lib-descr-${i}`} />
                         <Input type="number" step="0.01" min="0" value={a.quantita} onChange={(e) => updateLibero(i, "quantita", e.target.value)} className="w-20 h-8 text-right font-mono-num" placeholder="Q.tà" data-testid={`art-lib-qty-${i}`} />
+                        {a.unita && <span className="text-xs text-muted-foreground w-7" data-testid={`art-lib-unita-${i}`}>{a.unita}</span>}
                         <div className="relative w-28">
                           <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">€</span>
                           <Input type="number" step="0.01" min="0" value={a.prezzo_unitario} onChange={(e) => updateLibero(i, "prezzo_unitario", e.target.value)} className="pl-6 h-8 text-right font-mono-num text-xs" placeholder="Prezzo" data-testid={`art-lib-price-${i}`} />

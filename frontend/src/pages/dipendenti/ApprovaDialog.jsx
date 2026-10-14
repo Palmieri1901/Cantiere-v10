@@ -33,7 +33,7 @@ export default function ApprovaDialog({ item, onClose, onDone }) {
       const costo = item.costo || +(Number(item.ore || 0) * rate).toFixed(2);
       setF({ cliente_id: item.cliente_id || "", esterno_nome: item.cliente_nome || "", data: item.data, tipo: TIPI.includes(item.tipo) ? item.tipo : "Altro", descrizione: item.descrizione, ore: item.ore, costo, materiali: item.materiali || "",
         articoli_magazzino: (item.articoli_magazzino || []).map((a) => ({ articolo_id: a.articolo_id, quantita: a.quantita ?? 1, nome: a.nome })),
-        articoli_liberi: (item.articoli_liberi || []).map((a) => ({ descrizione: a.descrizione || "", quantita: a.quantita ?? 1, prezzo_unitario: a.prezzo_unitario ?? "" })) });
+        articoli_liberi: (item.articoli_liberi || []).map((a) => ({ descrizione: a.descrizione || "", quantita: a.quantita ?? 1, prezzo_unitario: a.prezzo_unitario ?? "", unita: a.unita || "" })) });
     });
     api.get("/magazzino/articoli").then((r) => setArticoli(r.data)).catch(() => {});
     Promise.all([api.get("/clienti").catch(() => ({ data: [] })), api.get("/esterni").catch(() => ({ data: [] }))]).then(([c, e]) => {
@@ -60,7 +60,7 @@ export default function ApprovaDialog({ item, onClose, onDone }) {
       const { esterno_nome, ...rest } = f;
       const body = { ...rest, ore: Number(f.ore) || 0, costo: Number(f.costo) || 0,
         articoli_magazzino: f.articoli_magazzino.map((a) => ({ articolo_id: a.articolo_id, quantita: Number(a.quantita) || 1 })),
-        articoli_liberi: f.articoli_liberi.filter((a) => a.descrizione.trim()).map((a) => ({ descrizione: a.descrizione.trim(), quantita: Number(a.quantita) || 1, prezzo_unitario: Number(a.prezzo_unitario) || 0 })) };
+        articoli_liberi: f.articoli_liberi.filter((a) => a.descrizione.trim()).map((a) => ({ descrizione: a.descrizione.trim(), quantita: Number(a.quantita) || 1, prezzo_unitario: Number(a.prezzo_unitario) || 0, unita: a.unita || "" })) };
       if (usaEsterno) { body.esterno_nome = esterno_nome.trim(); delete body.cliente_id; }
       await api.post(`/lavori-pending/${item.id}/approva`, body);
       toast.success(usaEsterno ? "Cliente esterno creato e lavoro salvato" : "Lavoro approvato e aggiunto alla scheda cliente");
@@ -133,7 +133,7 @@ export default function ApprovaDialog({ item, onClose, onDone }) {
             <div className="space-y-1.5 rounded-md border border-border/60 p-3" data-testid="approva-articoli-liberi">
               <div className="flex items-center justify-between"><L>Altri articoli <span className="text-muted-foreground font-normal normal-case">(non in magazzino)</span></L>
                 <div className="flex gap-1">
-                  <ListinoPicker onAdd={(v) => set("articoli_liberi", [...f.articoli_liberi, { descrizione: v.descrizione, quantita: v.quantita, prezzo_unitario: v.prezzo_unitario }])} variant="ghost" testId="approva-listino" />
+                  <ListinoPicker onAdd={(v) => set("articoli_liberi", [...f.articoli_liberi, { descrizione: v.descrizione, quantita: v.quantita, prezzo_unitario: v.prezzo_unitario, unita: v.unita }])} variant="ghost" testId="approva-listino" />
                   <Button type="button" size="sm" variant="ghost" onClick={() => set("articoli_liberi", [...f.articoli_liberi, { descrizione: "", quantita: 1, prezzo_unitario: "" }])} data-testid="approva-add-libero"><Plus className="w-3.5 h-3.5 mr-1" /> Aggiungi</Button>
                 </div></div>
               {f.articoli_liberi.map((a, i) => (

@@ -100,6 +100,7 @@ class RigaPrev(BaseModel):
     prezzo_unitario: float = 0
     articolo_id: Optional[str] = None
     codice: Optional[str] = ""
+    unita: Optional[str] = ""
 
 
 class PreventivoEsternoIn(BaseModel):

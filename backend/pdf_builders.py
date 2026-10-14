@@ -606,9 +606,9 @@ def build_conto_esterno_pdf(est: dict, lavori: list, cantiere_doc: dict, anno=No
             testo += f"<br/><font size=7 color='#5B6478'>eseguito da {l['dipendente']}</font>"
         if l.get("materiali"):
             testo += f"<br/><font size=7 color='#5B6478'>Materiali: {l['materiali']}</font>"
-        articoli = [(it.get("nome", ""), float(it.get("quantita") or 0), float(it.get("prezzo_unitario") or 0), float(it.get("totale") or 0))
+        articoli = [(it.get("nome", ""), float(it.get("quantita") or 0), float(it.get("prezzo_unitario") or 0), float(it.get("totale") or 0), it.get("unita") or "")
                     for it in (l.get("articoli_magazzino") or [])]
-        articoli += [(it.get("descrizione", ""), float(it.get("quantita") or 0), float(it.get("prezzo_unitario") or 0), float(it.get("totale") or 0))
+        articoli += [(it.get("descrizione", ""), float(it.get("quantita") or 0), float(it.get("prezzo_unitario") or 0), float(it.get("totale") or 0), it.get("unita") or "")
                      for it in (l.get("articoli_liberi") or [])]
         ore = float(l.get("ore") or 0)
         costo = float(l.get("costo") or 0)
@@ -619,12 +619,12 @@ def build_conto_esterno_pdf(est: dict, lavori: list, cantiere_doc: dict, anno=No
             rows.append([l.get("data", ""), Paragraph(testo + "<br/><font size=7 color='#5B6478'>Manodopera</font>", body), f"{ore:g} h", _euro(manodopera / ore), _euro(manodopera)])
         else:
             rows.append([l.get("data", ""), Paragraph(testo, body), "", "", _euro(manodopera)])
-        for nome, qt, pu, tot in articoli:
-            rows.append(["", Paragraph(f"<font color='#5B6478'>· {nome}</font>", body), f"{qt:g}", _euro(pu), _euro(tot)])
+        for nome, qt, pu, tot, um in articoli:
+            rows.append(["", Paragraph(f"<font color='#5B6478'>· {nome}</font>", body), f"{qt:g}{(' ' + um) if um else ''}", _euro(pu), _euro(tot)])
     if len(rows) == 1:
         rows.append(["—", Paragraph("Nessun lavoro registrato", body), "", "", _euro(0)])
     rows.append(["", Paragraph("<b>TOTALE</b>", body), f"{ore_tot:g} h" if ore_tot else "", "", _euro(totale)])
-    tbl = Table(rows, colWidths=[20*mm, 94*mm, 16*mm, 26*mm, 30*mm], repeatRows=1)
+    tbl = Table(rows, colWidths=[20*mm, 90*mm, 20*mm, 26*mm, 30*mm], repeatRows=1)
     tbl.setStyle(TableStyle([
         ("BACKGROUND", (0, 0), (-1, 0), NAVY), ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
         ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"), ("FONTSIZE", (0, 0), (-1, -1), 8),
@@ -754,8 +754,9 @@ def build_preventivo_esterno_pdf(p: dict, est: dict, cantiere_doc: dict) -> byte
     for r in p.get("righe", []):
         q = float(r.get("quantita") or 0); pu = float(r.get("prezzo_unitario") or 0)
         descr = escape(r.get("descrizione", "")) + (f" <font size=7 color='#5B6478'>[{escape(r['codice'])}]</font>" if r.get("codice") else "")
-        rows.append([TIPO.get(r.get("tipo"), "Voce"), Paragraph(descr, body), f"{q:g}" + (" h" if r.get("tipo") == "manodopera" else ""), _euro(pu), _euro(q * pu)])
-    tbl = Table(rows, colWidths=[24*mm, 86*mm, 18*mm, 26*mm, 28*mm], repeatRows=1)
+        um = " h" if r.get("tipo") == "manodopera" else (f" {r['unita']}" if r.get("unita") else "")
+        rows.append([TIPO.get(r.get("tipo"), "Voce"), Paragraph(descr, body), f"{q:g}{um}", _euro(pu), _euro(q * pu)])
+    tbl = Table(rows, colWidths=[22*mm, 84*mm, 22*mm, 26*mm, 28*mm], repeatRows=1)
     tbl.setStyle(TableStyle([("BACKGROUND", (0, 0), (-1, 0), NAVY), ("TEXTCOLOR", (0, 0), (-1, 0), colors.white), ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
                              ("FONTSIZE", (0, 0), (-1, -1), 8), ("ALIGN", (2, 0), (-1, -1), "RIGHT"), ("VALIGN", (0, 0), (-1, -1), "TOP"),
                              ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, SAND]), ("GRID", (0, 0), (-1, -1), 0.25, colors.HexColor("#D9D4C7")),

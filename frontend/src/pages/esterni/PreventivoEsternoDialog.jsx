@@ -72,7 +72,7 @@ export default function PreventivoEsternoDialog({ esterno, preventivo, open, onC
           <div className="flex items-center justify-between flex-wrap gap-2">
             <L>Righe</L>
             <div className="flex gap-2 flex-wrap">
-              <ListinoPicker onAdd={(v) => addRiga({ tipo: "voce", descrizione: v.descrizione, quantita: v.quantita, prezzo_unitario: v.prezzo_unitario })} testId="btn-riga-listino" />
+              <ListinoPicker onAdd={(v) => addRiga({ tipo: "voce", descrizione: v.descrizione, quantita: v.quantita, prezzo_unitario: v.prezzo_unitario, unita: v.unita })} testId="btn-riga-listino" />
               <Button size="sm" variant="outline" onClick={() => addRiga({ tipo: "manodopera", descrizione: "Manodopera", quantita: 1, prezzo_unitario: tariffa })} data-testid="btn-riga-manodopera"><Clock className="w-3.5 h-3.5 mr-1" /> Manodopera {tariffa ? `(${tariffa} €/h)` : ""}</Button>
               <Button size="sm" variant="outline" onClick={() => addRiga({ tipo: "articolo", articolo_id: null, codice: "", descrizione: "", quantita: 1, prezzo_unitario: 0 })} data-testid="btn-riga-ricambio-esterno"><Package className="w-3.5 h-3.5 mr-1" /> Ricambio non in magazzino</Button>
               <Button size="sm" variant="outline" onClick={() => addRiga({ tipo: "voce", descrizione: "", quantita: 1, prezzo_unitario: 0 })} data-testid="btn-riga-voce"><Tag className="w-3.5 h-3.5 mr-1" /> Voce libera</Button>
@@ -104,7 +104,7 @@ export default function PreventivoEsternoDialog({ esterno, preventivo, open, onC
                 <div key={i} className="p-2 grid grid-cols-12 gap-2 items-center text-sm" data-testid={`prev-riga-${i}`}>
                   <div className="col-span-1 text-muted-foreground" title={r.tipo === "articolo" ? (r.articolo_id ? "Ricambio da magazzino" : "Ricambio non in magazzino") : r.tipo}>{r.tipo === "articolo" ? <Package className={`w-4 h-4 ${r.articolo_id ? "text-primary" : ""}`} /> : r.tipo === "manodopera" ? <Clock className="w-4 h-4" /> : <Tag className="w-4 h-4" />}</div>
                   <Input className="col-span-5 h-9" value={r.descrizione} onChange={(e) => setRiga(i, "descrizione", e.target.value)} placeholder={r.tipo === "articolo" && !r.articolo_id ? "Ricambio (non in magazzino)" : "Descrizione"} />
-                  <Input type="number" step="0.5" min="0" className="col-span-2 h-9 font-mono-num text-right" value={r.quantita} onChange={(e) => setRiga(i, "quantita", e.target.value)} title={r.tipo === "manodopera" ? "Ore" : "Quantità"} />
+                  <Input type="number" step="0.5" min="0" className="col-span-2 h-9 font-mono-num text-right" value={r.quantita} onChange={(e) => setRiga(i, "quantita", e.target.value)} title={r.tipo === "manodopera" ? "Ore" : r.unita ? `Quantità (${r.unita})` : "Quantità"} />
                   <Input type="number" step="0.01" min="0" className="col-span-2 h-9 font-mono-num text-right" value={r.prezzo_unitario} onChange={(e) => setRiga(i, "prezzo_unitario", e.target.value)} />
                   <div className="col-span-1 font-mono-num text-right text-xs">{fmtEuro((Number(r.quantita) || 0) * (Number(r.prezzo_unitario) || 0))}</div>
                   <button className="col-span-1 justify-self-end" onClick={() => set("righe", f.righe.filter((_, j) => j !== i))} data-testid={`prev-del-riga-${i}`}><Trash2 className="w-4 h-4 text-destructive" /></button>
