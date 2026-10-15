@@ -17,6 +17,9 @@
 
 	header /sw.js Cache-Control "no-cache"
 	header /manifest.json Cache-Control "no-cache"
+	# index.html e pagine: mai in cache, così ogni aggiornamento è visibile subito
+	@pagine not path /static/* /api/*
+	header @pagine Cache-Control "no-cache, must-revalidate"
 }
 
 # ===== App dipendenti (host dedicato, nessun accesso al gestionale) =====
@@ -39,4 +42,7 @@
 
 	header /sw.js Cache-Control "no-cache"
 	header /manifest.json Cache-Control "no-cache"
+	# index.html e pagine: mai in cache, così ogni aggiornamento è visibile subito
+	@pagine not path /static/* /api/*
+	header @pagine Cache-Control "no-cache, must-revalidate"
 }
