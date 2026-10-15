@@ -21,6 +21,7 @@ import { PdfPreviewOverlay } from "@/components/PdfPreviewOverlay";
 import { EMPTY_CLIENTE, MAX_EXTRA, Field, CostField, BreakdownRow } from "@/pages/cliente-form/common";
 import MotoreSection from "@/pages/cliente-form/MotoreSection";
 import LavorazioniExtraSection from "@/pages/cliente-form/LavorazioniExtraSection";
+import RitiroConsegnaSection, { descrRitiroConsegna } from "@/pages/cliente-form/RitiroConsegnaSection";
 import MagazzinoPickerDialog from "@/pages/cliente-form/MagazzinoPickerDialog";
 
 export default function ClienteForm({ open, onOpenChange, cliente, onSaved, mode = "cliente" }) {
@@ -189,7 +190,8 @@ export default function ClienteForm({ open, onOpenChange, cliente, onSaved, mode
     (Number(f.costo_alaggio) || 0) + (Number(f.costo_varo) || 0) +
     (Number(f.costo_antivegetativa) || 0) + (Number(f.costo_manutenzione_motore) || 0) +
     (Number(f.costo_lavaggio_inizio) || 0) + (Number(f.costo_lavaggio_fine) || 0) +
-    (Number(f.costo_scafo_sporco) || 0) + totaleExtra;
+    (Number(f.costo_scafo_sporco) || 0) +
+    (Number(f.costo_movimentazione) || 0) + (Number(f.costo_taccaggio) || 0) + totaleExtra;
 
   const save = async () => {
     // Preventivo veloce: solo nome+cognome obbligatori
@@ -245,11 +247,13 @@ export default function ClienteForm({ open, onOpenChange, cliente, onSaved, mode
       costo_lavaggio_fine: Number(f.costo_lavaggio_fine) || 0,
       costo_scafo_sporco: Number(f.costo_scafo_sporco) || 0,
       lavorazioni_extra: (Array.isArray(f.lavorazioni_extra) ? f.lavorazioni_extra : [])
+        .filter((it) => !it?.tipo || f.tipo_sosta === "fuori_sede")
         .map((it) => ({
-          descrizione: String(it?.descrizione ?? "").trim(),
+          descrizione: it?.tipo ? descrRitiroConsegna(it) : String(it?.descrizione ?? "").trim(),
           prezzo: Number(it?.prezzo) || 0,
+          ...(it?.tipo ? { tipo: it.tipo, luogo: String(it.luogo ?? "").trim() } : {}),
         }))
-        .filter((it) => it.descrizione || it.prezzo > 0),
+        .filter((it) => (it.tipo ? it.luogo || it.prezzo > 0 : it.descrizione || it.prezzo > 0)),
       giorni_sosta_temporanea: Number(f.giorni_sosta_temporanea) || 0,
       litri_olio_piede: Number(f.litri_olio_piede) || 0,
       litri_olio_piede_2: Number(f.litri_olio_piede_2) || 0,
@@ -572,6 +576,13 @@ export default function ClienteForm({ open, onOpenChange, cliente, onSaved, mode
           </section>
 
           <Separator />
+
+          {isFuoriSede && (
+            <>
+              <RitiroConsegnaSection f={f} update={update} />
+              <Separator />
+            </>
+          )}
 
           {/* Lavorazioni extra (component esterno) */}
           <LavorazioniExtraSection

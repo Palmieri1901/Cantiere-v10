@@ -67,7 +67,11 @@ def _sanitize_lavorazioni_extra(lst) -> List[dict]:
             prezzo = 0.0
         if not desc and prezzo == 0:
             continue
-        out.append({"descrizione": desc, "prezzo": prezzo})
+        row = {"descrizione": desc, "prezzo": prezzo}
+        if item.get("tipo") in ("ritiro", "consegna"):
+            row["tipo"] = item["tipo"]
+            row["luogo"] = str(item.get("luogo") or "").strip()
+        out.append(row)
     return out
 
 

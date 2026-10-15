@@ -5,22 +5,25 @@ import { fmtEuro } from "@/lib/api";
 import { MAX_EXTRA } from "./common";
 
 export default function LavorazioniExtraSection({ f, update, onOpenMagPicker }) {
-  const extras = Array.isArray(f.lavorazioni_extra) ? f.lavorazioni_extra : [];
+  const tutte = Array.isArray(f.lavorazioni_extra) ? f.lavorazioni_extra : [];
+  const speciali = tutte.filter((it) => it?.tipo); // ritiro/consegna: gestite nella loro sezione
+  const extras = tutte.filter((it) => !it?.tipo);
   const totaleExtra = extras.reduce((s, it) => s + (Number(it?.prezzo) || 0), 0);
+  const commit = (list) => update("lavorazioni_extra", [...speciali, ...list]);
 
   const addExtra = () => {
     if (extras.length >= MAX_EXTRA) return;
-    update("lavorazioni_extra", [...extras, { descrizione: "", prezzo: 0 }]);
+    commit([...extras, { descrizione: "", prezzo: 0 }]);
   };
   const removeExtra = (idx) => {
     const list = [...extras];
     list.splice(idx, 1);
-    update("lavorazioni_extra", list);
+    commit(list);
   };
   const updateExtra = (idx, key, value) => {
     const list = [...extras];
     list[idx] = { ...list[idx], [key]: key === "prezzo" ? value : String(value ?? "") };
-    update("lavorazioni_extra", list);
+    commit(list);
   };
 
   return (

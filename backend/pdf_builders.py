@@ -135,7 +135,7 @@ def _build_storico_pdf(docs: list, cantiere_doc: dict) -> bytes:
             if prezzo <= 0:
                 continue
             descr = ((it or {}).get("descrizione") or "").strip() or "Lavorazione extra"
-            rows.append([f"Extra · {descr}", _euro(prezzo)])
+            rows.append([descr if (it or {}).get("tipo") else f"Extra · {descr}", _euro(prezzo)])
             subtot += prezzo
         for it in (d.get("lavori_storico") or []):
             costo_l = float((it or {}).get("costo") or 0)
