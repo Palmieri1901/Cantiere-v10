@@ -52,6 +52,19 @@ Poi, **solo la prima volta**, aggiorna a mano per installare il servizio:
 ```bash
 cd /home/ubuntu/portomare && git pull && cd deploy && docker compose up -d --build
 ```
+
+### "Aggiornamento bloccato: ci sono modifiche locali da proteggere"
+
+Compare quando nella cartella del programma ci sono file non previsti (copie `.bak`, `deploy/backups/` ecc.).
+Basta dire a git di ignorarli (una sola volta, dalla cartella del progetto):
+
+```bash
+printf 'deploy/backups/\n*.bak\n*.bak2\n*.bak_*\n*.backup-*\n*.prima-*\n' >> .git/info/exclude
+git status --porcelain   # deve restare vuoto
+```
+
+Poi premi di nuovo **Aggiorna ora**. Dalle versioni successive questi file sono già ignorati dal `.gitignore` del progetto.
+```
 Da quel momento in Impostazioni → Aggiornamenti trovi: versione installata, **Controlla aggiornamenti** (elenco delle novità su GitHub),
 **Aggiorna ora** (backup automatico del DB in `deploy/backups/pre-update-*.gz`, pull, rebuild, ricarica automatica) e
 **Ripristina versione precedente** (riporta programma **e database** alla copia fatta prima dell'aggiornamento). Log in `deploy/backups/updater.log`.
