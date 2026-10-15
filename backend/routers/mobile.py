@@ -52,6 +52,12 @@ async def articoli(dip: dict = Depends(get_dipendente)):
     return await db.articoli.find({}, {"_id": 0, "id": 1, "codice": 1, "barcode": 1, "nome": 1, "categoria": 1, "quantita": 1, "unita": 1, "unita_misura": 1, "prezzo_listino": 1}).sort("nome", 1).to_list(5000)
 
 
+@router.get("/tariffe")
+async def tariffe_mobile(dip: dict = Depends(get_dipendente)):
+    t = await db.tariffe.find_one({}, {"_id": 0})
+    return t or {}
+
+
 @router.post("/lavori")
 async def invia_lavori(payload: LavoriBatch, dip: dict = Depends(get_dipendente)):
     nuovi = await inserisci_pending(payload.lavori, dip, "api")

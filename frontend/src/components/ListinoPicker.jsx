@@ -38,14 +38,14 @@ export function vociListino(t) {
 }
 
 // Pulsante "Dal listino": scegli una voce, inserisci la misura richiesta e ottieni {descrizione, quantita, prezzo_unitario, totale}
-export function ListinoPicker({ onAdd, metriDefault, label = "Dal listino", size = "sm", variant = "outline", testId = "btn-listino" }) {
+export function ListinoPicker({ onAdd, metriDefault, label = "Dal listino", size = "sm", variant = "outline", testId = "btn-listino", fetchTariffe }) {
   const [open, setOpen] = useState(false);
   const [tariffe, setTariffe] = useState(null);
   const [voce, setVoce] = useState(null);
   const [q, setQ] = useState("");
   const [q2, setQ2] = useState("");
   const [q2Auto, setQ2Auto] = useState(true);
-  useEffect(() => { if (open && !tariffe) api.get("/tariffe").then((r) => setTariffe(r.data)).catch(() => {}); }, [open, tariffe]);
+  useEffect(() => { if (open && !tariffe) (fetchTariffe ? fetchTariffe() : api.get("/tariffe").then((r) => r.data)).then(setTariffe).catch(() => {}); }, [open, tariffe, fetchTariffe]);
   const voci = useMemo(() => vociListino(tariffe), [tariffe]);
   const num = (s) => Number(String(s).replace(",", ".")) || 0;
   const scegli = (v) => {
