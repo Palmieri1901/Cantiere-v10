@@ -94,6 +94,11 @@ async def lista_schede():
     return docs
 
 
+@router.get("/schede/anteprima-nome")
+async def anteprima_nome(nome: str, percorso: str = ""):
+    return deduci_marca_modello(nome, percorso)
+
+
 @router.get("/schede/{sid}")
 async def dettaglio_scheda(sid: str):
     s = await db.officina_schede.find_one({"id": sid}, {"_id": 0, "file_path": 0})
@@ -113,13 +118,45 @@ async def crea_scheda_testo(p: SchedaTestoIn):
     return _pub(s)
 
 
+MARCHE_NOTE = ["Suzuki", "Yamaha", "Mercury", "MerCruiser", "Mariner", "Honda", "Tohatsu", "Evinrude", "Johnson", "Selva", "Volvo Penta", "Volvo", "Yanmar", "Parsun", "Hidea", "Lombardini", "Nanni", "Seadoo", "Sea-Doo", "BRP", "Rotax", "Zodiac", "Garmin", "Raymarine", "Lowrance", "Simrad", "Humminbird", "MFG"]
+_RE_MODELLO = re.compile(r"\b((?:DF|BF|FT|MFS|MD|VF|F|D|E|M)?\s?\d{1,3}(?:[.,]\d)?[A-Z]{0,4}(?:\s(?:HP|CV|EFI|XL|TXR|TLR|ETX|ELPT|XS|PRO|XR))?)\b", re.I)
+
+
+def deduci_marca_modello(nome_file: str, percorso: str = "") -> dict:
+    """Ricava marca/modello/titolo da nome file e cartella (es. 'Suzuki/DF140A manuale officina.pdf')."""
+    base = re.sub(r"\.[A-Za-z0-9]{2,5}$", "", os.path.basename(nome_file or ""))
+    pulito = re.sub(r"(?<=\d)[.,](?=\d)", "§", base)
+    pulito = re.sub(r"[_\-\.]+", " ", pulito).replace("§", ".").strip()
+    cartelle = [c for c in re.split(r"[\\/]", percorso or "") if c and c != os.path.basename(nome_file or "")]
+    testo_ = " ".join(cartelle + [pulito])
+    marca = ""
+    for m in sorted(MARCHE_NOTE, key=len, reverse=True):
+        if re.search(rf"\b{re.escape(m)}\b", testo_, re.I):
+            marca = m
+            break
+    if not marca and len(cartelle) >= 2:  # la cartella radice della selezione non è una marca: usa solo la sottocartella
+        marca = cartelle[-1].strip().title()
+    resto = re.sub(rf"\b{re.escape(marca)}\b", " ", pulito, flags=re.I) if marca else pulito
+    modello = ""
+    for cand in _RE_MODELLO.findall(" ".join(cartelle[1:] + [resto])):
+        c = re.sub(r"\s+", "", cand).upper()
+        if re.search(r"\d", c) and not re.fullmatch(r"(19|20)\d{2}", c) and 2 <= len(c) <= 10:
+            modello = c
+            break
+    titolo = pulito if pulito else base
+    return {"marca": marca, "modello": modello, "titolo": titolo}
+
+
 @router.post("/schede/upload")
-async def upload_scheda(file: UploadFile = File(...), titolo: str = Form(""), marca: str = Form(""), modello: str = Form("")):
+async def upload_scheda(file: UploadFile = File(...), titolo: str = Form(""), marca: str = Form(""), modello: str = Form(""), percorso: str = Form(""), auto: str = Form("")):
     contenuto = await file.read()
     if not contenuto:
         raise HTTPException(400, "File vuoto")
     mime = file.content_type or ""
     sid = str(uuid.uuid4())
+    ded = deduci_marca_modello(file.filename or "", percorso) if (auto or not (marca.strip() and modello.strip())) else {"marca": "", "modello": "", "titolo": ""}
+    marca, modello = (marca.strip() or ded["marca"]), (modello.strip() or ded["modello"])
+    titolo = titolo.strip() or ded["titolo"] or (file.filename or "Scheda")
     try:
         text = await _estrai_testo(file.filename or "", contenuto, mime)
     except HTTPException:
@@ -129,8 +166,8 @@ async def upload_scheda(file: UploadFile = File(...), titolo: str = Form(""), ma
     if not text.strip():
         raise HTTPException(400, "Nessun testo leggibile nel file")
     tipo = "pdf" if (mime == "application/pdf" or (file.filename or "").lower().endswith(".pdf")) else "immagine" if mime.startswith("image/") else "testo"
-    s = {"id": sid, "titolo": titolo.strip() or (file.filename or "Scheda"), "marca": marca.strip(), "modello": modello.strip(), "tipo": tipo,
-         "nome_file": file.filename or "", "testo": text, "caratteri": len(text), "created_at": _now()}
+    s = {"id": sid, "titolo": titolo, "marca": marca, "modello": modello, "tipo": tipo,
+         "nome_file": file.filename or "", "percorso": percorso, "testo": text, "caratteri": len(text), "created_at": _now()}
     s["n_chunks"] = await _indicizza(sid, text)
     await db.officina_schede.insert_one(s)
     return _pub(s)

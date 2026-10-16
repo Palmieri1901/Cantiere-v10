@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Upload, FileText, Image as ImageIcon, Type, Trash2, Eye, Search, ChevronRight } from "lucide-react";
+import { Upload, FileText, Image as ImageIcon, Type, Trash2, Eye, Search, ChevronRight, FolderOpen } from "lucide-react";
 import { confirmDialog } from "@/components/ConfirmDialog";
 
 const ICONA = { pdf: FileText, immagine: ImageIcon, testo: Type };
@@ -21,25 +21,48 @@ export default function SchedeTab() {
   const [vedi, setVedi] = useState(null);
   const [marcaSel, setMarcaSel] = useState("");
   const [aperti, setAperti] = useState({});
+  const [progresso, setProgresso] = useState(null); // {fatti, totale, corrente, esiti:[]}
   const fileRef = useRef(null);
+  const dirRef = useRef(null);
   const load = () => api.get("/officina/schede").then((r) => setList(r.data)).catch(() => {});
   useEffect(() => { load(); }, []);
   const upd = (k, v) => setMeta((s) => ({ ...s, [k]: v }));
 
-  const caricaFile = async (files) => {
-    if (!files?.length) return;
-    setBusy(true);
-    for (const file of files) {
+  const OK = /\.(pdf|png|jpe?g|webp|heic|heif|txt)$/i;
+  // Legge ricorsivamente cartelle trascinate (webkitGetAsEntry) → [{file, percorso}]
+  const leggiEntries = async (items) => {
+    const out = [];
+    const walk = (entry, path) => new Promise((res) => {
+      if (entry.isFile) entry.file((f) => { out.push({ file: f, percorso: `${path}${f.name}` }); res(); }, () => res());
+      else if (entry.isDirectory) { const reader = entry.createReader(); const tutti = []; const leggi = () => reader.readEntries(async (es) => { if (!es.length) { for (const e of tutti) await walk(e, `${path}${entry.name}/`); res(); } else { tutti.push(...es); leggi(); } }, () => res()); leggi(); }
+      else res();
+    });
+    for (const it of items) { const e = it.webkitGetAsEntry?.(); if (e) await walk(e, ""); else if (it.getAsFile?.()) out.push({ file: it.getAsFile(), percorso: it.getAsFile().name }); }
+    return out;
+  };
+
+  const caricaMolti = async (voci) => {
+    const validi = voci.filter((v) => OK.test(v.file.name));
+    if (!validi.length) return toast.error("Nessun PDF/immagine/TXT trovato");
+    const singolo = validi.length === 1;
+    setBusy(true); setProgresso({ fatti: 0, totale: validi.length, corrente: validi[0].file.name, esiti: [] });
+    for (const [i, v] of validi.entries()) {
+      setProgresso((p) => ({ ...p, corrente: v.file.name }));
       const fd = new FormData();
-      fd.append("file", file); fd.append("titolo", meta.titolo || file.name); fd.append("marca", meta.marca); fd.append("modello", meta.modello);
+      fd.append("file", v.file); fd.append("percorso", v.percorso || v.file.name);
+      if (singolo) { fd.append("titolo", meta.titolo); fd.append("marca", meta.marca); fd.append("modello", meta.modello); } else fd.append("auto", "1");
       try {
-        const r = await api.post("/officina/schede/upload", fd, { headers: { "Content-Type": "multipart/form-data" }, timeout: 180000 });
-        toast.success(`"${r.data.titolo}" caricata: ${r.data.caratteri} caratteri letti`);
-      } catch (e) { toast.error(`${file.name}: ${e.response?.data?.detail || "errore caricamento"}`); }
+        const r = await api.post("/officina/schede/upload", fd, { headers: { "Content-Type": "multipart/form-data" }, timeout: 300000 });
+        setProgresso((p) => ({ ...p, fatti: i + 1, esiti: [...p.esiti, { nome: v.file.name, ok: true, marca: r.data.marca, modello: r.data.modello, caratteri: r.data.caratteri }] }));
+      } catch (e) {
+        setProgresso((p) => ({ ...p, fatti: i + 1, esiti: [...p.esiti, { nome: v.file.name, ok: false, errore: e.response?.data?.detail || "errore" }] }));
+      }
     }
     setBusy(false); setMeta({ titolo: "", marca: "", modello: "" }); load();
-    if (fileRef.current) fileRef.current.value = "";
+    if (fileRef.current) fileRef.current.value = ""; if (dirRef.current) dirRef.current.value = "";
+    toast.success(`Caricamento completato: ${validi.length} file`);
   };
+  const caricaFile = (files, conPercorso = false) => caricaMolti(Array.from(files || []).map((f) => ({ file: f, percorso: conPercorso ? (f.webkitRelativePath || f.name) : f.name })));
   const salvaTesto = async () => {
     if (!meta.titolo.trim() || !testo.trim()) return toast.error("Titolo e testo obbligatori");
     setBusy(true);
@@ -68,18 +91,29 @@ export default function SchedeTab() {
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <label className={`rounded-xl border-2 border-dashed border-border p-5 text-center cursor-pointer hover:border-primary/60 hover:bg-muted/30 transition-colors ${busy ? "opacity-60 pointer-events-none" : ""}`} data-testid="scheda-dropzone"
-            onDragOver={(e) => e.preventDefault()} onDrop={(e) => { e.preventDefault(); caricaFile(Array.from(e.dataTransfer.files)); }}>
+            onDragOver={(e) => e.preventDefault()} onDrop={async (e) => { e.preventDefault(); const items = e.dataTransfer.items; caricaMolti(items?.length && items[0].webkitGetAsEntry ? await leggiEntries(Array.from(items)) : Array.from(e.dataTransfer.files).map((f) => ({ file: f, percorso: f.name }))); }}>
             <Upload className="w-6 h-6 mx-auto text-primary mb-2" />
-            <div className="text-sm font-medium">Carica PDF o foto/scansioni</div>
-            <div className="text-xs text-muted-foreground mt-1">Il testo viene letto (anche con OCR AI per le scansioni) e indicizzato. Più file insieme ok.</div>
-            <input ref={fileRef} type="file" multiple accept=".pdf,image/*,.txt" className="hidden" onChange={(e) => caricaFile(Array.from(e.target.files))} data-testid="scheda-file" />
+            <div className="text-sm font-medium">Trascina qui PDF, foto o un'intera cartella di manuali</div>
+            <div className="text-xs text-muted-foreground mt-1">Con più file, marca e modello vengono ricavati dal nome del file e dalle cartelle (es. <i>Suzuki/DF140A manuale.pdf</i>). I campi sopra valgono solo per un file singolo.</div>
+            <input ref={fileRef} type="file" multiple accept=".pdf,image/*,.txt" className="hidden" onChange={(e) => caricaFile(e.target.files)} data-testid="scheda-file" />
+            <div className="mt-3"><Button asChild size="sm" variant="outline" type="button"><span onClick={(e) => { e.preventDefault(); dirRef.current?.click(); }} data-testid="btn-scegli-cartella"><FolderOpen className="w-3.5 h-3.5 mr-1" /> Scegli una cartella</span></Button></div>
+            <input ref={dirRef} type="file" webkitdirectory="" directory="" multiple className="hidden" onChange={(e) => caricaFile(e.target.files, true)} data-testid="scheda-cartella" />
           </label>
           <div className="space-y-2">
             <Textarea value={testo} onChange={(e) => setTesto(e.target.value)} rows={4} placeholder="Oppure scrivi qui una nota tecnica (valori, procedure, codici…)" data-testid="scheda-testo" />
             <Button onClick={salvaTesto} disabled={busy} size="sm" variant="outline" data-testid="btn-salva-nota"><Type className="w-3.5 h-3.5 mr-1" /> Salva nota tecnica</Button>
           </div>
         </div>
-        {busy && <div className="text-xs text-primary animate-pulse" data-testid="scheda-busy">Lettura e indicizzazione in corso… può richiedere un minuto per le scansioni.</div>}
+        {progresso && (
+          <div className="rounded-md border border-border bg-muted/30 p-3 text-xs space-y-1.5" data-testid="scheda-progresso">
+            <div className="flex items-center justify-between"><span className="font-medium">{busy ? `Caricamento ${progresso.fatti + 1 > progresso.totale ? progresso.totale : progresso.fatti + 1}/${progresso.totale}: ${progresso.corrente}` : `Completato: ${progresso.esiti.filter((e) => e.ok).length} ok, ${progresso.esiti.filter((e) => !e.ok).length} errori`}</span>{!busy && <button onClick={() => setProgresso(null)} className="underline" data-testid="btn-chiudi-progresso">chiudi</button>}</div>
+            <div className="h-1.5 rounded bg-border overflow-hidden"><div className="h-full bg-primary transition-all" style={{ width: `${(progresso.fatti / progresso.totale) * 100}%` }} /></div>
+            <div className="max-h-32 overflow-y-auto space-y-0.5">
+              {progresso.esiti.map((e, i) => <div key={i} className={e.ok ? "text-muted-foreground" : "text-destructive"} data-testid="scheda-esito">{e.ok ? "✓" : "✗"} {e.nome} {e.ok ? `→ ${[e.marca, e.modello].filter(Boolean).join(" ") || "marca/modello non riconosciuti"} · ${e.caratteri} caratteri` : `— ${e.errore}`}</div>)}
+            </div>
+          </div>
+        )}
+        {busy && !progresso && <div className="text-xs text-primary animate-pulse" data-testid="scheda-busy">Lettura e indicizzazione in corso…</div>}
       </Card>
 
       <div className="flex flex-wrap items-center gap-3">
