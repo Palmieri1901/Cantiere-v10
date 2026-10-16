@@ -246,6 +246,142 @@ async def _tavily(query: str, key: str) -> List[dict]:
         raise HTTPException(502, f"Ricerca web non raggiungibile: {e}")
 
 
+# ---------- Codici errore ----------
+def _norm_codice(c: str) -> str:
+    return re.sub(r"[^A-Z0-9]", "", (c or "").upper())
+
+
+class CodiceIn(BaseModel):
+    marca: str
+    modello: Optional[str] = ""
+    codice: str
+    descrizione: str
+    cause: Optional[str] = ""
+    controlli: Optional[str] = ""
+
+
+class ImportCodiciIn(BaseModel):
+    marca: str
+    modello: Optional[str] = ""
+    testo: str  # una riga per codice: "C-04 | descrizione | cause | controlli" (separatori | ; tab) oppure "C-04 descrizione"
+
+
+def _parse_righe(testo: str) -> List[dict]:
+    out = []
+    for riga in (testo or "").splitlines():
+        riga = riga.strip().strip("-•").strip()
+        if not riga:
+            continue
+        parti = [p.strip() for p in re.split(r"\s*[|;\t]\s*", riga)]
+        if len(parti) == 1:
+            m = re.match(r"^([A-Za-z]{0,4}[-\s]?\d{1,4}[A-Za-z]?)[\s:.\-–]+(.+)$", riga)
+            if not m:
+                continue
+            parti = [m.group(1), m.group(2)]
+        cod, descr = parti[0], parti[1] if len(parti) > 1 else ""
+        if not _norm_codice(cod) or not descr:
+            continue
+        out.append({"codice": cod.upper(), "descrizione": descr, "cause": parti[2] if len(parti) > 2 else "", "controlli": parti[3] if len(parti) > 3 else ""})
+    return out
+
+
+async def _salva_codici(marca: str, modello: str, righe: List[dict]) -> dict:
+    marca, modello = marca.strip(), (modello or "").strip()
+    if not marca:
+        raise HTTPException(400, "Marca obbligatoria (es. Suzuki, Mercury)")
+    nuovi = aggiornati = 0
+    for r in righe:
+        key = {"marca_norm": marca.lower(), "modello_norm": modello.lower(), "codice_norm": _norm_codice(r["codice"])}
+        doc = {**key, "marca": marca, "modello": modello, "codice": r["codice"].strip().upper(), "descrizione": r["descrizione"].strip(),
+               "cause": (r.get("cause") or "").strip(), "controlli": (r.get("controlli") or "").strip(), "updated_at": _now()}
+        res = await db.officina_codici.update_one(key, {"$set": doc, "$setOnInsert": {"id": str(uuid.uuid4()), "created_at": _now()}}, upsert=True)
+        if res.upserted_id:
+            nuovi += 1
+        else:
+            aggiornati += 1
+    return {"nuovi": nuovi, "aggiornati": aggiornati}
+
+
+@router.get("/codici")
+async def lista_codici(marca: str = "", q: str = ""):
+    f = {}
+    if marca.strip():
+        f["marca_norm"] = marca.strip().lower()
+    docs = await db.officina_codici.find(f, {"_id": 0}).sort([("marca", 1), ("modello", 1), ("codice", 1)]).to_list(20000)
+    if q.strip():
+        ql, qn = q.strip().lower(), _norm_codice(q)
+        docs = [d for d in docs if ql in f"{d['codice']} {d['descrizione']} {d.get('cause','')} {d.get('controlli','')} {d.get('modello','')}".lower() or (qn and qn in d["codice_norm"])]
+    return docs
+
+
+@router.get("/codici/marche")
+async def marche_codici():
+    pipe = [{"$group": {"_id": "$marca", "n": {"$sum": 1}}}, {"$sort": {"_id": 1}}]
+    return [{"marca": g["_id"], "n": g["n"]} async for g in db.officina_codici.aggregate(pipe)]
+
+
+@router.post("/codici")
+async def crea_codice(p: CodiceIn):
+    if not p.codice.strip() or not p.descrizione.strip():
+        raise HTTPException(400, "Codice e descrizione obbligatori")
+    return await _salva_codici(p.marca, p.modello or "", [p.model_dump()])
+
+
+@router.post("/codici/import")
+async def importa_codici(p: ImportCodiciIn):
+    righe = _parse_righe(p.testo)
+    if not righe:
+        raise HTTPException(400, "Nessuna riga valida: usa il formato 'CODICE | descrizione | cause | controlli' oppure 'CODICE descrizione'")
+    return {**(await _salva_codici(p.marca, p.modello or "", righe)), "righe": len(righe)}
+
+
+@router.post("/codici/import-file")
+async def importa_codici_file(file: UploadFile = File(...), marca: str = Form(...), modello: str = Form("")):
+    contenuto = await file.read()
+    mime = file.content_type or ""
+    testo_ = await _estrai_testo(file.filename or "", contenuto, mime) if (mime == "application/pdf" or mime.startswith("image/")) else contenuto.decode("utf-8", errors="ignore")
+    righe = _parse_righe(testo_.replace(",", " | ") if (file.filename or "").lower().endswith(".csv") else testo_)
+    if not righe:
+        raise HTTPException(400, "Nessun codice riconosciuto nel file")
+    return {**(await _salva_codici(marca, modello, righe)), "righe": len(righe)}
+
+
+@router.put("/codici/{cid}")
+async def aggiorna_codice(cid: str, p: CodiceIn):
+    d = {"marca": p.marca.strip(), "marca_norm": p.marca.strip().lower(), "modello": (p.modello or "").strip(), "modello_norm": (p.modello or "").strip().lower(),
+         "codice": p.codice.strip().upper(), "codice_norm": _norm_codice(p.codice), "descrizione": p.descrizione.strip(), "cause": (p.cause or "").strip(), "controlli": (p.controlli or "").strip(), "updated_at": _now()}
+    r = await db.officina_codici.update_one({"id": cid}, {"$set": d})
+    if not r.matched_count:
+        raise HTTPException(404, "Codice non trovato")
+    return await db.officina_codici.find_one({"id": cid}, {"_id": 0})
+
+
+@router.delete("/codici/{cid}")
+async def elimina_codice(cid: str):
+    await db.officina_codici.delete_one({"id": cid})
+    return {"ok": True}
+
+
+@router.delete("/codici")
+async def elimina_codici_marca(marca: str):
+    r = await db.officina_codici.delete_many({"marca_norm": marca.strip().lower()})
+    return {"eliminati": r.deleted_count}
+
+
+async def _codici_per_domanda(msg: str, marca: str = "") -> List[dict]:
+    """Codici errore citati nella domanda (match esatto normalizzato, es. 'c-04' = 'C04')."""
+    cand = {_norm_codice(m) for m in re.findall(r"\b[A-Za-z]{0,4}[-\s]?\d{1,4}[A-Za-z]?\b", msg)}
+    cand = {c for c in cand if any(ch.isdigit() for ch in c) and len(c) <= 8}
+    if not cand:
+        return []
+    f = {"codice_norm": {"$in": list(cand)}}
+    if marca.strip():
+        f["marca_norm"] = marca.strip().lower()
+    docs = await db.officina_codici.find(f, {"_id": 0}).to_list(50)
+    toks = _tokens(msg)
+    return sorted(docs, key=lambda d: -_score(f"{d['marca']} {d.get('modello','')}", toks))[:10]
+
+
 # ---------- Chat ----------
 class ChatIn(BaseModel):
     messaggio: str
@@ -259,6 +395,7 @@ async def ensure_indexes():
     await db.officina_chunks.create_index("scheda_id")
     await db.officina_chunks.create_index([("testo", "text")], default_language="none", name="testo_text")
     await db.officina_schede.create_index([("marca", 1), ("modello", 1)])
+    await db.officina_codici.create_index([("marca_norm", 1), ("modello_norm", 1), ("codice_norm", 1)], unique=True)
 
 
 @router.get("/modelli")
@@ -295,7 +432,7 @@ async def _cerca_chunks(msg: str, toks: List[str], schede: dict, filtro_ids: Opt
 SYSTEM = """Sei l'Assistente Officina di un cantiere nautico (motori fuoribordo/entrobordo, gommoni, impianti di bordo).
 Rispondi in italiano, con linguaggio tecnico da meccanico, in modo ordinato e conciso.
 REGOLE:
-1. Basa le risposte SOLO sulle SCHEDE TECNICHE e sui CASI RISOLTI forniti nel contesto (ed eventuali RISULTATI WEB se presenti). Non inventare valori, coppie di serraggio, codici o procedure.
+1. Basa le risposte SOLO sulla TABELLA CODICI ERRORE, sulle SCHEDE TECNICHE e sui CASI RISOLTI forniti nel contesto (ed eventuali RISULTATI WEB se presenti). Non inventare valori, coppie di serraggio, codici o procedure. Se la tabella codici contiene il codice chiesto, quella è la fonte principale.
 2. Se il contesto non contiene l'informazione, dillo chiaramente ("Nelle schede caricate non trovo…") e suggerisci cosa caricare o di attivare la ricerca web.
 3. Per codici errore: spiega il significato, le cause probabili in ordine di probabilità e i controlli da fare passo-passo.
 4. Per sintomi: proponi ipotesi di diagnosi ordinate per probabilità, segnalando quali derivano dall'esperienza (casi risolti) e quali dalle schede.
@@ -316,6 +453,7 @@ async def _rispondi(p: ChatIn, canale: str) -> dict:
                   if (not (p.marca or "").strip() or (s.get("marca") or "").lower() == p.marca.strip().lower())
                   and (not (p.modello or "").strip() or (s.get("modello") or "").lower() == p.modello.strip().lower())}
     top = await _cerca_chunks(msg, toks, schede, filtro)
+    codici = await _codici_per_domanda(msg, p.marca or "")
     casi = await db.officina_casi.find({}, {"_id": 0}).to_list(20000)
     for c in casi:
         c["_s"] = _score(" ".join(str(c.get(k) or "") for k in ("motore", "codici", "sintomo", "diagnosi", "soluzione", "note")), toks)
@@ -331,6 +469,10 @@ async def _rispondi(p: ChatIn, canale: str) -> dict:
     ctx = []
     if filtro is not None:
         ctx.append(f"=== FILTRO ATTIVO: solo schede {p.marca or ''} {p.modello or ''} ===")
+    if codici:
+        ctx.append("=== TABELLA CODICI ERRORE (fonte ufficiale caricata dall'officina) ===")
+        for c in codici:
+            ctx.append(f"[Codice: {c['marca']}{(' ' + c['modello']) if c.get('modello') else ''} {c['codice']}] {c['descrizione']}" + (f" | Cause: {c['cause']}" if c.get("cause") else "") + (f" | Controlli: {c['controlli']}" if c.get("controlli") else ""))
     if top:
         ctx.append("=== SCHEDE TECNICHE ===")
         for c in top:
@@ -358,11 +500,12 @@ async def _rispondi(p: ChatIn, canale: str) -> dict:
         {"id": str(uuid.uuid4()), "session_id": p.session_id, "ruolo": "utente", "testo": msg, "ts": ts, "canale": canale},
         {"id": str(uuid.uuid4()), "session_id": p.session_id, "ruolo": "assistente", "testo": risposta, "ts": ts, "canale": canale},
     ])
-    fonti = [{"tipo": "scheda", "titolo": schede.get(c["scheda_id"], {}).get("titolo", "?"), "id": c["scheda_id"]} for c in top]
-    fonti = list({f["id"]: f for f in fonti}.values())
+    fonti = [{"tipo": "codice", "titolo": f"{c['marca']} {c['codice']}", "id": c["id"]} for c in codici]
+    fonti += [{"tipo": "scheda", "titolo": schede.get(c["scheda_id"], {}).get("titolo", "?"), "id": c["scheda_id"]} for c in top]
+    fonti = list({(f["tipo"], f["id"]): f for f in fonti}.values())
     fonti += [{"tipo": "caso", "titolo": f"{c.get('motore','')} · {c.get('sintomo','')[:60]}", "id": c["id"]} for c in top_casi]
     fonti += [{"tipo": "web", "titolo": w["titolo"], "url": w["url"]} for w in web]
-    return {"risposta": risposta, "fonti": fonti, "web_usato": bool(web), "schede_trovate": len(top), "casi_trovati": len(top_casi)}
+    return {"risposta": risposta, "fonti": fonti, "web_usato": bool(web), "schede_trovate": len(top), "casi_trovati": len(top_casi), "codici_trovati": len(codici)}
 
 
 @router.post("/chat")
@@ -401,6 +544,11 @@ async def storico_mobile(session_id: str, dip: dict = Depends(get_dipendente)):
 @mobile_router.post("/casi")
 async def caso_mobile(p: CasoIn, dip: dict = Depends(get_dipendente)):
     return await _crea_caso(p, dip.get("nome", "dipendente"))
+
+
+@mobile_router.get("/codici")
+async def codici_mobile(marca: str = "", q: str = "", dip: dict = Depends(get_dipendente)):
+    return await lista_codici(marca, q)
 
 
 @mobile_router.get("/modelli")

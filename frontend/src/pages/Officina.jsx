@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { api } from "@/lib/api";
-import { Wrench, MessageSquare, FileText, Lightbulb, Settings2 } from "lucide-react";
+import { Wrench, MessageSquare, FileText, Lightbulb, Settings2, Hash } from "lucide-react";
 import ChatOfficina from "@/pages/officina/ChatOfficina";
+import CodiciTab from "@/pages/officina/CodiciTab";
 import SchedeTab from "@/pages/officina/SchedeTab";
 import CasiTab from "@/pages/officina/CasiTab";
 import ImpostazioniTab from "@/pages/officina/ImpostazioniTab";
@@ -9,6 +10,7 @@ import ImpostazioniTab from "@/pages/officina/ImpostazioniTab";
 const TABS = [
   { id: "chat", label: "Assistente", icon: MessageSquare },
   { id: "schede", label: "Schede tecniche", icon: FileText },
+  { id: "codici", label: "Codici errore", icon: Hash },
   { id: "casi", label: "Casi risolti", icon: Lightbulb },
   { id: "impostazioni", label: "Impostazioni", icon: Settings2 },
 ];
@@ -27,6 +29,7 @@ export default function Officina() {
       </div>
       {tab === "chat" && <ChatOfficina client={api} />}
       {tab === "schede" && <SchedeTab />}
+      {tab === "codici" && <CodiciTab />}
       {tab === "casi" && <CasiTab />}
       {tab === "impostazioni" && <ImpostazioniTab />}
     </div>

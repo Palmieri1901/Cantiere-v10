@@ -3,7 +3,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import { Mic, MicOff, Send, Wrench, Globe, BookmarkPlus, Trash2, FileText, Lightbulb, Volume2 } from "lucide-react";
+import { Mic, MicOff, Send, Wrench, Globe, BookmarkPlus, Trash2, FileText, Lightbulb, Volume2, Hash } from "lucide-react";
 import { useVoce } from "@/components/hall/useVoce";
 import { uid } from "@/lib/mobileStore";
 import SalvaCasoDialog from "@/pages/officina/SalvaCasoDialog";
@@ -83,7 +83,7 @@ export default function ChatOfficina({ client, basePath = "/officina", compact =
                 <div className="mt-3 pt-2 border-t border-border/60 flex flex-wrap items-center gap-1.5">
                   {(m.fonti || []).slice(0, 6).map((f, j) => (
                     <span key={j} className="inline-flex items-center gap-1 text-[10px] rounded-full bg-muted px-2 py-0.5 text-muted-foreground" data-testid="chat-fonte">
-                      {f.tipo === "scheda" ? <FileText className="w-3 h-3" /> : f.tipo === "caso" ? <Lightbulb className="w-3 h-3" /> : <Globe className="w-3 h-3" />}
+                      {f.tipo === "scheda" ? <FileText className="w-3 h-3" /> : f.tipo === "caso" ? <Lightbulb className="w-3 h-3" /> : f.tipo === "codice" ? <Hash className="w-3 h-3" /> : <Globe className="w-3 h-3" />}
                       {f.url ? <a href={f.url} target="_blank" rel="noreferrer" className="underline">{f.titolo}</a> : f.titolo}
                     </span>
                   ))}
