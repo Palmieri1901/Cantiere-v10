@@ -39,6 +39,8 @@ export default function Clienti() {
   const [dettaglio, setDettaglio] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [unisciTarget, setUnisciTarget] = useState(null);
+  const [esterniUnisci, setEsterniUnisci] = useState([]);
+  useEffect(() => { if (unisciTarget) api.get("/esterni").then((r) => setEsterniUnisci(r.data || [])).catch(() => {}); }, [unisciTarget]);
   const [memoTarget, setMemoTarget] = useState(null);
   const [openStorico, setOpenStorico] = useState(false);
   const [openPreventivoVeloce, setOpenPreventivoVeloce] = useState(false);
@@ -505,7 +507,7 @@ export default function Clienti() {
       </Dialog>
 
       <MemoDialog cliente={memoTarget} onClose={() => setMemoTarget(null)} onSaved={(id, memo) => setClienti((l) => l.map((x) => (x.id === id ? { ...x, memo } : x)))} />
-      <UnisciDialog sorgente={unisciTarget ? { id: unisciTarget.id, label: `${unisciTarget.cognome} ${unisciTarget.nome}`.trim() } : null} candidati={clienti.map((c) => ({ id: c.id, label: `${c.cognome} ${c.nome}`.trim(), sub: `${c.tipo_barca || ""}${c.lunghezza ? ` ${c.lunghezza} m` : ""} · ${c.anno}` }))} endpoint="/clienti/unisci" onClose={() => setUnisciTarget(null)} onDone={load} />
+      <UnisciDialog sorgente={unisciTarget ? { id: unisciTarget.id, tipo: "clienti", label: `${unisciTarget.cognome} ${unisciTarget.nome}`.trim() } : null} candidati={[...clienti.map((c) => ({ id: c.id, tipo: "clienti", label: `${c.cognome} ${c.nome}`.trim(), sub: `${c.tipo_barca || ""}${c.lunghezza ? ` ${c.lunghezza} m` : ""} · ${c.anno}` })), ...esterniUnisci.map((e) => ({ id: e.id, tipo: "esterni", label: e.nome, sub: `${e.n || 0} lavori · ${fmtEuro(e.totale || 0)}` }))]} endpoint="/clienti/unisci" onClose={() => setUnisciTarget(null)} onDone={load} />
 
       <AlertDialog open={!!deleteTarget} onOpenChange={(o) => !o && setDeleteTarget(null)}>
         <AlertDialogContent data-testid="delete-dialog">

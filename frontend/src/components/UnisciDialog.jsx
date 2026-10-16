@@ -24,16 +24,18 @@ export function UnisciDialog({ sorgente, candidati, endpoint, onClose, onDone })
       .sort((a, b) => (parole.some((p) => norm(b.label).includes(p)) ? 1 : 0) - (parole.some((p) => norm(a.label).includes(p)) ? 1 : 0)).slice(0, 10);
   }, [q, candidati, sorgente]);
 
+  const corpo = (c) => ({ principale_id: principale.id, secondario_id: sorgente.id, principale_tipo: principale.tipo || "", secondario_tipo: sorgente.tipo || "" });
+
   useEffect(() => {
     if (!principale || !sorgente) return;
     setAnteprima(null);
-    api.post(endpoint, { principale_id: principale.id, secondario_id: sorgente.id, anteprima: true }).then((r) => setAnteprima(r.data)).catch((e) => toast.error(e.response?.data?.detail || "Errore"));
-  }, [principale, sorgente, endpoint]);
+    api.post(endpoint, { ...corpo(), anteprima: true }).then((r) => setAnteprima(r.data)).catch((e) => toast.error(e.response?.data?.detail || "Errore"));
+  }, [principale, sorgente, endpoint]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const unisci = async () => {
     setBusy(true);
     try {
-      const r = await api.post(endpoint, { principale_id: principale.id, secondario_id: sorgente.id });
+      const r = await api.post(endpoint, corpo());
       toast.success(`Uniti: ${r.data.lavori} lavori spostati su ${r.data.principale}`);
       onClose(); onDone();
     } catch (e) { toast.error(e.response?.data?.detail || "Unione non riuscita"); }
@@ -45,7 +47,7 @@ export function UnisciDialog({ sorgente, candidati, endpoint, onClose, onDone })
       <DialogContent className="max-w-[95vw] sm:max-w-md" data-testid="unisci-dialog">
         <DialogHeader>
           <DialogTitle className="font-display flex items-center gap-2"><Merge className="w-5 h-5 text-primary" /> Unisci cliente doppio</DialogTitle>
-          <DialogDescription>Scegli il cliente <b>principale</b> che resta: <b>{sorgente?.label}</b> verrà eliminato e tutti i suoi lavori, movimenti e preventivi passeranno al principale.</DialogDescription>
+          <DialogDescription>Scegli il cliente <b>principale</b> che resta (anche tra Rimessaggio e Lavorazioni esterne): <b>{sorgente?.label}</b> verrà eliminato e tutti i suoi lavori, movimenti e preventivi passeranno al principale.</DialogDescription>
         </DialogHeader>
         <div className="space-y-3">
           <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Cerca il cliente principale…" data-testid="unisci-cerca" />
@@ -54,6 +56,7 @@ export function UnisciDialog({ sorgente, candidati, endpoint, onClose, onDone })
             {lista.map((c) => (
               <button key={c.id} type="button" onClick={() => setPrincipale(c)} className={`w-full text-left px-3 py-2 text-sm flex items-center gap-2 hover:bg-muted/50 ${principale?.id === c.id ? "bg-primary/10" : ""}`} data-testid={`unisci-opt-${c.id}`}>
                 <span className="flex-1 min-w-0"><span className="font-medium">{c.label}</span>{c.sub && <span className="block text-[11px] text-muted-foreground truncate">{c.sub}</span>}</span>
+                {c.tipo && <span className={`text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded shrink-0 ${c.tipo === "esterni" ? "bg-amber-100 text-amber-900" : "bg-primary/10 text-primary"}`} data-testid={`unisci-tipo-${c.id}`}>{c.tipo === "esterni" ? "Esterno" : "Rimessaggio"}</span>}
                 {principale?.id === c.id && <Check className="w-4 h-4 text-primary" />}
               </button>
             ))}
@@ -67,6 +70,7 @@ export function UnisciDialog({ sorgente, candidati, endpoint, onClose, onDone })
                   {anteprima.da_approvare > 0 && <li>{anteprima.da_approvare} lavori da approvare riassegnati</li>}
                   {anteprima.movimenti > 0 && <li>{anteprima.movimenti} movimenti di magazzino riassegnati</li>}
                   {anteprima.preventivi > 0 && <li>{anteprima.preventivi} preventivi riassegnati</li>}
+                  {anteprima.principale_tipo && anteprima.secondario_tipo && anteprima.principale_tipo !== anteprima.secondario_tipo && <li>La scheda passa da <b>{anteprima.secondario_tipo}</b> a <b>{anteprima.principale_tipo}</b></li>}
                   <li className="flex items-center gap-1 text-amber-900"><AlertTriangle className="w-3.5 h-3.5" /> La scheda "{sorgente.label}" viene eliminata. Operazione non annullabile.</li>
                 </ul>
               ) : <div className="flex items-center gap-1.5 text-muted-foreground"><Loader2 className="w-3.5 h-3.5 animate-spin" /> Calcolo…</div>}

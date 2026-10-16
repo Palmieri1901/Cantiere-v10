@@ -26,6 +26,8 @@ export default function LavorazioniEsterne() {
   const [contoAnno, setContoAnno] = useState("tutti");
   const [lavoriKey, setLavoriKey] = useState(0);
   const [unisci, setUnisci] = useState(null);
+  const [clientiUnisci, setClientiUnisci] = useState([]);
+  useEffect(() => { if (unisci) api.get("/clienti").then((r) => setClientiUnisci(r.data || [])).catch(() => {}); }, [unisci]);
 
   const anteprimaConto = async (e) => {
     try {
@@ -143,7 +145,7 @@ export default function LavorazioniEsterne() {
           )}
         </DialogContent>
       </Dialog>
-      <UnisciDialog sorgente={unisci ? { id: unisci.id, label: unisci.nome } : null} candidati={list.map((e) => ({ id: e.id, label: e.nome, sub: `${e.n || 0} lavori · ${fmtEuro(e.totale || 0)}` }))} endpoint="/esterni/unisci" onClose={() => setUnisci(null)} onDone={() => { load(); setLavoriKey((k) => k + 1); }} />
+      <UnisciDialog sorgente={unisci ? { id: unisci.id, tipo: "esterni", label: unisci.nome } : null} candidati={[...list.map((e) => ({ id: e.id, tipo: "esterni", label: e.nome, sub: `${e.n || 0} lavori · ${fmtEuro(e.totale || 0)}` })), ...clientiUnisci.map((c) => ({ id: c.id, tipo: "clienti", label: `${c.cognome} ${c.nome}`.trim(), sub: `${c.tipo_barca || ""}${c.lunghezza ? ` ${c.lunghezza} m` : ""} · ${c.anno}` }))]} endpoint="/esterni/unisci" onClose={() => setUnisci(null)} onDone={() => { load(); setLavoriKey((k) => k + 1); }} />
     </div>
   );
 }
