@@ -5,7 +5,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, Pencil, Trash2, BookUser, Building2, User } from "lucide-react";
+import { Plus, Search, Pencil, Trash2, BookUser, Building2, User, Download } from "lucide-react";
 import { confirmDialog } from "@/components/ConfirmDialog";
 import AnagraficaDialog from "@/pages/anagrafica/AnagraficaDialog";
 
@@ -15,6 +15,17 @@ export default function Anagrafica() {
   const [list, setList] = useState([]);
   const [q, setQ] = useState("");
   const [edit, setEdit] = useState(null); // null | {} (nuovo) | voce
+  const [importing, setImporting] = useState(false);
+  const importa = async () => {
+    const scelta = await confirmDialog("Importare in anagrafica tutti i clienti già presenti in Rimessaggio (tutti gli anni)?\nI nominativi già presenti vengono aggiornati, non duplicati.\n\nVuoi includere anche i clienti di Lavorazioni esterne?", { title: "Importa contatti", okLabel: "Sì, anche Esterni", cancelLabel: "Solo Rimessaggio", danger: false, terzo: true });
+    if (scelta === null) return;
+    setImporting(true);
+    try {
+      const r = await api.post(`/anagrafica/importa-rimessaggio?anche_esterni=${scelta === true}`);
+      toast.success(`Importazione completata: ${r.data.nuovi} nuovi, ${r.data.aggiornati} aggiornati${r.data.saltati ? `, ${r.data.saltati} saltati` : ""}`);
+      load();
+    } catch (e) { toast.error(e.response?.data?.detail || "Errore importazione"); } finally { setImporting(false); }
+  };
   const load = () => api.get("/anagrafica").then((r) => setList(r.data)).catch(() => toast.error("Errore caricamento"));
   useEffect(() => { load(); }, []);
 
@@ -34,7 +45,10 @@ export default function Anagrafica() {
           <h1 className="font-display text-4xl sm:text-5xl font-semibold mb-2">Anagrafica generale</h1>
           <p className="text-muted-foreground text-base md:text-lg max-w-2xl">Dati anagrafici e fiscali di tutti i clienti, caricati dal Rimessaggio, dalle Lavorazioni esterne o inseriti qui.</p>
         </div>
-        <Button onClick={() => setEdit({})} className="bg-primary hover:bg-primary/90" data-testid="btn-nuova-anagrafica"><Plus className="w-4 h-4 mr-1" /> Nuova anagrafica</Button>
+        <div className="flex gap-2 flex-wrap">
+          <Button variant="outline" onClick={importa} disabled={importing} data-testid="btn-importa-rimessaggio"><Download className="w-4 h-4 mr-1" /> {importing ? "Importazione…" : "Importa da Rimessaggio"}</Button>
+          <Button onClick={() => setEdit({})} className="bg-primary hover:bg-primary/90" data-testid="btn-nuova-anagrafica"><Plus className="w-4 h-4 mr-1" /> Nuova anagrafica</Button>
+        </div>
       </div>
 
       <div className="relative max-w-md mb-4">

@@ -109,6 +109,37 @@ async def elimina(aid: str):
     return {"ok": True}
 
 
+@router.post("/anagrafica/importa-rimessaggio")
+async def importa_rimessaggio(anche_esterni: bool = False):
+    """Carica in anagrafica tutti i clienti già presenti in Rimessaggio (dedupe per P.IVA/CF/cognome+nome)."""
+    nuovi = aggiornati = saltati = 0
+    visti = set()
+    async for c in db.clienti.find({}, {"_id": 0}).sort("anno", -1):
+        chiave = (c.get("partita_iva") or "", (c.get("cognome") or "").lower(), (c.get("nome") or "").lower())
+        if chiave in visti:
+            saltati += 1
+            continue
+        visti.add(chiave)
+        try:
+            r = await upsert_anagrafica(c, "rimessaggio")
+        except HTTPException:
+            saltati += 1
+            continue
+        nuovi += r["creato"]
+        aggiornati += not r["creato"]
+    if anche_esterni:
+        async for e in db.clienti_esterni.find({}, {"_id": 0}):
+            parti = (e.get("nome") or "").split(" ", 1)
+            try:
+                r = await upsert_anagrafica({**e, "cognome": parti[0], "nome": parti[1] if len(parti) > 1 else ""}, "esterni")
+            except HTTPException:
+                saltati += 1
+                continue
+            nuovi += r["creato"]
+            aggiornati += not r["creato"]
+    return {"nuovi": nuovi, "aggiornati": aggiornati, "saltati": saltati}
+
+
 @router.post("/anagrafica/da-cliente/{cliente_id}")
 async def da_cliente(cliente_id: str):
     c = await db.clienti.find_one({"id": cliente_id}, {"_id": 0})
