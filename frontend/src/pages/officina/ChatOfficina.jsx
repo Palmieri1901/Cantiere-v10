@@ -51,18 +51,18 @@ export default function ChatOfficina({ client, basePath = "/officina", compact =
   const nuova = () => { const s = uid(); localStorage.setItem(SESSION_KEY, s); setSession(s); setMsgs([]); };
 
   return (
-    <div className={`flex flex-col ${compact ? "h-[calc(100vh-11rem)]" : "h-[calc(100vh-14rem)] min-h-[480px]"}`} data-testid="chat-officina">
-      <div className="flex flex-wrap items-center gap-3 pb-3 border-b border-border/60">
-        <select value={filtro} onChange={(e) => setFiltro(e.target.value)} className="h-8 rounded-md border border-input bg-background px-2 text-xs max-w-[220px]" title="Limita le risposte alle schede di un modello" data-testid="select-modello">
+    <div className={`flex flex-col ${compact ? "h-[calc(100dvh-11rem)]" : "h-[calc(100dvh-16.5rem)] sm:h-[calc(100dvh-14rem)] min-h-[360px] sm:min-h-[480px]"}`} data-testid="chat-officina">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2 pb-2 border-b border-border/60">
+        <select value={filtro} onChange={(e) => setFiltro(e.target.value)} className="h-8 rounded-md border border-input bg-background px-2 text-xs max-w-[55%] sm:max-w-[220px]" title="Limita le risposte alle schede di un modello" data-testid="select-modello">
           <option value="">Tutti i modelli ({modelli.reduce((s, m) => s + m.n, 0)} schede)</option>
           {[...new Set(modelli.map((m) => m.marca).filter(Boolean))].map((ma) => <option key={`m|${ma}`} value={`${ma}|`}>{ma} · tutti</option>)}
           {modelli.filter((m) => m.modello).map((m) => <option key={`${m.marca}|${m.modello}`} value={`${m.marca}|${m.modello}`}>{[m.marca, m.modello].filter(Boolean).join(" ")} ({m.n})</option>)}
         </select>
-        <label className={`flex items-center gap-2 text-xs ${webOk ? "" : "opacity-50"}`} title={webOk ? "" : "Imposta la chiave Tavily nelle impostazioni"}>
-          <Switch checked={web} onCheckedChange={setWeb} disabled={!webOk} data-testid="switch-web" /> <Globe className="w-3.5 h-3.5" /> Consulta anche il web
+        <Button size="sm" variant="ghost" onClick={nuova} className="ml-auto text-xs h-8 px-2" title="Nuova conversazione" data-testid="btn-nuova-conversazione"><Trash2 className="w-3.5 h-3.5 sm:mr-1" /><span className="hidden sm:inline"> Nuova conversazione</span></Button>
+        <label className={`flex items-center gap-1.5 text-xs ${webOk ? "" : "opacity-50"}`} title={webOk ? "" : "Imposta la chiave Tavily nelle impostazioni"}>
+          <Switch checked={web} onCheckedChange={setWeb} disabled={!webOk} data-testid="switch-web" /> <Globe className="w-3.5 h-3.5" /> <span className="hidden sm:inline">Consulta anche il</span> web
         </label>
-        <label className="flex items-center gap-2 text-xs"><Switch checked={voceRisposta} onCheckedChange={(v) => { if (v) sbloccaAudio(); setVoceRisposta(v); }} data-testid="switch-voce" /> <Volume2 className="w-3.5 h-3.5" /> Leggi le risposte</label>
-        <Button size="sm" variant="ghost" onClick={nuova} className="ml-auto text-xs" data-testid="btn-nuova-conversazione"><Trash2 className="w-3.5 h-3.5 mr-1" /> Nuova conversazione</Button>
+        <label className="flex items-center gap-1.5 text-xs"><Switch checked={voceRisposta} onCheckedChange={(v) => { if (v) sbloccaAudio(); setVoceRisposta(v); }} data-testid="switch-voce" /> <Volume2 className="w-3.5 h-3.5" /> <span className="hidden sm:inline">Leggi le</span> risposte</label>
       </div>
 
       <div className="flex-1 overflow-y-auto py-4 space-y-4 pr-1">
@@ -97,7 +97,7 @@ export default function ChatOfficina({ client, basePath = "/officina", compact =
         <div ref={fine} />
       </div>
 
-      <div className="pt-3 border-t border-border/60">
+      <div className="pt-3 border-t border-border/60 pr-16 md:pr-0">
         {ascolto && <div className="text-xs text-primary mb-1 animate-pulse" data-testid="chat-ascolto">Sto ascoltando… {parziale}</div>}
         <div className="flex items-end gap-2">
           <Textarea value={testo} onChange={(e) => setTesto(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); invia(); } }} placeholder="Scrivi la domanda o il codice errore…" rows={compact ? 2 : 2} className="resize-none" data-testid="chat-input" />

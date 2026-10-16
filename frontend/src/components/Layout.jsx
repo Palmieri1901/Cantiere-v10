@@ -47,6 +47,7 @@ const mobileFlat = [
   { to: "/", label: "Home", icon: HomeIcon, testId: "nav-home-mobile" },
   { to: "/clienti", label: "Rimessaggio", icon: Users, testId: "nav-clienti-mobile" },
   { to: "/magazzino", label: "Magazzino", icon: Package, testId: "nav-magazzino-mobile" },
+  { to: "/officina", label: "Officina", icon: Wrench, testId: "nav-officina-mobile" },
   { to: "/tubolari", label: "Tubolari", icon: Ship, testId: "nav-tubolari-mobile" },
   { to: "/suzuki", label: "Suzuki", icon: Sailboat, testId: "nav-suzuki-mobile" },
   { to: "/gommoni", label: "Gommoni", icon: LifeBuoy, testId: "nav-gommoni-mobile" },
@@ -215,8 +216,8 @@ export default function Layout() {
       </aside>
 
       {/* Mobile top nav */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-card border-t border-border/60 z-30">
-        <div className="grid grid-cols-5">
+      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-card border-t border-border/60 z-30" style={{ paddingBottom: "env(safe-area-inset-bottom)" }} data-testid="mobile-nav">
+        <div className="flex overflow-x-auto no-scrollbar">
           {mobileFlat.map((n) => {
             const Icon = n.icon;
             const active = loc.pathname === n.to || (n.to !== "/" && loc.pathname.startsWith(n.to));
@@ -227,12 +228,12 @@ export default function Layout() {
                 end={n.to === "/"}
                 data-testid={n.testId}
                 className={cn(
-                  "flex flex-col items-center gap-1 py-2.5 text-[10px]",
+                  "flex flex-col items-center gap-1 py-2 text-[10px] shrink-0 w-[20%] min-w-[64px]",
                   active ? "text-primary" : "text-muted-foreground"
                 )}
               >
                 <Icon className="w-5 h-5" />
-                {n.label}
+                <span className="truncate max-w-full px-0.5">{n.label}</span>
               </NavLink>
             );
           })}
@@ -240,7 +241,7 @@ export default function Layout() {
       </div>
 
       {/* Content */}
-      <main className="flex-1 min-w-0 pb-20 md:pb-0">
+      <main className="flex-1 min-w-0 pb-[4.5rem] md:pb-0">
         <div className="md:hidden px-5 py-4 border-b border-border/60 bg-card flex items-center gap-2">
           {c?.logo_base64 ? (
             <img src={c.logo_base64} alt="Logo" className="w-8 h-8 object-contain rounded-md" />
