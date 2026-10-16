@@ -302,8 +302,8 @@ export default function Clienti() {
               <div className="flex gap-0.5">
                 <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => togglePagato(c)} data-testid={`m-toggle-pagato-${c.id}`}>{c.pagato ? <XCircle className="w-4 h-4 text-destructive" /> : <CheckCircle2 className="w-4 h-4 text-emerald-600" />}</Button>
                 <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setDettaglio(c)} data-testid={`m-dettaglio-${c.id}`}><Eye className="w-4 h-4" /></Button>
-                <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => openPdfPreview(c, "preventivo")} data-testid={`m-pdf-${c.id}`}><FileText className="w-4 h-4" /></Button>
-                <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => openPdfPreview(c, "contratto")} data-testid={`m-pdf-contratto-${c.id}`}><FileSignature className="w-4 h-4" /></Button>
+                <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => openPdfPreview(c, "preventivo")} data-testid={`m-pdf-${c.id}`} title="Preventivo PDF"><FileText className="w-4 h-4" /></Button>
+                <Button size="icon" variant="ghost" className="h-8 w-8 text-primary" onClick={() => openPdfPreview(c, "contratto")} data-testid={`m-pdf-contratto-${c.id}`} title="Preventivo + Contratto (PDF unico)"><FileSignature className="w-4 h-4" /></Button>
                 <Button size="icon" variant="ghost" className={`h-8 w-8 ${c.memo ? "text-amber-600" : ""}`} onClick={() => setMemoTarget(c)} data-testid={`m-memo-${c.id}`} title={c.memo || "Aggiungi memo"}><StickyNote className="w-4 h-4" /></Button>
                 <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => { setEditing(c); setFormOpen(true); }} data-testid={`m-edit-${c.id}`}><Pencil className="w-4 h-4" /></Button>
                 <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setUnisciTarget(c)} data-testid={`m-unisci-${c.id}`} title="Unisci con un altro cliente"><Merge className="w-4 h-4" /></Button>
@@ -398,7 +398,7 @@ export default function Clienti() {
                       <Button size="icon" variant="ghost" onClick={() => openPdfPreview(c, "preventivo")} disabled={previewLoadingId === `preventivo-${c.id}`} data-testid={`btn-pdf-${c.id}`} title="Anteprima preventivo PDF">
                         <FileText className="w-4 h-4" />
                       </Button>
-                      <Button size="icon" variant="ghost" onClick={() => openPdfPreview(c, "contratto")} disabled={previewLoadingId === `contratto-${c.id}`} data-testid={`btn-pdf-contratto-${c.id}`} title="Anteprima preventivo + contratto (PDF unico)">
+                      <Button size="icon" variant="ghost" className="text-primary" onClick={() => openPdfPreview(c, "contratto")} disabled={previewLoadingId === `contratto-${c.id}`} data-testid={`btn-pdf-contratto-${c.id}`} title="Anteprima preventivo + contratto (PDF unico)">
                         <FileSignature className="w-4 h-4" />
                       </Button>
                       <Button size="icon" variant="ghost" className={c.memo ? "text-amber-600" : ""} onClick={() => setMemoTarget(c)} data-testid={`btn-memo-${c.id}`} title={c.memo || "Aggiungi memo"}>
