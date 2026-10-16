@@ -8,7 +8,8 @@ import Listino from "@/pages/app-dipendente/Listino";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { confirmDialog } from "@/components/ConfirmDialog";
-import { RefreshCw, LogOut, Wifi, WifiOff, Sailboat, Home, ClipboardPlus, Package, Send } from "lucide-react";
+import { RefreshCw, LogOut, Wifi, WifiOff, Sailboat, Home, ClipboardPlus, Package, Send, Wrench } from "lucide-react";
+import ChatOfficina from "@/pages/officina/ChatOfficina";
 
 export default function AppDipendente() {
   const [logged, setLogged] = useState(!!mobileStore.getKey());
@@ -89,11 +90,12 @@ export default function AppDipendente() {
         {view === "home" && <HomeDipendente pendenti={pendenti} onScegli={setView} />}
         {view === "nuovo" && <NuovoLavoro onSaved={(l) => { salvaCoda([l, ...coda]); toast.success("Lavoro salvato sul telefono"); setView("coda"); }} />}
         {view === "listino" && <Listino />}
+        {view === "officina" && <ChatOfficina client={mobileApi()} basePath="/officina" compact autore={mobileStore.getNome()} />}
         {view === "coda" && <Coda coda={coda} setCoda={salvaCoda} onSync={sincronizza} syncing={syncing} online={online} />}
       </main>
 
-      <nav className="fixed bottom-0 left-0 right-0 max-w-lg mx-auto grid grid-cols-4 border-t border-border/60 bg-card">
-        {[["home", Home, "Home"], ["nuovo", ClipboardPlus, "Lavoro"], ["listino", Package, "Listino"], ["coda", Send, "Da inviare"]].map(([id, Icon, label]) => (
+      <nav className="fixed bottom-0 left-0 right-0 max-w-lg mx-auto grid grid-cols-5 border-t border-border/60 bg-card">
+        {[["home", Home, "Home"], ["nuovo", ClipboardPlus, "Lavoro"], ["listino", Package, "Listino"], ["officina", Wrench, "Officina"], ["coda", Send, "Da inviare"]].map(([id, Icon, label]) => (
           <button key={id} onClick={() => setView(id)} className={`py-2 flex flex-col items-center gap-0.5 text-[11px] font-medium relative ${view === id ? "text-primary" : "text-muted-foreground"}`} data-testid={`tab-${id === "nuovo" ? "nuovo-lavoro" : id}`}>
             <Icon className="w-5 h-5" />{label}
             {id === "coda" && pendenti > 0 && <span className="absolute top-1 right-1/4 min-w-4 h-4 px-1 rounded-full bg-primary text-primary-foreground text-[10px] grid place-items-center" data-testid="coda-badge">{pendenti}</span>}

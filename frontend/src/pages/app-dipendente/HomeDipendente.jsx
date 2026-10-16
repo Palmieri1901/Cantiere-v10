@@ -1,5 +1,5 @@
 import { mobileStore } from "@/lib/mobileStore";
-import { ClipboardPlus, Package, Send, ChevronRight } from "lucide-react";
+import { ClipboardPlus, Package, Send, ChevronRight, Wrench } from "lucide-react";
 
 const saluto = () => { const h = new Date().getHours(); return h < 13 ? "Buongiorno" : h < 18 ? "Buon pomeriggio" : "Buonasera"; };
 
@@ -8,6 +8,7 @@ export default function HomeDipendente({ pendenti, onScegli }) {
   const voci = [
     { id: "nuovo", icon: ClipboardPlus, titolo: "Aggiungi lavoro", desc: "Registra un lavoro fatto a un cliente", testId: "home-aggiungi-lavoro" },
     { id: "listino", icon: Package, titolo: "Listino magazzino", desc: "Cerca articoli per nome o codice, prezzi e giacenze", testId: "home-listino" },
+    { id: "officina", icon: Wrench, titolo: "Assistente officina", desc: "Codici errore, sintomi e dati tecnici dalle schede del cantiere", testId: "home-officina" },
     { id: "coda", icon: Send, titolo: "Da inviare", desc: pendenti > 0 ? `${pendenti} ${pendenti === 1 ? "lavoro" : "lavori"} da inviare al cantiere` : "Nessun lavoro in attesa", badge: pendenti, testId: "home-coda" },
   ];
   return (
