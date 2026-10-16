@@ -204,6 +204,17 @@ async def invia(p: InviaIn):
     return {**invio, "url": f"https://secure.fattureincloud.it/invoices-view-{res.get('id')}" if res.get("id") else ""}
 
 
+@router.get("/stato-documento")
+async def stato_documento(tipo: str, rif_id: str, anno: Optional[int] = None):
+    q = {"tipo": tipo, "rif_id": rif_id}
+    if anno is not None:
+        q["anno"] = anno
+    inv = await db.fatturazione_invii.find_one(q, {"_id": 0}, sort=[("ts", -1)])
+    if not inv:
+        return {"emessa": False}
+    return {**inv, "emessa": True, "url": f"https://secure.fattureincloud.it/invoices-view-{inv.get('fic_id')}" if inv.get("fic_id") else ""}
+
+
 @router.get("/invii")
 async def invii(tipo: str = "", rif_id: str = ""):
     q = {}
