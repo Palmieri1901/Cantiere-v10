@@ -16,6 +16,26 @@ from helpers import _euro
 from models import Tariffe
 
 
+def righe_lavoro(l: dict) -> list:
+    """Scompone un lavoro in voci separate: (descrizione, quantità, prezzo unitario, importo, is_header)."""
+    arts = [((it.get("nome") or ""), float(it.get("quantita") or 0), float(it.get("prezzo_unitario") or 0), float(it.get("totale") or 0), it.get("unita") or "")
+            for it in (l.get("articoli_magazzino") or [])]
+    arts += [((it.get("descrizione") or ""), float(it.get("quantita") or 0), float(it.get("prezzo_unitario") or 0), float(it.get("totale") or 0), it.get("unita") or "")
+             for it in (l.get("articoli_liberi") or [])]
+    ore = float(l.get("ore") or 0)
+    manodopera = round(float(l.get("costo") or 0) - sum(a[3] for a in arts), 2)
+    descr = (l.get("descrizione") or "").strip()
+    titolo = f"{l.get('tipo') or 'Lavoro'}" + (f" — {descr}" if descr else "")
+    out = [(titolo, "", None, None, True)]
+    if ore > 0:
+        out.append((f"Manodopera", f"{ore:g} h", manodopera / ore if manodopera else 0.0, manodopera, False))
+    elif manodopera:
+        out.append(("Lavorazione", "", None, manodopera, False))
+    for nome, qt, pu, tot, um in arts:
+        out.append((nome, f"{qt:g}{(' ' + um) if um else ''}", pu, tot, False))
+    return out
+
+
 def _build_storico_pdf(docs: list, cantiere_doc: dict) -> bytes:
     """Genera PDF A4 con storico multi-anno di un cliente. `docs` ordinati dal più recente."""
     buf = io.BytesIO()
@@ -141,8 +161,11 @@ def _build_storico_pdf(docs: list, cantiere_doc: dict) -> bytes:
             costo_l = float((it or {}).get("costo") or 0)
             if costo_l <= 0:
                 continue
-            descr = ((it or {}).get("descrizione") or "").strip() or (it or {}).get("tipo") or "Lavoro"
-            rows.append([f"Lavoro {(it or {}).get('data') or ''} · {descr}", _euro(costo_l)])
+            for titolo, qta, pu, imp, hdr in righe_lavoro(it):
+                if hdr:
+                    rows.append([Paragraph(f"<b>Lavoro {(it or {}).get('data') or ''}</b> · {titolo}", body), ""])
+                else:
+                    rows.append([Paragraph(f"<font color='#5B6478'>&nbsp;&nbsp;· {titolo}{(' ' + qta) if qta else ''}{(' × ' + _euro(pu)) if pu else ''}</font>", body), _euro(imp)])
             subtot += costo_l
 
         if len(rows) == 1:
@@ -330,9 +353,11 @@ def _build_preventivo_pdf(doc: dict, lavori_docs: list, cantiere_doc: dict, t_cu
     lav_storico = [l for l in (doc.get("lavori_storico") or []) if float((l or {}).get("costo") or 0) > 0]
     tot_lavori = round(sum(float(l.get("costo") or 0) for l in lav_storico), 2)
     for l in lav_storico:
-        descr = (l.get("descrizione") or "").strip() or l.get("tipo") or "Lavoro"
-        ore = f" · {l.get('ore'):g} h" if float(l.get("ore") or 0) > 0 else ""
-        voci.append([f"Lavoro {l.get('data') or ''} · {descr}{ore}", _euro(float(l.get("costo") or 0))])
+        for titolo, qta, pu, imp, hdr in righe_lavoro(l):
+            if hdr:
+                voci.append([f"Lavoro {l.get('data') or ''} · {titolo}", ""])
+            else:
+                voci.append([f"    · {titolo}{(' ' + qta) if qta else ''}{(' × ' + _euro(pu)) if pu else ''}", _euro(imp)])
     totale = sum(float(doc.get(k) or 0) for k in ("costo_sosta","costo_movimentazione","costo_taccaggio","costo_copertura","costo_alaggio","costo_varo","costo_antivegetativa","costo_scafo_sporco","costo_lavaggio_inizio","costo_lavaggio_fine","costo_manutenzione_motore")) + tot_extra + tot_lavori
 
     if not voci:
@@ -600,27 +625,18 @@ def build_conto_esterno_pdf(est: dict, lavori: list, cantiere_doc: dict, anno=No
     totale = 0.0
     ore_tot = 0.0
     for l in lavori:
-        descr = (l.get("descrizione") or "").strip()
-        testo = f"<b>{l.get('tipo', '')}</b>" + (f" — {descr}" if descr else "")
+        testo_extra = ""
         if l.get("dipendente"):
-            testo += f"<br/><font size=7 color='#5B6478'>eseguito da {l['dipendente']}</font>"
+            testo_extra += f"<br/><font size=7 color='#5B6478'>eseguito da {l['dipendente']}</font>"
         if l.get("materiali"):
-            testo += f"<br/><font size=7 color='#5B6478'>Materiali: {l['materiali']}</font>"
-        articoli = [(it.get("nome", ""), float(it.get("quantita") or 0), float(it.get("prezzo_unitario") or 0), float(it.get("totale") or 0), it.get("unita") or "")
-                    for it in (l.get("articoli_magazzino") or [])]
-        articoli += [(it.get("descrizione", ""), float(it.get("quantita") or 0), float(it.get("prezzo_unitario") or 0), float(it.get("totale") or 0), it.get("unita") or "")
-                     for it in (l.get("articoli_liberi") or [])]
-        ore = float(l.get("ore") or 0)
-        costo = float(l.get("costo") or 0)
-        manodopera = costo - sum(a[3] for a in articoli)
-        totale += costo
-        ore_tot += ore
-        if ore and manodopera > 0:
-            rows.append([l.get("data", ""), Paragraph(testo + "<br/><font size=7 color='#5B6478'>Manodopera</font>", body), f"{ore:g} h", _euro(manodopera / ore), _euro(manodopera)])
-        else:
-            rows.append([l.get("data", ""), Paragraph(testo, body), "", "", _euro(manodopera)])
-        for nome, qt, pu, tot, um in articoli:
-            rows.append(["", Paragraph(f"<font color='#5B6478'>· {nome}</font>", body), f"{qt:g}{(' ' + um) if um else ''}", _euro(pu), _euro(tot)])
+            testo_extra += f"<br/><font size=7 color='#5B6478'>Materiali: {l['materiali']}</font>"
+        totale += float(l.get("costo") or 0)
+        ore_tot += float(l.get("ore") or 0)
+        for titolo, qta, pu, imp, hdr in righe_lavoro(l):
+            if hdr:
+                rows.append([l.get("data", ""), Paragraph(f"<b>{titolo}</b>{testo_extra}", body), "", "", ""])
+            else:
+                rows.append(["", Paragraph(f"<font color='#5B6478'>· {titolo}</font>", body), qta, _euro(pu) if pu else "", _euro(imp)])
     if len(rows) == 1:
         rows.append(["—", Paragraph("Nessun lavoro registrato", body), "", "", _euro(0)])
     rows.append(["", Paragraph("<b>TOTALE</b>", body), f"{ore_tot:g} h" if ore_tot else "", "", _euro(totale)])

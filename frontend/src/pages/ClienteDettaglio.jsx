@@ -1,4 +1,5 @@
 import { fmtEuro } from "@/lib/api";
+import { righeLavoro } from "@/lib/righeLavoro";
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle
 } from "@/components/ui/dialog";
@@ -166,13 +167,18 @@ export default function ClienteDettaglio({ open, onOpenChange, cliente }) {
           <>
             <SectionTitle icon={Wrench}>Lavori eseguiti {c.anno}</SectionTitle>
             {lav_storico.map((l) => (
-              <div key={l.id} className="flex justify-between items-baseline py-1 text-sm" data-testid={`dettaglio-lavoro-${l.id}`}>
-                <span className="text-foreground truncate pr-3">
+              <div key={l.id} className="py-1 text-sm" data-testid={`dettaglio-lavoro-${l.id}`}>
+                <div className="text-foreground truncate font-medium">
                   <span className="font-mono-num text-xs text-muted-foreground mr-2">{l.data}</span>
-                  {l.descrizione || l.tipo}
-                  {(Number(l.ore) > 0 || l.dipendente) && <span className="text-xs text-muted-foreground"> · {Number(l.ore) > 0 ? `${l.ore} h` : ""}{l.dipendente ? ` ${l.dipendente}` : ""}</span>}
-                </span>
-                <span className="font-mono-num font-medium shrink-0">{fmtEuro(Number(l.costo) || 0)}</span>
+                  {l.tipo}{l.descrizione ? ` — ${l.descrizione}` : ""}
+                  {l.dipendente && <span className="text-xs text-muted-foreground font-normal"> · {l.dipendente}</span>}
+                </div>
+                {righeLavoro(l).map((r, i) => (
+                  <div key={i} className="flex justify-between items-baseline pl-4 text-xs text-muted-foreground">
+                    <span className="truncate pr-3">· {r.nome}{r.qta ? ` ${r.qta}` : ""}{r.prezzo ? ` × ${fmtEuro(r.prezzo)}` : ""}</span>
+                    <span className="font-mono-num shrink-0">{fmtEuro(r.totale)}</span>
+                  </div>
+                ))}
               </div>
             ))}
             <div className="flex justify-between items-baseline py-1.5 pt-2 border-t border-border/40 text-sm">

@@ -102,7 +102,8 @@ async def sync_lavori_cliente(cliente_id: str):
         await db.clienti.update_one({"id": s["id"]}, {"$set": {
             "costo_lavori": round(sum(float(l.get("costo") or 0) for l in mine), 2),
             "lavori_storico": [{"id": l["id"], "data": l.get("data"), "tipo": l.get("tipo"), "descrizione": l.get("descrizione", ""),
-                                 "costo": float(l.get("costo") or 0), "ore": float(l.get("ore") or 0), "dipendente": l.get("dipendente", "")} for l in mine],
+                                 "costo": float(l.get("costo") or 0), "ore": float(l.get("ore") or 0), "dipendente": l.get("dipendente", ""),
+                                 "articoli_magazzino": l.get("articoli_magazzino") or [], "articoli_liberi": l.get("articoli_liberi") or []} for l in mine],
         }})
 
 

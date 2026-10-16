@@ -16,6 +16,7 @@ import {
 import { toast } from "sonner";
 import { Plus, Pencil, Trash2, Wrench, Package, AlertTriangle } from "lucide-react";
 import { ListinoPicker } from "@/components/ListinoPicker";
+import { righeLavoro } from "@/lib/righeLavoro";
 
 const TIPI_LAVORO = ["Antivegetativa", "Manutenzione motore", "Riparazione", "Pulizia", "Elettrico", "Altro"];
 const STATI = [
@@ -237,21 +238,14 @@ export default function LavoriSection({ clienteId }) {
                   </div>
                 )}
                 {l.materiali && <div className="text-[11px] text-muted-foreground/80 italic mt-0.5">Mat.: {l.materiali}</div>}
-                {((Array.isArray(l.articoli_magazzino) && l.articoli_magazzino.length > 0) || (Array.isArray(l.articoli_liberi) && l.articoli_liberi.length > 0)) && (
-                  <div className="mt-1.5 text-[11px] flex items-center gap-1.5 flex-wrap">
-                    <Package className="w-3 h-3 text-primary shrink-0" />
-                    {(l.articoli_magazzino || []).map((it, i) => (
-                      <Badge key={i} variant="secondary" className="text-[10px] font-normal">
-                        {it.nome} × {it.quantita} · {fmtEuro(it.totale)}
-                      </Badge>
-                    ))}
-                    {(l.articoli_liberi || []).map((it, i) => (
-                      <Badge key={`l${i}`} variant="outline" className="text-[10px] font-normal" data-testid={`lavoro-art-lib-${l.id}-${i}`}>
-                        {it.descrizione} × {it.quantita} · {fmtEuro(it.totale)}
-                      </Badge>
-                    ))}
-                  </div>
-                )}
+                <div className="mt-1.5 text-[11px] space-y-0.5" data-testid={`lavoro-voci-${l.id}`}>
+                  {righeLavoro(l).map((r, i) => (
+                    <div key={i} className="flex items-center gap-2 text-muted-foreground">
+                      <span className="truncate flex-1">· {r.nome}{r.qta ? ` ${r.qta}` : ""}{r.prezzo ? ` × ${fmtEuro(r.prezzo)}` : ""}</span>
+                      <span className="font-mono-num shrink-0">{fmtEuro(r.totale)}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
               <div className="font-mono-num text-sm font-semibold shrink-0">{fmtEuro(l.costo)}</div>
               <div className="flex gap-0.5 shrink-0">
