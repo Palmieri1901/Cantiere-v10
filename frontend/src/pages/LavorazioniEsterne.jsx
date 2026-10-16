@@ -14,6 +14,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PdfPreviewOverlay } from "@/components/PdfPreviewOverlay";
 import { openBlob } from "@/pages/ddt/common";
 import { SoggettoFiscale, erroreSoggetto } from "@/components/SoggettoFiscale";
+import { AnagraficaPicker } from "@/components/AnagraficaPicker";
 
 export default function LavorazioniEsterne() {
   const [list, setList] = useState([]);
@@ -49,6 +50,14 @@ export default function LavorazioniEsterne() {
     if (err) return toast.error(err);
     const r = await api.post("/esterni", { nome, ...nuovo });
     setNome(""); setNuovo({ tipo_soggetto: "privato", ragione_sociale: "", partita_iva: "", codice_sdi: "", pec: "" }); await load(); setOpen(r.data);
+    const chi = nuovo.tipo_soggetto === "azienda" && nuovo.ragione_sociale ? nuovo.ragione_sociale : nome.trim();
+    if (await confirmDialog(`Vuoi aggiungere "${chi}" all'Anagrafica generale?\nI dati anagrafici e fiscali saranno disponibili per tutti i moduli.`, { title: "Anagrafica generale", okLabel: "Sì, aggiungi", cancelLabel: "No", danger: false })) {
+      try { await api.post(`/anagrafica/da-esterno/${r.data.id}`); toast.success("Aggiunto all'anagrafica generale"); } catch { toast.error("Errore anagrafica"); }
+    }
+  };
+  const daAnagrafica = (d) => {
+    setNome(`${d.cognome || ""} ${d.nome || ""}`.trim());
+    setNuovo({ tipo_soggetto: d.tipo_soggetto || "privato", ragione_sociale: d.ragione_sociale || "", partita_iva: d.partita_iva || "", codice_sdi: d.codice_sdi || "", pec: d.pec || "", telefono: d.telefono || d.cellulare || "" });
   };
   const salvaEdit = async () => {
     const err = erroreSoggetto(edit);
@@ -74,7 +83,10 @@ export default function LavorazioniEsterne() {
       <p className="text-muted-foreground text-base md:text-lg mb-8 max-w-2xl">Lavori per clienti non in rimessaggio: basta il nominativo. Qui trovi anche i clienti creati approvando i lavori dei dipendenti.</p>
 
       <Card className="p-5 mb-6">
-        <div className="label-mini mb-2">Nuovo cliente esterno</div>
+        <div className="flex items-center justify-between mb-2">
+          <div className="label-mini">Nuovo cliente esterno</div>
+          <AnagraficaPicker onPick={daAnagrafica} testId="btn-da-anagrafica-esterno" />
+        </div>
         <div className="max-w-md space-y-3">
           <SoggettoFiscale f={nuovo} update={updNuovo} compact />
           <div className="flex gap-2">
