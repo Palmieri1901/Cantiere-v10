@@ -21,11 +21,14 @@ export default function ChatOfficina({ client, basePath = "/officina", compact =
   const [voceRisposta, setVoceRisposta] = useState(false);
   const [salva, setSalva] = useState(null);
   const [session, setSession] = useState(getSession);
+  const [modelli, setModelli] = useState([]);
+  const [filtro, setFiltro] = useState(""); // "marca|modello"
   const fine = useRef(null);
 
   useEffect(() => {
     client.get(`${basePath}/chat/${session}`).then((r) => setMsgs(r.data || [])).catch(() => {});
     client.get(`${basePath}/config`).then((r) => { setWebOk(!!r.data.tavily_configurata); setWeb(!!r.data.web_default && !!r.data.tavily_configurata); }).catch(() => {});
+    client.get(`${basePath}/modelli`).then((r) => setModelli(r.data || [])).catch(() => {});
   }, [session]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { fine.current?.scrollIntoView({ behavior: "smooth" }); }, [msgs, busy]);
 
@@ -35,7 +38,8 @@ export default function ChatOfficina({ client, basePath = "/officina", compact =
     setTesto(""); setBusy(true);
     setMsgs((s) => [...s, { id: uid(), ruolo: "utente", testo: m }]);
     try {
-      const r = await client.post(`${basePath}/chat`, { messaggio: m, session_id: session, web });
+      const [marca, modello] = filtro ? filtro.split("|") : ["", ""];
+      const r = await client.post(`${basePath}/chat`, { messaggio: m, session_id: session, web, marca, modello });
       setMsgs((s) => [...s, { id: uid(), ruolo: "assistente", testo: r.data.risposta, fonti: r.data.fonti, web_usato: r.data.web_usato, domanda: m }]);
       if (voceRisposta) parla(r.data.risposta.replace(/[*#\[\]]/g, "").slice(0, 600));
     } catch (e) {
@@ -49,6 +53,11 @@ export default function ChatOfficina({ client, basePath = "/officina", compact =
   return (
     <div className={`flex flex-col ${compact ? "h-[calc(100vh-11rem)]" : "h-[calc(100vh-14rem)] min-h-[480px]"}`} data-testid="chat-officina">
       <div className="flex flex-wrap items-center gap-3 pb-3 border-b border-border/60">
+        <select value={filtro} onChange={(e) => setFiltro(e.target.value)} className="h-8 rounded-md border border-input bg-background px-2 text-xs max-w-[220px]" title="Limita le risposte alle schede di un modello" data-testid="select-modello">
+          <option value="">Tutti i modelli ({modelli.reduce((s, m) => s + m.n, 0)} schede)</option>
+          {[...new Set(modelli.map((m) => m.marca).filter(Boolean))].map((ma) => <option key={`m|${ma}`} value={`${ma}|`}>{ma} · tutti</option>)}
+          {modelli.filter((m) => m.modello).map((m) => <option key={`${m.marca}|${m.modello}`} value={`${m.marca}|${m.modello}`}>{[m.marca, m.modello].filter(Boolean).join(" ")} ({m.n})</option>)}
+        </select>
         <label className={`flex items-center gap-2 text-xs ${webOk ? "" : "opacity-50"}`} title={webOk ? "" : "Imposta la chiave Tavily nelle impostazioni"}>
           <Switch checked={web} onCheckedChange={setWeb} disabled={!webOk} data-testid="switch-web" /> <Globe className="w-3.5 h-3.5" /> Consulta anche il web
         </label>

@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Upload, FileText, Image as ImageIcon, Type, Trash2, Eye, Search } from "lucide-react";
+import { Upload, FileText, Image as ImageIcon, Type, Trash2, Eye, Search, ChevronRight } from "lucide-react";
 import { confirmDialog } from "@/components/ConfirmDialog";
 
 const ICONA = { pdf: FileText, immagine: ImageIcon, testo: Type };
@@ -19,6 +19,8 @@ export default function SchedeTab() {
   const [testo, setTesto] = useState("");
   const [busy, setBusy] = useState(false);
   const [vedi, setVedi] = useState(null);
+  const [marcaSel, setMarcaSel] = useState("");
+  const [aperti, setAperti] = useState({});
   const fileRef = useRef(null);
   const load = () => api.get("/officina/schede").then((r) => setList(r.data)).catch(() => {});
   useEffect(() => { load(); }, []);
@@ -51,7 +53,9 @@ export default function SchedeTab() {
   const apri = async (s) => { const r = await api.get(`/officina/schede/${s.id}`); setVedi(r.data); };
 
   const ql = q.trim().toLowerCase();
-  const vis = list.filter((s) => !ql || `${s.titolo} ${s.marca} ${s.modello} ${s.nome_file}`.toLowerCase().includes(ql));
+  const vis = list.filter((s) => (!ql || `${s.titolo} ${s.marca} ${s.modello} ${s.nome_file}`.toLowerCase().includes(ql)) && (!marcaSel || (s.marca || "") === marcaSel));
+  const marche = [...new Set(list.map((s) => s.marca || "").filter(Boolean))].sort();
+  const gruppi = Object.entries(vis.reduce((acc, s) => { const k = [s.marca, s.modello].filter(Boolean).join(" ") || "Senza marca/modello"; (acc[k] = acc[k] || []).push(s); return acc; }, {})).sort(([a], [b]) => a.localeCompare(b));
 
   return (
     <div className="space-y-6" data-testid="schede-tab">
@@ -78,24 +82,41 @@ export default function SchedeTab() {
         {busy && <div className="text-xs text-primary animate-pulse" data-testid="scheda-busy">Lettura e indicizzazione in corso… può richiedere un minuto per le scansioni.</div>}
       </Card>
 
-      <div className="flex items-center gap-3">
+      <div className="flex flex-wrap items-center gap-3">
         <div className="relative max-w-sm flex-1"><Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" /><Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Cerca scheda…" className="pl-9" data-testid="schede-cerca" /></div>
-        <div className="text-xs text-muted-foreground" data-testid="schede-conteggio">{vis.length} schede</div>
+        <div className="flex gap-1 flex-wrap">
+          <button onClick={() => setMarcaSel("")} className={`text-xs rounded-full border px-3 py-1 ${!marcaSel ? "bg-primary text-primary-foreground border-primary" : "border-border hover:bg-muted"}`} data-testid="filtro-marca-tutte">Tutte</button>
+          {marche.map((m) => <button key={m} onClick={() => setMarcaSel(m === marcaSel ? "" : m)} className={`text-xs rounded-full border px-3 py-1 ${marcaSel === m ? "bg-primary text-primary-foreground border-primary" : "border-border hover:bg-muted"}`} data-testid={`filtro-marca-${m}`}>{m}</button>)}
+        </div>
+        <div className="text-xs text-muted-foreground ml-auto" data-testid="schede-conteggio">{vis.length} schede · {gruppi.length} modelli</div>
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        {vis.map((s) => { const I = ICONA[s.tipo] || FileText; return (
-          <Card key={s.id} className="p-4 flex items-start gap-3" data-testid={`scheda-row-${s.id}`}>
-            <span className="w-9 h-9 rounded-md bg-primary/10 text-primary grid place-items-center shrink-0"><I className="w-4 h-4" /></span>
-            <div className="flex-1 min-w-0">
-              <div className="font-medium truncate">{s.titolo}</div>
-              <div className="text-xs text-muted-foreground truncate">{[s.marca, s.modello].filter(Boolean).join(" ")}{s.nome_file ? ` · ${s.nome_file}` : ""}</div>
-              <div className="mt-1 flex gap-1.5"><Badge variant="secondary" className="text-[10px] font-normal">{s.tipo}</Badge><Badge variant="outline" className="text-[10px] font-normal">{(s.caratteri || 0).toLocaleString("it-IT")} caratteri · {s.n_chunks} blocchi</Badge></div>
-            </div>
-            <Button size="icon" variant="ghost" onClick={() => apri(s)} data-testid={`btn-vedi-scheda-${s.id}`}><Eye className="w-4 h-4" /></Button>
-            <Button size="icon" variant="ghost" onClick={() => del(s)} data-testid={`btn-del-scheda-${s.id}`}><Trash2 className="w-4 h-4 text-destructive" /></Button>
-          </Card>
-        ); })}
-        {!vis.length && <Card className="p-8 text-center text-sm text-muted-foreground md:col-span-2" data-testid="schede-vuote">Nessuna scheda. Carica manuali, schede motore o note tecniche: l'assistente risponde solo in base a queste.</Card>}
+      <div className="space-y-2">
+        {gruppi.map(([nome, items]) => {
+          const open = aperti[nome] ?? (gruppi.length <= 3 || !!ql);
+          return (
+            <Card key={nome} className="overflow-hidden" data-testid={`gruppo-${nome.replace(/\W+/g, "-")}`}>
+              <button onClick={() => setAperti((a) => ({ ...a, [nome]: !open }))} className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-muted/40">
+                <ChevronRight className={`w-4 h-4 text-muted-foreground transition-transform ${open ? "rotate-90" : ""}`} />
+                <span className="font-medium flex-1">{nome}</span>
+                <Badge variant="secondary" className="text-[10px] font-normal">{items.length} {items.length === 1 ? "scheda" : "schede"}</Badge>
+              </button>
+              {open && <div className="border-t border-border divide-y divide-border">
+                {items.map((s) => { const I = ICONA[s.tipo] || FileText; return (
+                  <div key={s.id} className="px-4 py-2.5 flex items-center gap-3" data-testid={`scheda-row-${s.id}`}>
+                    <I className="w-4 h-4 text-primary shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-medium truncate">{s.titolo}</div>
+                      <div className="text-[11px] text-muted-foreground truncate">{s.tipo}{s.nome_file ? ` · ${s.nome_file}` : ""} · {(s.caratteri || 0).toLocaleString("it-IT")} caratteri · {s.n_chunks} blocchi</div>
+                    </div>
+                    <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => apri(s)} data-testid={`btn-vedi-scheda-${s.id}`}><Eye className="w-4 h-4" /></Button>
+                    <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => del(s)} data-testid={`btn-del-scheda-${s.id}`}><Trash2 className="w-4 h-4 text-destructive" /></Button>
+                  </div>
+                ); })}
+              </div>}
+            </Card>
+          );
+        })}
+        {!vis.length && <Card className="p-8 text-center text-sm text-muted-foreground" data-testid="schede-vuote">Nessuna scheda. Carica manuali, schede motore o note tecniche: l'assistente risponde solo in base a queste.</Card>}
       </div>
 
       <Dialog open={!!vedi} onOpenChange={(o) => !o && setVedi(null)}>

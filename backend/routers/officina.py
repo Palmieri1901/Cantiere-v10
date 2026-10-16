@@ -251,6 +251,45 @@ class ChatIn(BaseModel):
     messaggio: str
     session_id: str
     web: bool = False
+    marca: Optional[str] = ""
+    modello: Optional[str] = ""
+
+
+async def ensure_indexes():
+    await db.officina_chunks.create_index("scheda_id")
+    await db.officina_chunks.create_index([("testo", "text")], default_language="none", name="testo_text")
+    await db.officina_schede.create_index([("marca", 1), ("modello", 1)])
+
+
+@router.get("/modelli")
+async def modelli():
+    """Elenco marca/modello presenti nelle schede, con conteggio."""
+    pipe = [{"$group": {"_id": {"marca": "$marca", "modello": "$modello"}, "n": {"$sum": 1}}}, {"$sort": {"_id.marca": 1, "_id.modello": 1}}]
+    out = []
+    async for g in db.officina_schede.aggregate(pipe):
+        out.append({"marca": g["_id"].get("marca") or "", "modello": g["_id"].get("modello") or "", "n": g["n"]})
+    return out
+
+
+async def _cerca_chunks(msg: str, toks: List[str], schede: dict, filtro_ids: Optional[set]) -> list:
+    """Stage 1: ricerca full-text Mongo (scala a migliaia di schede); stage 2: ri-punteggio con boost su marca/modello citati."""
+    q = {"$text": {"$search": msg}}
+    if filtro_ids is not None:
+        q["scheda_id"] = {"$in": list(filtro_ids)}
+    cand = await db.officina_chunks.find(q, {"_id": 0, "score": {"$meta": "textScore"}}).sort([("score", {"$meta": "textScore"})]).limit(80).to_list(80)
+    if not cand:  # codici tipo "C-04" o termini rari: fallback regex sui blocchi delle schede filtrate (o di quelle con marca/modello citati)
+        ids = filtro_ids
+        if ids is None:
+            ids = {sid for sid, s in schede.items() if _score(f"{s.get('marca','')} {s.get('modello','')} {s.get('titolo','')}", toks) > 0} or None
+        rq = {"$or": [{"testo": {"$regex": re.escape(t), "$options": "i"}} for t in toks[:12] if len(t) >= 3]}
+        if ids is not None:
+            rq["scheda_id"] = {"$in": list(ids)}
+        cand = await db.officina_chunks.find(rq, {"_id": 0}).limit(300).to_list(300) if rq["$or"] else []
+    for c in cand:
+        s = schede.get(c["scheda_id"], {})
+        c["_s"] = _score(c["testo"], toks) + 0.5 * _score(f"{s.get('titolo','')} {s.get('marca','')} {s.get('modello','')}", toks) + float(c.get("score") or 0)
+        c.pop("score", None)
+    return sorted([c for c in cand if c["_s"] > 0], key=lambda c: -c["_s"])[:8]
 
 
 SYSTEM = """Sei l'Assistente Officina di un cantiere nautico (motori fuoribordo/entrobordo, gommoni, impianti di bordo).
@@ -270,13 +309,14 @@ async def _rispondi(p: ChatIn, canale: str) -> dict:
     if not msg:
         raise HTTPException(400, "Messaggio vuoto")
     toks = _tokens(msg)
-    chunks = await db.officina_chunks.find({}, {"_id": 0}).to_list(50000)
-    schede = {s["id"]: s for s in await db.officina_schede.find({}, {"_id": 0, "testo": 0, "file_path": 0}).to_list(5000)}
-    for c in chunks:
-        s = schede.get(c["scheda_id"], {})
-        c["_s"] = _score(c["testo"], toks) + 0.5 * _score(f"{s.get('titolo','')} {s.get('marca','')} {s.get('modello','')}", toks)
-    top = sorted([c for c in chunks if c["_s"] > 0], key=lambda c: -c["_s"])[:8]
-    casi = await db.officina_casi.find({}, {"_id": 0}).to_list(5000)
+    schede = {s["id"]: s for s in await db.officina_schede.find({}, {"_id": 0, "testo": 0, "file_path": 0}).to_list(20000)}
+    filtro = None
+    if (p.marca or "").strip() or (p.modello or "").strip():
+        filtro = {sid for sid, s in schede.items()
+                  if (not (p.marca or "").strip() or (s.get("marca") or "").lower() == p.marca.strip().lower())
+                  and (not (p.modello or "").strip() or (s.get("modello") or "").lower() == p.modello.strip().lower())}
+    top = await _cerca_chunks(msg, toks, schede, filtro)
+    casi = await db.officina_casi.find({}, {"_id": 0}).to_list(20000)
     for c in casi:
         c["_s"] = _score(" ".join(str(c.get(k) or "") for k in ("motore", "codici", "sintomo", "diagnosi", "soluzione", "note")), toks)
     top_casi = sorted([c for c in casi if c["_s"] > 0], key=lambda c: -c["_s"])[:5]
@@ -289,6 +329,8 @@ async def _rispondi(p: ChatIn, canale: str) -> dict:
     storia = list(reversed(storia))
 
     ctx = []
+    if filtro is not None:
+        ctx.append(f"=== FILTRO ATTIVO: solo schede {p.marca or ''} {p.modello or ''} ===")
     if top:
         ctx.append("=== SCHEDE TECNICHE ===")
         for c in top:
@@ -359,6 +401,11 @@ async def storico_mobile(session_id: str, dip: dict = Depends(get_dipendente)):
 @mobile_router.post("/casi")
 async def caso_mobile(p: CasoIn, dip: dict = Depends(get_dipendente)):
     return await _crea_caso(p, dip.get("nome", "dipendente"))
+
+
+@mobile_router.get("/modelli")
+async def modelli_mobile(dip: dict = Depends(get_dipendente)):
+    return await modelli()
 
 
 @mobile_router.get("/config")

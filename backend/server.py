@@ -86,6 +86,7 @@ app.add_middleware(
 @app.on_event("startup")
 async def _startup():
     await db.users.create_index("email", unique=True)
+    await officina.ensure_indexes()
     # TTL su token di reset password: MongoDB rimuove il documento allo scadere
     try:
         await db.password_reset_tokens.create_index("expires_at", expireAfterSeconds=0)
