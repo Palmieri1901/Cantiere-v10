@@ -13,6 +13,7 @@ import PreventiviEsternoTab from "@/pages/esterni/PreventiviEsternoTab";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PdfPreviewOverlay } from "@/components/PdfPreviewOverlay";
 import { openBlob } from "@/pages/ddt/common";
+import { SoggettoFiscale, erroreSoggetto } from "@/components/SoggettoFiscale";
 
 export default function LavorazioniEsterne() {
   const [list, setList] = useState([]);
@@ -40,12 +41,18 @@ export default function LavorazioniEsterne() {
   const load = () => api.get("/esterni").then((r) => setList(r.data));
   useEffect(() => { load(); }, []);
 
+  const [nuovo, setNuovo] = useState({ tipo_soggetto: "privato", ragione_sociale: "", partita_iva: "", codice_sdi: "", pec: "" });
+  const updNuovo = (k, v) => setNuovo((s) => ({ ...s, [k]: v }));
   const add = async () => {
     if (!nome.trim()) return toast.error("Inserisci il nominativo");
-    const r = await api.post("/esterni", { nome });
-    setNome(""); await load(); setOpen(r.data);
+    const err = erroreSoggetto(nuovo);
+    if (err) return toast.error(err);
+    const r = await api.post("/esterni", { nome, ...nuovo });
+    setNome(""); setNuovo({ tipo_soggetto: "privato", ragione_sociale: "", partita_iva: "", codice_sdi: "", pec: "" }); await load(); setOpen(r.data);
   };
   const salvaEdit = async () => {
+    const err = erroreSoggetto(edit);
+    if (err) return toast.error(err);
     await api.put(`/esterni/${edit.id}`, edit); setEdit(null); load(); toast.success("Salvato");
   };
   const del = async (e) => {
@@ -68,9 +75,12 @@ export default function LavorazioniEsterne() {
 
       <Card className="p-5 mb-6">
         <div className="label-mini mb-2">Nuovo cliente esterno</div>
-        <div className="flex gap-2 max-w-md">
-          <Input value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Nominativo (es. Rossi Mario)" onKeyDown={(e) => e.key === "Enter" && add()} data-testid="input-esterno-nome" />
-          <Button onClick={add} className="bg-primary hover:bg-primary/90" data-testid="btn-add-esterno"><Plus className="w-4 h-4 mr-1" /> Aggiungi</Button>
+        <div className="max-w-md space-y-3">
+          <SoggettoFiscale f={nuovo} update={updNuovo} compact />
+          <div className="flex gap-2">
+            <Input value={nome} onChange={(e) => setNome(e.target.value)} placeholder={nuovo.tipo_soggetto === "azienda" ? "Referente (es. Rossi Mario)" : "Nominativo (es. Rossi Mario)"} onKeyDown={(e) => e.key === "Enter" && add()} data-testid="input-esterno-nome" />
+            <Button onClick={add} className="bg-primary hover:bg-primary/90" data-testid="btn-add-esterno"><Plus className="w-4 h-4 mr-1" /> Aggiungi</Button>
+          </div>
         </div>
       </Card>
 
@@ -93,7 +103,7 @@ export default function LavorazioniEsterne() {
           {visibili.map((e) => (
             <div key={e.id} className="p-3 flex items-center gap-3 flex-wrap hover:bg-muted/40 cursor-pointer" onClick={() => setOpen(e)} data-testid={`esterno-row-${e.id}`}>
               <div className="flex-1 min-w-[180px]">
-                <div className="font-medium text-sm">{e.nome}{e.telefono && <span className="text-muted-foreground font-normal"> · {e.telefono}</span>}</div>
+                <div className="font-medium text-sm">{e.tipo_soggetto === "azienda" && e.ragione_sociale ? <>{e.ragione_sociale} <span className="text-muted-foreground font-normal">· {e.nome}</span></> : e.nome}{e.telefono && <span className="text-muted-foreground font-normal"> · {e.telefono}</span>}</div>
                 <div className="text-xs text-muted-foreground">{e.n} {e.n === 1 ? "lavoro" : "lavori"} · {e.ore} h{e.ultimo ? ` · ultimo ${e.ultimo}` : ""}{e.note ? ` · ${e.note}` : ""}</div>
               </div>
               <div className="font-mono-num text-sm font-semibold">{fmtEuro(e.totale)}</div>
@@ -137,7 +147,8 @@ export default function LavorazioniEsterne() {
           <DialogHeader><DialogTitle>Modifica cliente esterno</DialogTitle></DialogHeader>
           {edit && (
             <div className="space-y-3">
-              <Input value={edit.nome} onChange={(e) => setEdit({ ...edit, nome: e.target.value })} placeholder="Nominativo" data-testid="input-edit-nome" />
+              <SoggettoFiscale f={edit} update={(k, v) => setEdit((s) => ({ ...s, [k]: v }))} compact />
+              <Input value={edit.nome} onChange={(e) => setEdit({ ...edit, nome: e.target.value })} placeholder={edit.tipo_soggetto === "azienda" ? "Referente" : "Nominativo"} data-testid="input-edit-nome" />
               <Input value={edit.telefono || ""} onChange={(e) => setEdit({ ...edit, telefono: e.target.value })} placeholder="Telefono" data-testid="input-edit-telefono" />
               <Input value={edit.note || ""} onChange={(e) => setEdit({ ...edit, note: e.target.value })} placeholder="Note (barca, contatto…)" data-testid="input-edit-note" />
               <Button onClick={salvaEdit} className="w-full bg-primary hover:bg-primary/90" data-testid="btn-salva-esterno">Salva</Button>

@@ -22,6 +22,7 @@ import { EMPTY_CLIENTE, MAX_EXTRA, Field, CostField, BreakdownRow } from "@/page
 import MotoreSection from "@/pages/cliente-form/MotoreSection";
 import LavorazioniExtraSection from "@/pages/cliente-form/LavorazioniExtraSection";
 import RitiroConsegnaSection, { descrRitiroConsegna } from "@/pages/cliente-form/RitiroConsegnaSection";
+import { SoggettoFiscale, erroreSoggetto } from "@/components/SoggettoFiscale";
 import MagazzinoPickerDialog from "@/pages/cliente-form/MagazzinoPickerDialog";
 
 export default function ClienteForm({ open, onOpenChange, cliente, onSaved, mode = "cliente" }) {
@@ -194,6 +195,8 @@ export default function ClienteForm({ open, onOpenChange, cliente, onSaved, mode
     (Number(f.costo_movimentazione) || 0) + (Number(f.costo_taccaggio) || 0) + totaleExtra;
 
   const save = async () => {
+    const errSogg = erroreSoggetto(f);
+    if (errSogg) { toast.error(errSogg); return; }
     // Preventivo veloce: solo nome+cognome obbligatori
     if (isPreventivo) {
       if (!f.nome?.trim() || !f.cognome?.trim()) {
@@ -316,11 +319,12 @@ export default function ClienteForm({ open, onOpenChange, cliente, onSaved, mode
           {/* Anagrafica */}
           <section>
             <div className="label-mini mb-3">Anagrafica</div>
+            <div className="mb-3"><SoggettoFiscale f={f} update={update} /></div>
             <div className="grid grid-cols-2 gap-3">
-              <Field label="Cognome *">
+              <Field label={f.tipo_soggetto === "azienda" ? "Cognome referente *" : "Cognome *"}>
                 <Input value={f.cognome} onChange={(e) => update("cognome", e.target.value)} data-testid="input-cognome" />
               </Field>
-              <Field label="Nome *">
+              <Field label={f.tipo_soggetto === "azienda" ? "Nome referente *" : "Nome *"}>
                 <Input value={f.nome} onChange={(e) => update("nome", e.target.value)} data-testid="input-nome" />
               </Field>
               <Field label="Codice fiscale">

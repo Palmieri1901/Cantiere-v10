@@ -18,6 +18,22 @@ class EsternoIn(BaseModel):
     nome: str
     telefono: Optional[str] = ""
     note: Optional[str] = ""
+    tipo_soggetto: Optional[str] = "privato"
+    ragione_sociale: Optional[str] = ""
+    partita_iva: Optional[str] = ""
+    codice_sdi: Optional[str] = ""
+    pec: Optional[str] = ""
+
+
+FISCALI = ("tipo_soggetto", "ragione_sociale", "partita_iva", "codice_sdi", "pec")
+
+
+def _fiscali(p: EsternoIn) -> dict:
+    d = {k: (getattr(p, k) or "").strip() for k in FISCALI}
+    d["tipo_soggetto"] = d["tipo_soggetto"] if d["tipo_soggetto"] in ("privato", "azienda") else "privato"
+    if d["tipo_soggetto"] == "privato":
+        d.update(ragione_sociale="", partita_iva="", codice_sdi="", pec="")
+    return d
 
 
 async def crea_esterno(nome: str, telefono: str = "", note: str = "") -> dict:
@@ -51,12 +67,15 @@ async def list_esterni():
 
 @router.post("/esterni")
 async def create_esterno(payload: EsternoIn):
-    return await crea_esterno(payload.nome, payload.telefono, payload.note)
+    doc = await crea_esterno(payload.nome, payload.telefono, payload.note)
+    fisc = _fiscali(payload)
+    await db.clienti_esterni.update_one({"id": doc["id"]}, {"$set": fisc})
+    return {**doc, **fisc}
 
 
 @router.put("/esterni/{eid}")
 async def update_esterno(eid: str, payload: EsternoIn):
-    r = await db.clienti_esterni.update_one({"id": eid}, {"$set": {"nome": capitalizza_nome(payload.nome), "telefono": payload.telefono or "", "note": payload.note or ""}})
+    r = await db.clienti_esterni.update_one({"id": eid}, {"$set": {"nome": capitalizza_nome(payload.nome), "telefono": payload.telefono or "", "note": payload.note or "", **_fiscali(payload)}})
     if not r.matched_count:
         raise HTTPException(404, "Cliente esterno non trovato")
     return await db.clienti_esterni.find_one({"id": eid}, {"_id": 0})

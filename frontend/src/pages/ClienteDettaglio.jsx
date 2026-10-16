@@ -65,9 +65,10 @@ export default function ClienteDettaglio({ open, onOpenChange, cliente }) {
         <DialogHeader>
           <DialogTitle className="font-display text-2xl flex items-center gap-2">
             <Anchor className="w-5 h-5 text-primary" />
-            {c.cognome} {c.nome}
+            {c.tipo_soggetto === "azienda" && c.ragione_sociale ? c.ragione_sociale : `${c.cognome} ${c.nome}`}
           </DialogTitle>
           <DialogDescription>
+            {c.tipo_soggetto === "azienda" && c.ragione_sociale && <span className="block text-xs" data-testid="dettaglio-fiscale">Rif. {c.cognome} {c.nome}{c.partita_iva ? ` · P.IVA ${c.partita_iva}` : ""}{c.codice_sdi ? ` · SDI ${c.codice_sdi}` : ""}{c.pec ? ` · PEC ${c.pec}` : ""}</span>}
             Conteggio dettagliato dei costi annuali. Anno <b>{c.anno}</b>.
           </DialogDescription>
         </DialogHeader>

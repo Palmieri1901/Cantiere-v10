@@ -10,6 +10,7 @@ export const EMPTY_CLIENTE = {
   giorni_sosta_temporanea: 0, posto_barca: "",
   telefono: "", email: "",
   codice_fiscale: "", indirizzo: "", cellulare: "",
+  tipo_soggetto: "privato", ragione_sociale: "", partita_iva: "", codice_sdi: "", pec: "",
   pagato: false,
   potenza_motore: 0, litri_olio_motore: 3, litri_olio_piede: 1, numero_candele: 4, numero_termostati: 1,
   tipo_motore: "fuoribordo",

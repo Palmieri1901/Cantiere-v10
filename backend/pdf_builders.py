@@ -16,6 +16,22 @@ from helpers import _euro
 from models import Tariffe
 
 
+def intestazione_cliente(c: dict, nome_default: str) -> str:
+    """Nome o ragione sociale + dati fiscali (P.IVA, SDI, PEC, CF) per i PDF."""
+    if (c.get("tipo_soggetto") or "privato") == "azienda" and (c.get("ragione_sociale") or "").strip():
+        testo = f"<b>{c['ragione_sociale'].strip()}</b>"
+        if nome_default.strip():
+            testo += f"<br/><font size=8 color='#5B6478'>Rif. {nome_default.strip()}</font>"
+    else:
+        testo = f"<b>{nome_default.strip()}</b>"
+    fisc = [f"P.IVA {c['partita_iva']}" if c.get("partita_iva") else "", f"SDI {c['codice_sdi']}" if c.get("codice_sdi") else "",
+            f"PEC {c['pec']}" if c.get("pec") else "", f"CF {c['codice_fiscale']}" if c.get("codice_fiscale") and (c.get("tipo_soggetto") or "privato") == "azienda" else ""]
+    fisc = [x for x in fisc if x]
+    if fisc:
+        testo += f"<br/><font size=8 color='#5B6478'>{' · '.join(fisc)}</font>"
+    return testo
+
+
 def righe_lavoro(l: dict) -> list:
     """Scompone un lavoro in voci separate: (descrizione, quantità, prezzo unitario, importo, is_header)."""
     arts = [((it.get("nome") or ""), float(it.get("quantita") or 0), float(it.get("prezzo_unitario") or 0), float(it.get("totale") or 0), it.get("unita") or "")
@@ -308,7 +324,7 @@ def _build_preventivo_pdf(doc: dict, lavori_docs: list, cantiere_doc: dict, t_cu
         _lung_display = f"L. {_lung_val or '—'} m"
     info_tbl = Table([
         [Paragraph("Cliente", label), Paragraph("Contatti", label)],
-        [Paragraph(f"<b>{doc.get('cognome','')} {doc.get('nome','')}</b>", val),
+        [Paragraph(intestazione_cliente(doc, f"{doc.get('cognome','')} {doc.get('nome','')}"), val),
          Paragraph(f"{doc.get('telefono') or '—'} · {doc.get('email') or '—'}", body)],
         [Paragraph("Imbarcazione", label), Paragraph("Sosta", label)],
         [Paragraph(f"<b>{doc.get('tipo_barca','')}</b> · <font color='#5B6478' size=8>{_lung_display} · Motore: {int(potenza) if potenza else '—'} HP · Olio: {litri_pdf:g} L</font>", body),
@@ -617,7 +633,7 @@ def build_conto_esterno_pdf(est: dict, lavori: list, cantiere_doc: dict, anno=No
         elems.append(Paragraph(" · ".join(parts), small))
     sep = Table([[""]], colWidths=[186*mm], rowHeights=[1.5])
     sep.setStyle(TableStyle([("BACKGROUND", (0, 0), (-1, -1), TEAK)]))
-    elems += [Spacer(1, 2*mm), sep, Spacer(1, 3*mm), Paragraph("CLIENTE", h2), Paragraph(f"<b>{est.get('nome', '')}</b>", val)]
+    elems += [Spacer(1, 2*mm), sep, Spacer(1, 3*mm), Paragraph("CLIENTE", h2), Paragraph(intestazione_cliente(est, est.get('nome', '')), val)]
     contatti = " · ".join(x for x in [est.get("telefono"), est.get("note")] if x)
     if contatti:
         elems.append(Paragraph(contatti, small))
@@ -760,7 +776,7 @@ def build_preventivo_esterno_pdf(p: dict, est: dict, cantiere_doc: dict) -> byte
     head.setStyle(TableStyle([("VALIGN", (0, 0), (-1, -1), "MIDDLE")]))
     sep = Table([[""]], colWidths=[182*mm], rowHeights=[1.5]); sep.setStyle(TableStyle([("BACKGROUND", (0, 0), (-1, -1), TEAK)]))
     elems = [head] + ([Paragraph(escape(" · ".join(parts)), small)] if parts else []) + [Spacer(1, 2*mm), sep, Spacer(1, 3*mm),
-             Paragraph("SPETT.LE", h2), Paragraph(f"<b>{escape(est.get('nome', ''))}</b>", ParagraphStyle("v", parent=body, fontSize=11))]
+             Paragraph("SPETT.LE", h2), Paragraph(intestazione_cliente(est, escape(est.get('nome', ''))), ParagraphStyle("v", parent=body, fontSize=11))]
     contatti = " · ".join(x for x in [est.get("telefono"), est.get("note")] if x)
     if contatti:
         elems.append(Paragraph(escape(contatti), small))
