@@ -15,6 +15,7 @@ import { PdfPreviewOverlay } from "@/components/PdfPreviewOverlay";
 import { openBlob } from "@/pages/ddt/common";
 import { SoggettoFiscale, erroreSoggetto } from "@/components/SoggettoFiscale";
 import { AnagraficaPicker } from "@/components/AnagraficaPicker";
+import { InviaFatturazioneButton } from "@/components/InviaFatturazioneButton";
 
 export default function LavorazioniEsterne() {
   const [list, setList] = useState([]);
@@ -121,6 +122,7 @@ export default function LavorazioniEsterne() {
               <div className="font-mono-num text-sm font-semibold">{fmtEuro(e.totale)}</div>
               <Button size="sm" variant="outline" onClick={(ev) => { ev.stopPropagation(); setOpen(e); }} data-testid={`btn-preventivo-${e.id}`}><FileText className="w-3.5 h-3.5 mr-1" /> Preventivo</Button>
               <Button size="sm" variant="outline" onClick={(ev) => { ev.stopPropagation(); anteprimaConto(e); }} data-testid={`btn-conto-${e.id}`}><FileText className="w-3.5 h-3.5 mr-1" /> Conto PDF</Button>
+              <InviaFatturazioneButton tipo="esterno" id={e.id} anno={contoAnno === "tutti" ? null : Number(contoAnno)} nome={e.nome} />
               <Button size="icon" variant="ghost" className="h-8 w-8" onClick={(ev) => { ev.stopPropagation(); setEdit({ ...e }); }} data-testid={`btn-edit-esterno-${e.id}`}><Pencil className="w-3.5 h-3.5" /></Button>
               <Button size="icon" variant="ghost" className="h-8 w-8" onClick={(ev) => { ev.stopPropagation(); setUnisci(e); }} data-testid={`btn-unisci-esterno-${e.id}`} title="Unisci con un altro cliente (doppione)"><Merge className="w-3.5 h-3.5" /></Button>
               <Button size="icon" variant="ghost" className="h-8 w-8" onClick={(ev) => { ev.stopPropagation(); del(e); }} data-testid={`btn-del-esterno-${e.id}`}><Trash2 className="w-3.5 h-3.5 text-destructive" /></Button>

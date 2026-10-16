@@ -1,0 +1,214 @@
+"""Integrazione Fatture in Cloud (API v2, token manuale): clienti + bozze fattura da conti/preventivi."""
+import uuid
+from datetime import datetime, timezone
+from typing import Optional, List
+
+import httpx
+from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel
+
+from database import db
+from pdf_builders import righe_lavoro
+
+router = APIRouter(prefix="/fatturazione")
+BASE = "https://api-v2.fattureincloud.it"
+COST_KEYS = [("Sosta", "costo_sosta"), ("Movimentazione", "costo_movimentazione"), ("Taccaggio", "costo_taccaggio"), ("Copertura", "costo_copertura"),
+             ("Alaggio", "costo_alaggio"), ("Varo", "costo_varo"), ("Antivegetativa", "costo_antivegetativa"), ("Magg. scafo sporco", "costo_scafo_sporco"),
+             ("Lavaggio inizio stagione", "costo_lavaggio_inizio"), ("Lavaggio fine stagione", "costo_lavaggio_fine"), ("Manutenzione motore", "costo_manutenzione_motore")]
+
+
+async def _cfg() -> dict:
+    return await db.fatturazione_config.find_one({"id": "default"}, {"_id": 0}) or {}
+
+
+async def _fic(method: str, path: str, token: str, **kw):
+    headers = {"Authorization": f"Bearer {token}", "Accept": "application/json"}
+    try:
+        async with httpx.AsyncClient(base_url=BASE, timeout=30) as c:
+            r = await c.request(method, path, headers=headers, **kw)
+    except httpx.HTTPError as e:
+        raise HTTPException(502, f"Fatture in Cloud non raggiungibile: {e}")
+    if r.status_code == 401:
+        raise HTTPException(401, "Token Fatture in Cloud non valido o scaduto: aggiornalo nelle Impostazioni")
+    if r.status_code >= 400:
+        try:
+            msg = r.json().get("error", {}).get("message") or r.text[:300]
+        except Exception:  # noqa: BLE001
+            msg = r.text[:300]
+        raise HTTPException(r.status_code, f"Fatture in Cloud: {msg}")
+    return r.json() if r.content else {}
+
+
+class ConfigIn(BaseModel):
+    token: Optional[str] = None
+    company_id: Optional[int] = None
+
+
+def _mask(t: str) -> str:
+    return (t[:6] + "…" + t[-4:]) if len(t) > 12 else ("•••" if t else "")
+
+
+@router.get("/config")
+async def get_config():
+    c = await _cfg()
+    return {"configurato": bool(c.get("token")), "token_mascherato": _mask(c.get("token") or ""), "company_id": c.get("company_id"),
+            "company_name": c.get("company_name", ""), "vat_id": c.get("vat_id"), "utente": c.get("utente", "")}
+
+
+@router.put("/config")
+async def set_config(p: ConfigIn):
+    c = await _cfg()
+    upd = {}
+    if p.token is not None and p.token.strip():
+        tok = p.token.strip().removeprefix("Bearer ").strip()
+        info = await _fic("GET", "/user/info", tok)
+        upd["token"] = tok
+        upd["utente"] = (info.get("data") or {}).get("email", "")
+        comps = (await _fic("GET", "/user/companies", tok)).get("data", {}).get("companies", [])
+        if len(comps) == 1 and not p.company_id:
+            p.company_id = comps[0]["id"]
+    tok = upd.get("token") or c.get("token")
+    if p.company_id is not None and tok:
+        comps = (await _fic("GET", "/user/companies", tok)).get("data", {}).get("companies", [])
+        comp = next((x for x in comps if x["id"] == p.company_id), None)
+        if not comp:
+            raise HTTPException(400, "Azienda non trovata tra quelle del token")
+        upd["company_id"], upd["company_name"] = comp["id"], comp.get("name", "")
+        vats = (await _fic("GET", f"/c/{comp['id']}/info/vat_types", tok)).get("data", [])
+        v22 = next((v for v in vats if float(v.get("value") or -1) == 22), None)
+        upd["vat_id"] = v22["id"] if v22 else None
+    if not upd:
+        raise HTTPException(400, "Nessun dato da salvare")
+    await db.fatturazione_config.update_one({"id": "default"}, {"$set": upd}, upsert=True)
+    return await get_config()
+
+
+@router.delete("/config")
+async def reset_config():
+    await db.fatturazione_config.delete_one({"id": "default"})
+    return {"ok": True}
+
+
+@router.get("/companies")
+async def companies():
+    c = await _cfg()
+    if not c.get("token"):
+        raise HTTPException(400, "Token non configurato")
+    return [{"id": x["id"], "name": x.get("name", "")} for x in (await _fic("GET", "/user/companies", c["token"])).get("data", {}).get("companies", [])]
+
+
+# ---------- Costruzione documento ----------
+def _riga(descr: str, qta: float, prezzo: float) -> dict:
+    return {"name": descr[:255], "description": "", "qty": round(qta or 1, 3), "net_price": round(prezzo, 2)}
+
+
+def _righe_lavori(lavori: list) -> List[dict]:
+    out = []
+    for l in lavori:
+        for titolo, qta, pu, imp, hdr in righe_lavoro(l):
+            if hdr:
+                out.append({"name": f"{l.get('data', '')} · {titolo}"[:255], "description": "", "qty": 0, "net_price": 0, "_nota": True})
+            elif imp:
+                q = float(str(qta).split()[0].replace(",", ".")) if qta else 1
+                out.append(_riga(f"  {titolo}{(' ' + qta) if qta else ''}", q or 1, (pu if pu else imp)))
+    return out
+
+
+async def _righe_cliente(c: dict) -> List[dict]:
+    r = [_riga(f"{lbl} · rimessaggio {c.get('anno', '')}", 1, float(c.get(k) or 0)) for lbl, k in COST_KEYS if float(c.get(k) or 0) > 0]
+    r += [_riga(x.get("descrizione") or "Lavorazione extra", 1, float(x.get("prezzo") or 0)) for x in (c.get("lavorazioni_extra") or []) if float(x.get("prezzo") or 0) > 0]
+    lavori = await db.lavori.find({"cliente_id": c["id"], "data": {"$regex": f"^{c.get('anno')}"}}, {"_id": 0}).sort("data", 1).to_list(1000)
+    return r + _righe_lavori(lavori)
+
+
+async def _entita(tok: str, cid: int, soggetto: dict, nome: str) -> int:
+    az = (soggetto.get("tipo_soggetto") or "privato") == "azienda" and soggetto.get("ragione_sociale")
+    payload = {"type": "company" if az else "person", "name": (soggetto.get("ragione_sociale") if az else nome).strip()[:255]}
+    if soggetto.get("partita_iva"):
+        payload["vat_number"] = soggetto["partita_iva"]
+    if soggetto.get("codice_fiscale"):
+        payload["tax_code"] = soggetto["codice_fiscale"]
+    if soggetto.get("codice_sdi"):
+        payload["ei_code"] = soggetto["codice_sdi"]
+    if soggetto.get("pec"):
+        payload["certified_email"] = soggetto["pec"]
+    if soggetto.get("email"):
+        payload["email"] = soggetto["email"]
+    if soggetto.get("telefono") or soggetto.get("cellulare"):
+        payload["phone"] = soggetto.get("telefono") or soggetto.get("cellulare")
+    if soggetto.get("indirizzo"):
+        payload["address_street"] = soggetto["indirizzo"][:255]
+    if payload.get("ei_code") or payload.get("certified_email"):
+        payload["e_invoice"] = True
+    q = payload.get("vat_number") or payload["name"]
+    found = (await _fic("GET", f"/c/{cid}/entities/clients", tok, params={"q": q, "per_page": 50})).get("data", [])
+    hit = next((x for x in found if (payload.get("vat_number") and x.get("vat_number") == payload["vat_number"]) or (x.get("name") or "").lower() == payload["name"].lower()), None)
+    if hit:
+        await _fic("PUT", f"/c/{cid}/entities/clients/{hit['id']}", tok, json={"data": payload})
+        return hit["id"]
+    return (await _fic("POST", f"/c/{cid}/entities/clients", tok, json={"data": payload})).get("data", {}).get("id")
+
+
+class InviaIn(BaseModel):
+    tipo: str  # cliente | esterno | preventivo_esterno
+    id: str
+    anno: Optional[int] = None
+
+
+@router.post("/invia")
+async def invia(p: InviaIn):
+    c = await _cfg()
+    if not c.get("token") or not c.get("company_id"):
+        raise HTTPException(400, "Fatture in Cloud non configurato: vai in Impostazioni → Fatturazione")
+    if not c.get("vat_id"):
+        raise HTTPException(400, "Aliquota IVA 22% non trovata nell'azienda Fatture in Cloud")
+    tok, cid = c["token"], c["company_id"]
+    if p.tipo == "cliente":
+        doc = await db.clienti.find_one({"id": p.id}, {"_id": 0})
+        if not doc:
+            raise HTTPException(404, "Cliente non trovato")
+        nome, sogg, righe = f"{doc.get('cognome', '')} {doc.get('nome', '')}", doc, await _righe_cliente(doc)
+        oggetto = f"Rimessaggio {doc.get('anno', '')} · {doc.get('tipo_barca', '')} {doc.get('lunghezza') or ''} m".strip()
+    elif p.tipo == "esterno":
+        doc = await db.clienti_esterni.find_one({"id": p.id}, {"_id": 0})
+        if not doc:
+            raise HTTPException(404, "Cliente esterno non trovato")
+        q = {"cliente_id": p.id}
+        if p.anno:
+            q["data"] = {"$regex": f"^{p.anno}"}
+        lavori = await db.lavori.find(q, {"_id": 0}).sort("data", 1).to_list(1000)
+        nome, sogg, righe = doc.get("nome", ""), doc, _righe_lavori(lavori)
+        oggetto = f"Lavori eseguiti{(' ' + str(p.anno)) if p.anno else ''}"
+    elif p.tipo == "preventivo_esterno":
+        prev = await db.preventivi_esterni.find_one({"id": p.id}, {"_id": 0})
+        if not prev:
+            raise HTTPException(404, "Preventivo non trovato")
+        doc = await db.clienti_esterni.find_one({"id": prev["esterno_id"]}, {"_id": 0}) or {}
+        nome, sogg = doc.get("nome", prev.get("esterno_nome", "")), doc
+        righe = [_riga(r.get("descrizione") or "Voce", float(r.get("quantita") or 1), float(r.get("prezzo_unitario") or 0)) for r in prev.get("righe", []) if float(r.get("prezzo_unitario") or 0) > 0]
+        oggetto = f"Preventivo n. {prev.get('numero', '')} · {prev.get('oggetto', '')}"
+    else:
+        raise HTTPException(400, "Tipo non valido")
+    righe = [r for r in righe if r.get("_nota") or r["net_price"] > 0]
+    if not any(not r.get("_nota") for r in righe):
+        raise HTTPException(400, "Nessuna voce con importo da fatturare")
+    entity_id = await _entita(tok, cid, sogg, nome)
+    items = [{"name": r["name"], "description": r["description"], "qty": r["qty"], "net_price": r["net_price"], "vat": {"id": c["vat_id"]}} for r in righe]
+    data = {"type": "invoice", "entity": {"id": entity_id}, "date": datetime.now().strftime("%Y-%m-%d"), "subject": oggetto[:255], "items_list": items,
+            "e_invoice": bool(sogg.get("codice_sdi") or sogg.get("pec"))}
+    res = (await _fic("POST", f"/c/{cid}/issued_documents", tok, json={"data": data})).get("data", {})
+    invio = {"id": str(uuid.uuid4()), "tipo": p.tipo, "rif_id": p.id, "anno": p.anno, "fic_id": res.get("id"), "fic_entity_id": entity_id, "nome": nome.strip(),
+             "totale": round(sum(r["qty"] * r["net_price"] for r in righe if not r.get("_nota")), 2), "righe": len(items), "ts": datetime.now(timezone.utc).isoformat()}
+    await db.fatturazione_invii.insert_one(invio)
+    invio.pop("_id", None)
+    return {**invio, "url": f"https://secure.fattureincloud.it/invoices-view-{res.get('id')}" if res.get("id") else ""}
+
+
+@router.get("/invii")
+async def invii(tipo: str = "", rif_id: str = ""):
+    q = {}
+    if tipo:
+        q["tipo"] = tipo
+    if rif_id:
+        q["rif_id"] = rif_id
+    return await db.fatturazione_invii.find(q, {"_id": 0}).sort("ts", -1).to_list(200)

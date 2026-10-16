@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import PasswordInput from "@/components/PasswordInput";
 import AggiornamentiCard from "@/pages/impostazioni/AggiornamentiCard";
+import FatturazioneCard from "@/pages/impostazioni/FatturazioneCard";
 import { toast } from "sonner";
 import { Building2, Upload, Save, RefreshCw, Trash2, ImageIcon, Download, Database, AlertTriangle, FileText, FileSignature, KeyRound, Lock } from "lucide-react";
 import { API } from "@/lib/api";
@@ -404,6 +405,7 @@ export default function Impostazioni() {
         </div>
       </Card>
 
+      <FatturazioneCard />
       <AggiornamentiCard />
 
       <AlertDialog open={!!restoreData} onOpenChange={(o) => !o && setRestoreData(null)}>

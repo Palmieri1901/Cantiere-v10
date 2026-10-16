@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { InviaFatturazioneButton } from "@/components/InviaFatturazioneButton";
 import { api, fmtEuro } from "@/lib/api";
 import { confirmDialog } from "@/components/ConfirmDialog";
 import { Button } from "@/components/ui/button";
@@ -46,6 +47,7 @@ export default function PreventiviEsternoTab({ esterno, anteprima, onLavoroCreat
               <Badge variant="outline" className={`text-[10px] ${STATO[p.stato] || ""}`}>{p.stato}</Badge>
               <div className="font-mono-num text-sm font-semibold w-24 text-right">{fmtEuro(p.totale)}</div>
               <Button size="sm" variant="outline" onClick={() => anteprima(`/esterni/preventivi/${p.id}/pdf`, `Preventivo_${p.numero}_${p.anno}.pdf`)} data-testid={`btn-prev-pdf-${p.id}`}><FileText className="w-3.5 h-3.5 mr-1" /> PDF</Button>
+              <InviaFatturazioneButton tipo="preventivo_esterno" id={p.id} nome={`Preventivo n. ${p.numero}`} />
               {!p.lavoro_id && <Button size="sm" variant="outline" onClick={() => converti(p)} title="Accetta e crea lavoro" data-testid={`btn-prev-converti-${p.id}`}><CheckCircle2 className="w-3.5 h-3.5 mr-1" /> Crea lavoro</Button>}
               {!p.lavoro_id && <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setEdit(p)} data-testid={`btn-prev-edit-${p.id}`}><Pencil className="w-3.5 h-3.5" /></Button>}
               <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => del(p)} data-testid={`btn-prev-del-${p.id}`}><Trash2 className="w-3.5 h-3.5 text-destructive" /></Button>

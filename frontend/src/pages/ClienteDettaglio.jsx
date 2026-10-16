@@ -1,5 +1,6 @@
 import { fmtEuro } from "@/lib/api";
 import { righeLavoro } from "@/lib/righeLavoro";
+import { InviaFatturazioneButton } from "@/components/InviaFatturazioneButton";
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle
 } from "@/components/ui/dialog";
@@ -197,6 +198,7 @@ export default function ClienteDettaglio({ open, onOpenChange, cliente }) {
         </div>
 
         <DialogFooter className="mt-4 flex-col sm:flex-row gap-2">
+          <InviaFatturazioneButton tipo="cliente" id={c.id} anno={c.anno} nome={`${c.cognome} ${c.nome}`} variant="outline" size="default" />
           <Button variant="outline" asChild data-testid="btn-dettaglio-pdf">
             <a href={`${API}/clienti/${c.id}/preventivo.pdf`} download target="_blank" rel="noreferrer">
               <FileText className="w-4 h-4 mr-2" /> Scarica preventivo PDF
