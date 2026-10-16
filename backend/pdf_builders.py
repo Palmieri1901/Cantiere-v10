@@ -521,16 +521,16 @@ def _build_preventivo_pdf(doc: dict, lavori_docs: list, cantiere_doc: dict, t_cu
 
     if lavori_docs:
         elems.append(Paragraph("STORICO LAVORI ESEGUITI", h2))
-        headers = ["Data", "Tipo", "Descrizione", "Costo"]
+        headers = ["Data", "Descrizione", "Q.tà", "Prezzo", "Importo"]
         rows = [headers]
-        for l in lavori_docs[:5]:
-            rows.append([
-                l.get("data",""),
-                l.get("tipo",""),
-                (l.get("descrizione","") or "")[:60],
-                _euro(float(l.get("costo") or 0)),
-            ])
-        lav_tbl = Table(rows, colWidths=[22*mm, 38*mm, 94*mm, 32*mm])
+        for l in lavori_docs:
+            for titolo, qta, pu, imp, hdr in righe_lavoro(l):
+                if hdr:
+                    rows.append([l.get("data", ""), Paragraph(f"<b>{titolo}</b>", body), "", "", ""])
+                else:
+                    rows.append(["", Paragraph(f"<font color='#5B6478'>· {titolo}</font>", body), qta, _euro(pu) if pu else "", _euro(imp)])
+        rows.append(["", Paragraph("<b>TOTALE LAVORI</b>", body), "", "", _euro(sum(float(l.get("costo") or 0) for l in lavori_docs))])
+        lav_tbl = Table(rows, colWidths=[22*mm, 92*mm, 20*mm, 24*mm, 28*mm], repeatRows=1)
         lav_tbl.setStyle(TableStyle([
             ("BACKGROUND", (0,0), (-1,0), NAVY),
             ("TEXTCOLOR", (0,0), (-1,0), colors.white),
@@ -538,8 +538,10 @@ def _build_preventivo_pdf(doc: dict, lavori_docs: list, cantiere_doc: dict, t_cu
             ("FONTSIZE", (0,0), (-1,0), 7),
             ("FONTSIZE", (0,1), (-1,-1), 8),
             ("TEXTCOLOR", (0,1), (-1,-1), NAVY),
-            ("ROWBACKGROUNDS", (0,1), (-1,-1), [colors.white, SAND]),
-            ("ALIGN", (3,0), (3,-1), "RIGHT"),
+            ("ROWBACKGROUNDS", (0,1), (-1,-2), [colors.white, SAND]),
+            ("BACKGROUND", (0,-1), (-1,-1), SAND),
+            ("LINEABOVE", (0,-1), (-1,-1), 0.8, NAVY),
+            ("ALIGN", (2,0), (-1,-1), "RIGHT"),
             ("VALIGN", (0,0), (-1,-1), "MIDDLE"),
             ("TOPPADDING", (0,0), (-1,-1), 2),
             ("BOTTOMPADDING", (0,0), (-1,-1), 2),
