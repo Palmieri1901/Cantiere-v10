@@ -113,7 +113,7 @@ async def next_posto_libero(anno: Optional[int] = None, escludi_cliente_id: Opti
 async def home_riepilogo():
     """Numeri in evidenza per i riquadri della Home."""
     anno = datetime.now().year
-    clienti, articoli, tubolari, suzuki, gommoni, ddt_n, pending, esterni, capitaneria, mezzi_mov, cal_mese = await asyncio.gather(
+    clienti, articoli, tubolari, suzuki, gommoni, ddt_n, pending, esterni, capitaneria, mezzi_mov, cal_mese, off_schede, off_casi = await asyncio.gather(
         db.clienti.count_documents({"anno": anno}),
         db.articoli.count_documents({}),
         db.preventivi_tubolari.count_documents({}),
@@ -125,8 +125,10 @@ async def home_riepilogo():
         db.comunicazioni_capitaneria.count_documents({}),
         db.mezzi_movimenti.count_documents({"data": {"$gte": f"{anno}-01-01", "$lte": f"{anno}-12-31"}}),
         db.calendario_eventi.count_documents({"data": {"$regex": f"^{datetime.now().strftime('%Y-%m')}-"}}),
+        db.officina_schede.count_documents({}),
+        db.officina_casi.count_documents({}),
     )
     sotto_scorta = await db.articoli.count_documents({"$expr": {"$lte": ["$quantita", {"$ifNull": ["$scorta_minima", 0]}]}, "scorta_minima": {"$gt": 0}})
     return {"anno": anno, "clienti": clienti, "articoli": articoli, "sotto_scorta": sotto_scorta, "tubolari": tubolari,
             "suzuki": suzuki, "gommoni": gommoni, "ddt": ddt_n, "pending": pending, "esterni": esterni, "capitaneria": capitaneria,
-            "mezzi_movimenti": mezzi_mov, "calendario_mese": cal_mese}
+            "mezzi_movimenti": mezzi_mov, "calendario_mese": cal_mese, "officina_schede": off_schede, "officina_casi": off_casi}
