@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { NavLink, Outlet, useLocation, Link, useNavigate } from "react-router-dom";
-import { LayoutDashboard, Users, Grid3x3, Settings2, Sailboat, Building2, Home as HomeIcon, FileBarChart, FileSignature, LogOut, User, Package, Ship, ChevronDown, List, SlidersHorizontal, LifeBuoy, Truck, Smartphone, HardHat, FileBadge, Anchor, CalendarDays } from "lucide-react";
+import { LayoutDashboard, Users, Grid3x3, Settings2, Sailboat, Building2, Home as HomeIcon, FileBarChart, FileSignature, LogOut, User, Package, Ship, ChevronDown, List, SlidersHorizontal, LifeBuoy, Truck, Smartphone, HardHat, FileBadge, Anchor, CalendarDays, BookUser } from "lucide-react";
 import HallGestionale from "@/components/hall/HallGestionale";
 import { cn } from "@/lib/utils";
 import { api } from "@/lib/api";
@@ -23,6 +23,7 @@ const nav = [
       { to: "/rimessaggio/impostazioni", label: "Impostazioni", icon: SlidersHorizontal, testId: "nav-imp-rimessaggio" },
     ],
   },
+  { to: "/anagrafica", label: "Anagrafica generale", icon: BookUser, testId: "nav-anagrafica" },
   { section: "Officina" },
   { to: "/magazzino", label: "Magazzino", icon: Package, testId: "nav-magazzino" },
   { to: "/dipendenti", label: "Lavori dal cantiere", icon: Smartphone, testId: "nav-dipendenti", badge: "pending" },

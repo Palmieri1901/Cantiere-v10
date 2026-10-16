@@ -23,6 +23,8 @@ import MotoreSection from "@/pages/cliente-form/MotoreSection";
 import LavorazioniExtraSection from "@/pages/cliente-form/LavorazioniExtraSection";
 import RitiroConsegnaSection, { descrRitiroConsegna } from "@/pages/cliente-form/RitiroConsegnaSection";
 import { SoggettoFiscale, erroreSoggetto } from "@/components/SoggettoFiscale";
+import { AnagraficaPicker } from "@/components/AnagraficaPicker";
+import { confirmDialog } from "@/components/ConfirmDialog";
 import MagazzinoPickerDialog from "@/pages/cliente-form/MagazzinoPickerDialog";
 
 export default function ClienteForm({ open, onOpenChange, cliente, onSaved, mode = "cliente" }) {
@@ -286,8 +288,15 @@ export default function ClienteForm({ open, onOpenChange, cliente, onSaved, mode
         await api.put(`/clienti/${cliente.id}`, payload);
         toast.success("Cliente aggiornato");
       } else {
-        await api.post("/clienti", payload);
+        const r = await api.post("/clienti", payload);
         toast.success("Cliente creato");
+        onSaved?.();
+        onOpenChange(false);
+        const chi = f.tipo_soggetto === "azienda" && f.ragione_sociale ? f.ragione_sociale : `${f.cognome} ${f.nome}`.trim();
+        if (await confirmDialog(`Vuoi aggiungere "${chi}" all'Anagrafica generale?\nI dati anagrafici e fiscali saranno disponibili per tutti i moduli.`, { title: "Anagrafica generale", okLabel: "Sì, aggiungi", cancelLabel: "No", danger: false })) {
+          try { await api.post(`/anagrafica/da-cliente/${r.data.id}`); toast.success("Aggiunto all'anagrafica generale"); } catch { toast.error("Errore anagrafica"); }
+        }
+        return;
       }
       onSaved?.();
       onOpenChange(false);
@@ -318,7 +327,10 @@ export default function ClienteForm({ open, onOpenChange, cliente, onSaved, mode
         <div className="space-y-6 py-6">
           {/* Anagrafica */}
           <section>
-            <div className="label-mini mb-3">Anagrafica</div>
+            <div className="flex items-center justify-between mb-3">
+              <div className="label-mini">Anagrafica</div>
+              <AnagraficaPicker onPick={(d) => setF((s) => ({ ...s, ...d }))} />
+            </div>
             <div className="mb-3"><SoggettoFiscale f={f} update={update} /></div>
             <div className="grid grid-cols-2 gap-3">
               <Field label={f.tipo_soggetto === "azienda" ? "Cognome referente *" : "Cognome *"}>

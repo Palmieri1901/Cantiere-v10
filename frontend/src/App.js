@@ -29,6 +29,7 @@ import RecuperoPin from "@/pages/RecuperoPin";
 import Capitaneria from "@/pages/Capitaneria";
 import Mezzi from "@/pages/Mezzi";
 import Calendario from "@/pages/Calendario";
+import Anagrafica from "@/pages/Anagrafica";
 import { isAppDipendentiHost } from "@/lib/appHost";
 
 function App() {
@@ -76,6 +77,7 @@ function App() {
               >
                 <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/clienti" element={<Clienti />} />
+                <Route path="/anagrafica" element={<Anagrafica />} />
                 <Route path="/posti-barca" element={<PostiBarca />} />
                 <Route path="/tariffe" element={<Tariffe />} />
                 <Route path="/impostazioni" element={<Impostazioni />} />

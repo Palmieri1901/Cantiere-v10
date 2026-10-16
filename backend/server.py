@@ -20,7 +20,7 @@ from fastapi import Depends
 from routers import (
     tariffe, clienti, lavori, stats, export,
     cantiere, backup, preventivo, report, anni, contratti, magazzino, tubolari, suzuki, gommoni, ddt,
-    dipendenti, mobile, esterni, servizio, capitaneria, mezzi, aggiornamenti, calendario, assistente, unisci,
+    dipendenti, mobile, esterni, servizio, capitaneria, mezzi, aggiornamenti, calendario, assistente, unisci, anagrafica,
 )
 
 
@@ -37,6 +37,7 @@ async def root():
 # Aggrega tutti i router di dominio sotto /api
 api_router.include_router(tariffe.router)
 api_router.include_router(clienti.router)
+api_router.include_router(anagrafica.router)
 api_router.include_router(lavori.router)
 api_router.include_router(stats.router)
 api_router.include_router(export.router)
