@@ -419,6 +419,46 @@ async def _codici_per_domanda(msg: str, marca: str = "") -> List[dict]:
     return sorted(docs, key=lambda d: -_score(f"{d['marca']} {d.get('modello','')}", toks))[:10]
 
 
+# ---------- Memo officina (appunti liberi dell'operatore: codici, promemoria…) ----------
+class MemoIn(BaseModel):
+    titolo: str
+    testo: Optional[str] = ""
+    autore: Optional[str] = ""
+
+
+@router.get("/memo")
+async def lista_memo():
+    return await db.officina_memo.find({}, {"_id": 0}).sort("updated_at", -1).to_list(5000)
+
+
+async def _crea_memo(p: MemoIn, autore: str):
+    if not p.titolo.strip():
+        raise HTTPException(400, "Titolo obbligatorio")
+    m = {"id": str(uuid.uuid4()), "titolo": p.titolo.strip(), "testo": (p.testo or "").strip(), "autore": (p.autore or "").strip() or autore, "created_at": _now(), "updated_at": _now()}
+    await db.officina_memo.insert_one(m)
+    m.pop("_id", None)
+    return m
+
+
+@router.post("/memo")
+async def crea_memo(p: MemoIn):
+    return await _crea_memo(p, "gestionale")
+
+
+@router.put("/memo/{mid}")
+async def aggiorna_memo(mid: str, p: MemoIn):
+    r = await db.officina_memo.update_one({"id": mid}, {"$set": {"titolo": p.titolo.strip(), "testo": (p.testo or "").strip(), "updated_at": _now()}})
+    if not r.matched_count:
+        raise HTTPException(404, "Memo non trovato")
+    return await db.officina_memo.find_one({"id": mid}, {"_id": 0})
+
+
+@router.delete("/memo/{mid}")
+async def elimina_memo(mid: str):
+    await db.officina_memo.delete_one({"id": mid})
+    return {"ok": True}
+
+
 # ---------- Chat ----------
 class ChatIn(BaseModel):
     messaggio: str
@@ -469,7 +509,7 @@ async def _cerca_chunks(msg: str, toks: List[str], schede: dict, filtro_ids: Opt
 SYSTEM = """Sei l'Assistente Officina di un cantiere nautico (motori fuoribordo/entrobordo, gommoni, impianti di bordo).
 Rispondi in italiano, con linguaggio tecnico da meccanico, in modo ordinato e conciso.
 REGOLE:
-1. Basa le risposte SOLO sulla TABELLA CODICI ERRORE, sulle SCHEDE TECNICHE e sui CASI RISOLTI forniti nel contesto (ed eventuali RISULTATI WEB se presenti). Non inventare valori, coppie di serraggio, codici o procedure. Se la tabella codici contiene il codice chiesto, quella è la fonte principale.
+1. Basa le risposte SOLO sulla TABELLA CODICI ERRORE, sui MEMO DELL'OPERATORE, sulle SCHEDE TECNICHE e sui CASI RISOLTI forniti nel contesto (ed eventuali RISULTATI WEB se presenti). Non inventare valori, coppie di serraggio, codici o procedure. Se la tabella codici contiene il codice chiesto, quella è la fonte principale.
 2. Se il contesto non contiene l'informazione, dillo chiaramente ("Nelle schede caricate non trovo…") e suggerisci cosa caricare o di attivare la ricerca web.
 3. Per codici errore: spiega il significato, le cause probabili in ordine di probabilità e i controlli da fare passo-passo.
 4. Per sintomi: proponi ipotesi di diagnosi ordinate per probabilità, segnalando quali derivano dall'esperienza (casi risolti) e quali dalle schede.
@@ -491,6 +531,10 @@ async def _rispondi(p: ChatIn, canale: str) -> dict:
                   and (not (p.modello or "").strip() or (s.get("modello") or "").lower() == p.modello.strip().lower())}
     top = await _cerca_chunks(msg, toks, schede, filtro)
     codici = await _codici_per_domanda(msg, p.marca or "")
+    memo = await db.officina_memo.find({}, {"_id": 0}).to_list(5000)
+    for m in memo:
+        m["_s"] = _score(f"{m['titolo']} {m.get('testo','')}", toks)
+    top_memo = sorted([m for m in memo if m["_s"] > 0], key=lambda m: -m["_s"])[:5]
     casi = await db.officina_casi.find({}, {"_id": 0}).to_list(20000)
     for c in casi:
         c["_s"] = _score(" ".join(str(c.get(k) or "") for k in ("motore", "codici", "sintomo", "diagnosi", "soluzione", "note")), toks)
@@ -510,6 +554,10 @@ async def _rispondi(p: ChatIn, canale: str) -> dict:
         ctx.append("=== TABELLA CODICI ERRORE (fonte ufficiale caricata dall'officina) ===")
         for c in codici:
             ctx.append(f"[Codice: {c['marca']}{(' ' + c['modello']) if c.get('modello') else ''} {c['codice']}] {c['descrizione']}" + (f" | Cause: {c['cause']}" if c.get("cause") else "") + (f" | Controlli: {c['controlli']}" if c.get("controlli") else ""))
+    if top_memo:
+        ctx.append("=== MEMO DELL'OPERATORE (appunti personali dell'officina) ===")
+        for m in top_memo:
+            ctx.append(f"[Memo: {m['titolo']}] {m.get('testo','')}")
     if top:
         ctx.append("=== SCHEDE TECNICHE ===")
         for c in top:
@@ -538,6 +586,7 @@ async def _rispondi(p: ChatIn, canale: str) -> dict:
         {"id": str(uuid.uuid4()), "session_id": p.session_id, "ruolo": "assistente", "testo": risposta, "ts": ts, "canale": canale},
     ])
     fonti = [{"tipo": "codice", "titolo": f"{c['marca']} {c['codice']}", "id": c["id"]} for c in codici]
+    fonti += [{"tipo": "memo", "titolo": m["titolo"], "id": m["id"]} for m in top_memo]
     fonti += [{"tipo": "scheda", "titolo": schede.get(c["scheda_id"], {}).get("titolo", "?"), "id": c["scheda_id"]} for c in top]
     fonti = list({(f["tipo"], f["id"]): f for f in fonti}.values())
     fonti += [{"tipo": "caso", "titolo": f"{c.get('motore','')} · {c.get('sintomo','')[:60]}", "id": c["id"]} for c in top_casi]
@@ -581,6 +630,16 @@ async def storico_mobile(session_id: str, dip: dict = Depends(get_dipendente)):
 @mobile_router.post("/casi")
 async def caso_mobile(p: CasoIn, dip: dict = Depends(get_dipendente)):
     return await _crea_caso(p, dip.get("nome", "dipendente"))
+
+
+@mobile_router.get("/memo")
+async def memo_mobile(dip: dict = Depends(get_dipendente)):
+    return await lista_memo()
+
+
+@mobile_router.post("/memo")
+async def crea_memo_mobile(p: MemoIn, dip: dict = Depends(get_dipendente)):
+    return await _crea_memo(p, dip.get("nome", "dipendente"))
 
 
 @mobile_router.get("/codici")
