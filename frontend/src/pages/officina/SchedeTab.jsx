@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Upload, FileText, Image as ImageIcon, Type, Trash2, Eye, Search, ChevronRight, FolderOpen } from "lucide-react";
+import { Upload, FileText, Image as ImageIcon, Type, Trash2, Eye, Search, ChevronRight, FolderOpen, Pencil, Check, X } from "lucide-react";
 import { confirmDialog } from "@/components/ConfirmDialog";
 
 const ICONA = { pdf: FileText, immagine: ImageIcon, testo: Type };
@@ -21,6 +21,12 @@ export default function SchedeTab() {
   const [vedi, setVedi] = useState(null);
   const [marcaSel, setMarcaSel] = useState("");
   const [aperti, setAperti] = useState({});
+  const [editMeta, setEditMeta] = useState(null); // {id, titolo, marca, modello}
+  const salvaMeta = async () => {
+    if (!editMeta?.titolo.trim()) return toast.error("Il titolo non può essere vuoto");
+    try { await api.patch(`/officina/schede/${editMeta.id}`, { titolo: editMeta.titolo, marca: editMeta.marca, modello: editMeta.modello }); toast.success("Scheda aggiornata"); setEditMeta(null); load(); }
+    catch (e) { toast.error(e.response?.data?.detail || "Errore"); }
+  };
   const [progresso, setProgresso] = useState(null); // {fatti, totale, corrente, esiti:[]}
   const fileRef = useRef(null);
   const dirRef = useRef(null);
@@ -124,6 +130,7 @@ export default function SchedeTab() {
         </div>
         <div className="text-xs text-muted-foreground ml-auto" data-testid="schede-conteggio">{vis.length} schede · {gruppi.length} modelli</div>
       </div>
+      <datalist id="marche-schede">{marche.map((m) => <option key={m} value={m} />)}</datalist>
       <div className="space-y-2">
         {gruppi.map(([nome, items]) => {
           const open = aperti[nome] ?? (gruppi.length <= 3 || !!ql);
@@ -135,15 +142,29 @@ export default function SchedeTab() {
                 <Badge variant="secondary" className="text-[10px] font-normal">{items.length} {items.length === 1 ? "scheda" : "schede"}</Badge>
               </button>
               {open && <div className="border-t border-border divide-y divide-border">
-                {items.map((s) => { const I = ICONA[s.tipo] || FileText; return (
-                  <div key={s.id} className="px-4 py-2.5 flex items-center gap-3" data-testid={`scheda-row-${s.id}`}>
+                {items.map((s) => { const I = ICONA[s.tipo] || FileText; const inEdit = editMeta?.id === s.id; return (
+                  <div key={s.id} className="px-4 py-2.5 flex items-center gap-3 flex-wrap" data-testid={`scheda-row-${s.id}`}>
                     <I className="w-4 h-4 text-primary shrink-0" />
-                    <div className="flex-1 min-w-0">
-                      <div className="text-sm font-medium truncate">{s.titolo}</div>
-                      <div className="text-[11px] text-muted-foreground truncate">{s.tipo}{s.nome_file ? ` · ${s.nome_file}` : ""} · {(s.caratteri || 0).toLocaleString("it-IT")} caratteri · {s.n_chunks} blocchi</div>
-                    </div>
-                    <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => apri(s)} data-testid={`btn-vedi-scheda-${s.id}`}><Eye className="w-4 h-4" /></Button>
-                    <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => del(s)} data-testid={`btn-del-scheda-${s.id}`}><Trash2 className="w-4 h-4 text-destructive" /></Button>
+                    {inEdit ? (
+                      <div className="flex-1 min-w-[240px] grid grid-cols-1 sm:grid-cols-3 gap-2" data-testid={`scheda-edit-${s.id}`}>
+                        <Input value={editMeta.titolo} onChange={(e) => setEditMeta((m) => ({ ...m, titolo: e.target.value }))} placeholder="Titolo" className="h-8 text-sm" data-testid="edit-titolo" />
+                        <Input value={editMeta.marca} onChange={(e) => setEditMeta((m) => ({ ...m, marca: e.target.value }))} placeholder="Marca" className="h-8 text-sm" list="marche-schede" data-testid="edit-marca" />
+                        <Input value={editMeta.modello} onChange={(e) => setEditMeta((m) => ({ ...m, modello: e.target.value }))} placeholder="Modello" className="h-8 text-sm" onKeyDown={(e) => e.key === "Enter" && salvaMeta()} data-testid="edit-modello" />
+                      </div>
+                    ) : (
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm font-medium truncate">{s.titolo}</div>
+                        <div className="text-[11px] text-muted-foreground truncate">{s.tipo}{s.nome_file ? ` · ${s.nome_file}` : ""} · {(s.caratteri || 0).toLocaleString("it-IT")} caratteri · {s.n_chunks} blocchi</div>
+                      </div>
+                    )}
+                    {inEdit ? (<>
+                      <Button size="sm" className="h-8 bg-primary hover:bg-primary/90" onClick={salvaMeta} data-testid="btn-salva-meta"><Check className="w-4 h-4" /></Button>
+                      <Button size="sm" variant="ghost" className="h-8" onClick={() => setEditMeta(null)} data-testid="btn-annulla-meta"><X className="w-4 h-4" /></Button>
+                    </>) : (<>
+                      <Button size="icon" variant="ghost" className="h-8 w-8" title="Modifica titolo, marca e modello" onClick={() => setEditMeta({ id: s.id, titolo: s.titolo || "", marca: s.marca || "", modello: s.modello || "" })} data-testid={`btn-edit-scheda-${s.id}`}><Pencil className="w-4 h-4" /></Button>
+                      <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => apri(s)} data-testid={`btn-vedi-scheda-${s.id}`}><Eye className="w-4 h-4" /></Button>
+                      <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => del(s)} data-testid={`btn-del-scheda-${s.id}`}><Trash2 className="w-4 h-4 text-destructive" /></Button>
+                    </>)}
                   </div>
                 ); })}
               </div>}

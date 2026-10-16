@@ -173,6 +173,24 @@ async def upload_scheda(file: UploadFile = File(...), titolo: str = Form(""), ma
     return _pub(s)
 
 
+class SchedaMetaIn(BaseModel):
+    titolo: Optional[str] = None
+    marca: Optional[str] = None
+    modello: Optional[str] = None
+
+
+@router.patch("/schede/{sid}")
+async def aggiorna_meta_scheda(sid: str, p: SchedaMetaIn):
+    """Modifica solo titolo/marca/modello senza reindicizzare il testo."""
+    upd = {k: v.strip() for k, v in p.model_dump().items() if v is not None}
+    if "titolo" in upd and not upd["titolo"]:
+        raise HTTPException(400, "Il titolo non può essere vuoto")
+    r = await db.officina_schede.update_one({"id": sid}, {"$set": upd})
+    if not r.matched_count:
+        raise HTTPException(404, "Scheda non trovata")
+    return _pub(await db.officina_schede.find_one({"id": sid}, {"_id": 0}))
+
+
 @router.put("/schede/{sid}")
 async def aggiorna_scheda(sid: str, p: SchedaTestoIn):
     s = await db.officina_schede.find_one({"id": sid}, {"_id": 0})
