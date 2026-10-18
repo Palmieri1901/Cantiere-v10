@@ -8,6 +8,7 @@ import { useVoce } from "@/components/hall/useVoce";
 import { uid } from "@/lib/mobileStore";
 import SalvaCasoDialog from "@/pages/officina/SalvaCasoDialog";
 import MemoDialog from "@/pages/officina/MemoDialog";
+import FotoTarghetta from "@/pages/officina/FotoTarghetta";
 
 const SESSION_KEY = "officina_session";
 const getSession = () => { let s = localStorage.getItem(SESSION_KEY); if (!s) { s = uid(); localStorage.setItem(SESSION_KEY, s); } return s; };
@@ -25,7 +26,17 @@ export default function ChatOfficina({ client, basePath = "/officina", compact =
   const [session, setSession] = useState(getSession);
   const [modelli, setModelli] = useState([]);
   const [filtro, setFiltro] = useState(""); // "marca|modello"
+  const [targhetta, setTarghetta] = useState(null);
   const fine = useRef(null);
+
+  const onTarghetta = (d, foto) => {
+    setTarghetta(d);
+    setMsgs((s) => [...s, { id: uid(), ruolo: "utente", testo: `[Foto targhetta] ${d.riga}`, foto }]);
+    const ma = modelli.find((m) => m.marca && d.marca && m.marca.toLowerCase() === d.marca.toLowerCase());
+    const mo = ma && modelli.find((m) => m.marca === ma.marca && m.modello && d.modello && d.modello.toLowerCase().replace(/[^a-z0-9]/g, "").startsWith(m.modello.toLowerCase().replace(/[^a-z0-9]/g, "")));
+    if (mo) setFiltro(`${mo.marca}|${mo.modello}`); else if (ma) setFiltro(`${ma.marca}|`);
+    setTesto((t) => t || `${d.marca} ${d.modello}${d.anno ? ` (${d.anno})` : ""}: `);
+  };
 
   useEffect(() => {
     client.get(`${basePath}/chat/${session}`).then((r) => setMsgs(r.data || [])).catch(() => {});
@@ -60,6 +71,7 @@ export default function ChatOfficina({ client, basePath = "/officina", compact =
           {[...new Set(modelli.map((m) => m.marca).filter(Boolean))].map((ma) => <option key={`m|${ma}`} value={`${ma}|`}>{ma} · tutti</option>)}
           {modelli.filter((m) => m.modello).map((m) => <option key={`${m.marca}|${m.modello}`} value={`${m.marca}|${m.modello}`}>{[m.marca, m.modello].filter(Boolean).join(" ")} ({m.n})</option>)}
         </select>
+        <FotoTarghetta client={client} basePath={basePath} sessionId={session} onLetto={onTarghetta} disabled={busy} />
         <Button size="sm" variant="outline" onClick={() => setMemoOpen(true)} className="ml-auto text-xs h-8 px-2" data-testid="btn-memo"><StickyNote className="w-3.5 h-3.5 sm:mr-1" /><span className="hidden sm:inline">Memo</span></Button>
         <Button size="sm" variant="ghost" onClick={nuova} className="text-xs h-8 px-2" title="Nuova conversazione" data-testid="btn-nuova-conversazione"><Trash2 className="w-3.5 h-3.5 sm:mr-1" /><span className="hidden sm:inline"> Nuova conversazione</span></Button>
         <label className={`flex items-center gap-1.5 text-xs ${webOk ? "" : "opacity-50"}`} title={webOk ? "" : "Imposta la chiave Tavily nelle impostazioni"}>
@@ -81,6 +93,7 @@ export default function ChatOfficina({ client, basePath = "/officina", compact =
         {msgs.map((m, i) => (
           <div key={m.id || i} className={`flex ${m.ruolo === "utente" ? "justify-end" : "justify-start"}`} data-testid={`chat-msg-${m.ruolo}`}>
             <div className={`max-w-[92%] sm:max-w-[80%] rounded-2xl px-4 py-3 text-sm whitespace-pre-wrap leading-relaxed ${m.ruolo === "utente" ? "bg-primary text-primary-foreground rounded-br-sm" : "bg-card border border-border rounded-bl-sm"}`}>
+              {m.foto && <img src={m.foto} alt="Targhetta" className="max-h-40 rounded-lg mb-2 border border-white/30" data-testid="chat-foto" />}
               {m.ruolo === "assistente" ? <Markdownish text={m.testo} /> : m.testo}
               {m.ruolo === "assistente" && (
                 <div className="mt-3 pt-2 border-t border-border/60 flex flex-wrap items-center gap-1.5">
@@ -90,7 +103,7 @@ export default function ChatOfficina({ client, basePath = "/officina", compact =
                       {f.url ? <a href={f.url} target="_blank" rel="noreferrer" className="underline">{f.titolo}</a> : f.titolo}
                     </span>
                   ))}
-                  <Button size="sm" variant="outline" className="ml-auto h-7 text-xs" onClick={() => setSalva({ sintomo: m.domanda || "", diagnosi: m.testo.slice(0, 1500) })} data-testid="btn-salva-caso"><BookmarkPlus className="w-3.5 h-3.5 mr-1" /> Salva come caso risolto</Button>
+                  <Button size="sm" variant="outline" className="ml-auto h-7 text-xs" onClick={() => setSalva({ motore: targhetta ? `${targhetta.marca} ${targhetta.modello}${targhetta.anno ? ` ${targhetta.anno}` : ""}`.trim() : "", note: targhetta?.matricola ? `Matricola ${targhetta.matricola}` : "", sintomo: m.domanda || "", diagnosi: m.testo.slice(0, 1500) })} data-testid="btn-salva-caso"><BookmarkPlus className="w-3.5 h-3.5 mr-1" /> Salva come caso risolto</Button>
                 </div>
               )}
             </div>

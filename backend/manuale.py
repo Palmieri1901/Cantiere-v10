@@ -115,6 +115,8 @@ SEZIONI = [
         ("1", "Chat: indica marca/modello (facoltativo), scrivi il problema o il codice e invia."),
         ("1", "Dopo la riparazione premi Salva come caso risolto: descrizione, soluzione, marca/modello. Il caso diventa memoria per le volte successive."),
         ("1", "Memo: appunti rapidi dell'operatore (es. coppie di serraggio ricorrenti) sempre considerati nelle risposte."),
+        ("#", "Foto della targhetta / matricola"),
+        "Nella chat premi Foto targhetta (fotocamera) o l'icona galleria: fotografa l'etichetta del motore e l'AI legge marca, modello, matricola, anno e potenza. I dati compaiono nella conversazione, il filtro modello si imposta da solo e vengono proposti nel caso risolto (motore e matricola nelle note). Funziona anche dall'app dipendenti.",
         ("#", "Siti di riferimento"),
         "Scheda Impostazioni dell'assistente → Siti di riferimento: scrivi l'indirizzo (es. www.mistermarine.it) e premi Aggiungi e indicizza. Le pagine del sito vengono lette e salvate come schede: l'assistente le sfoglia anche senza ricerca web e le cita come [Sito: nome · pagina] con il link. Con la ricerca web attiva, i siti scelti vengono cercati per primi nell'ordine di priorità (frecce ↑↓). Il tasto con le frecce circolari rilegge il sito per aggiornarlo.",
         ("#", "Ricerca web (facoltativa)"),

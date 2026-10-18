@@ -648,6 +648,41 @@ async def azzera_chat(session_id: str):
     return {"ok": True}
 
 
+# ---------- Lettura targhetta/matricola da foto ----------
+class FotoIn(BaseModel):
+    immagine: str  # base64 (data URL ammesso)
+    session_id: Optional[str] = ""
+
+
+async def _leggi_targhetta(p: FotoIn, canale: str) -> dict:
+    if not (p.immagine or "").strip():
+        raise HTTPException(400, "Immagine mancante")
+    out = await vision(
+        "Sei un tecnico di officina nautica. Leggi la targhetta/etichetta identificativa di un motore marino (fuoribordo o entrobordo) o di un'imbarcazione fotografata. Rispondi SOLO con JSON valido.",
+        'Estrai dalla foto: {"marca":"","modello":"","matricola":"","anno":"","potenza":"","altri_dati":"","testo_letto":""}. '
+        "marca = costruttore (Suzuki, Yamaha, Mercury, Honda, Tohatsu, Selva, Volvo Penta, Yanmar, …); modello = sigla (es. DF140A, F40, MFS9.9); matricola = numero di serie/serial number/No. (riporta esattamente come stampato); "
+        "anno = anno di produzione se presente o deducibile; potenza = kW o HP se presenti; altri_dati = peso, tensione, codici colore o altro utile; testo_letto = tutto il testo leggibile. Campi vuoti se non leggibili. Nessun testo fuori dal JSON.",
+        [p.immagine])
+    import json
+    m = re.search(r"\{.*\}", out, re.S)
+    try:
+        dati = json.loads(m.group(0)) if m else {}
+    except json.JSONDecodeError:
+        dati = {}
+    dati = {k: str(dati.get(k) or "").strip() for k in ("marca", "modello", "matricola", "anno", "potenza", "altri_dati", "testo_letto")}
+    if not any(dati[k] for k in ("marca", "modello", "matricola")):
+        raise HTTPException(422, "Non riesco a leggere la targhetta: riprova con più luce, inquadrando da vicino e senza riflessi")
+    riga = " · ".join(x for x in [f"{dati['marca']} {dati['modello']}".strip(), f"matricola {dati['matricola']}" if dati["matricola"] else "", f"anno {dati['anno']}" if dati["anno"] else "", dati["potenza"]] if x)
+    if p.session_id:
+        await db.officina_chat.insert_one({"id": str(uuid.uuid4()), "session_id": p.session_id, "ruolo": "utente", "testo": f"[Foto targhetta] {riga}", "ts": _now(), "canale": canale})
+    return {**dati, "riga": riga}
+
+
+@router.post("/targhetta")
+async def leggi_targhetta(p: FotoIn):
+    return await _leggi_targhetta(p, "gestionale")
+
+
 # ---------- App dipendenti ----------
 from routers.mobile import get_dipendente  # noqa: E402
 
@@ -657,6 +692,11 @@ mobile_router = APIRouter(prefix="/api/mobile/officina")
 @mobile_router.post("/chat")
 async def chat_mobile(p: ChatIn, dip: dict = Depends(get_dipendente)):
     return await _rispondi(p, f"app:{dip.get('nome','')}")
+
+
+@mobile_router.post("/targhetta")
+async def targhetta_mobile(p: FotoIn, dip: dict = Depends(get_dipendente)):
+    return await _leggi_targhetta(p, f"app:{dip.get('nome','')}")
 
 
 @mobile_router.get("/chat/{session_id}")
