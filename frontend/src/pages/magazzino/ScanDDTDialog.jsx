@@ -10,7 +10,7 @@ import { toast } from "sonner";
 import { Sparkles, ScanLine, X, FileDown, AlertTriangle, Percent, Camera } from "lucide-react";
 import { TIPI_SPESA } from "./common";
 
-export default function ScanDDTDialog({ open, onOpenChange, fornitori, onDone }) {
+export default function ScanDDTDialog({ open, onOpenChange, fornitori, onDone, onFornitoreCreato }) {
   const [image, setImage] = useState("");
   const [fileName, setFileName] = useState("");
   const [fileB64, setFileB64] = useState("");
@@ -21,6 +21,15 @@ export default function ScanDDTDialog({ open, onOpenChange, fornitori, onDone })
   const [rows, setRows] = useState([]);
   const [spese, setSpese] = useState([]);
   const [fornitoreId, setFornitoreId] = useState("none");
+  const [nuovoFornitore, setNuovoFornitore] = useState("");
+  const [creando, setCreando] = useState(false);
+  const creaFornitore = async () => {
+    if (!nuovoFornitore.trim()) return;
+    setCreando(true);
+    try { const r = await api.post("/magazzino/fornitori", { nome: nuovoFornitore.trim() }); onFornitoreCreato?.(r.data); setFornitoreId(r.data.id); setNuovoFornitore(""); toast.success(`Fornitore "${r.data.nome}" creato`); }
+    catch (e) { toast.error(e.response?.data?.detail || "Errore creazione fornitore"); } finally { setCreando(false); }
+  };
+  const fornitoreMancante = fornitoreId === "none";
   const [saving, setSaving] = useState(false);
   const [aggiornaPrezzi, setAggiornaPrezzi] = useState(true);
   const [mantieniRicarico, setMantieniRicarico] = useState(true);
@@ -28,7 +37,7 @@ export default function ScanDDTDialog({ open, onOpenChange, fornitori, onDone })
   useEffect(() => {
     if (open) {
       setImage(""); setFileName(""); setFileB64(""); setFileMime(""); setIsPdf(false);
-      setResult(null); setRows([]); setSpese([]); setFornitoreId("none");
+      setResult(null); setRows([]); setSpese([]); setFornitoreId("none"); setNuovoFornitore("");
       setAggiornaPrezzi(true); setMantieniRicarico(true);
     }
   }, [open]);
@@ -60,6 +69,11 @@ export default function ScanDDTDialog({ open, onOpenChange, fornitori, onDone })
         : { image_base64: fileB64 };
       const { data } = await api.post("/magazzino/scan-ddt", payload);
       setResult(data);
+      if (data.fornitore && fornitoreId === "none") {
+        const n = data.fornitore.toLowerCase().replace(/[^a-z0-9]/g, "");
+        const hit = fornitori.find((f) => { const fn = f.nome.toLowerCase().replace(/[^a-z0-9]/g, ""); return fn && (n.includes(fn) || fn.includes(n)); });
+        if (hit) setFornitoreId(hit.id); else setNuovoFornitore(data.fornitore);
+      }
       setRows((data.articoli || []).map((a, i) => ({
         ...a,
         unita_misura: a.unita_misura || "pz",
@@ -112,10 +126,11 @@ export default function ScanDDTDialog({ open, onOpenChange, fornitori, onDone })
     const sel = rows.filter((r) => r._sel && (r.nome || r.codice));
     const speseSel = spese.filter((s) => s._sel && Number(s.importo) > 0);
     if (sel.length === 0 && speseSel.length === 0) { toast.error("Nessuna riga selezionata"); return; }
+    if (fornitoreMancante) { toast.error("Seleziona o crea il fornitore prima di importare"); return; }
     setSaving(true);
     try {
       const r = await api.post("/magazzino/importa-articoli", {
-        fornitore_id: fornitoreId === "none" ? null : fornitoreId,
+        fornitore_id: fornitoreId,
         articoli: sel.map((a) => ({
           ...a,
           prezzo_unitario: Number(a.importo_netto ?? a.prezzo_unitario ?? 0),
@@ -197,16 +212,22 @@ export default function ScanDDTDialog({ open, onOpenChange, fornitori, onDone })
               </div>
             </div>
             <div>
-              <Label className="text-xs uppercase tracking-wider text-muted-foreground">Fornitore da associare</Label>
+              <Label className="text-xs uppercase tracking-wider text-muted-foreground">Fornitore <span className="text-destructive">*</span> (obbligatorio)</Label>
               <Select value={fornitoreId} onValueChange={setFornitoreId}>
-                <SelectTrigger className="mt-2" data-testid="ddt-select-fornitore"><SelectValue /></SelectTrigger>
+                <SelectTrigger className={`mt-2 ${fornitoreMancante && rows.length > 0 ? "border-destructive" : ""}`} data-testid="ddt-select-fornitore"><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="none">— Nessuno —</SelectItem>
+                  <SelectItem value="none">— Seleziona fornitore —</SelectItem>
                   {fornitori.map((f) => <SelectItem key={f.id} value={f.id}>{f.nome}</SelectItem>)}
                 </SelectContent>
               </Select>
               {result?.fornitore && (
-                <p className="text-xs text-muted-foreground mt-2">AI ha letto: <b>{result.fornitore}</b></p>
+                <p className="text-xs text-muted-foreground mt-2">AI ha letto: <b>{result.fornitore}</b>{!fornitoreMancante && " · associato"}</p>
+              )}
+              {fornitoreMancante && (
+                <div className="mt-2 flex gap-1.5" data-testid="ddt-nuovo-fornitore">
+                  <Input value={nuovoFornitore} onChange={(e) => setNuovoFornitore(e.target.value)} placeholder="Oppure crea nuovo fornitore…" className="h-9" data-testid="input-ddt-nuovo-fornitore" />
+                  <Button variant="outline" className="h-9 shrink-0" onClick={creaFornitore} disabled={!nuovoFornitore.trim() || creando} data-testid="btn-ddt-crea-fornitore">{creando ? "…" : "Crea"}</Button>
+                </div>
               )}
               <Button
                 onClick={scan}
@@ -399,9 +420,10 @@ export default function ScanDDTDialog({ open, onOpenChange, fornitori, onDone })
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Chiudi</Button>
+          {rows.length > 0 && fornitoreMancante && <span className="text-xs text-destructive self-center mr-auto" data-testid="ddt-avviso-fornitore">Seleziona o crea il fornitore per importare</span>}
           <Button
             onClick={importa}
-            disabled={saving || rows.length === 0}
+            disabled={saving || rows.length === 0 || fornitoreMancante}
             className="bg-primary hover:bg-primary/90"
             data-testid="btn-ddt-import"
           >

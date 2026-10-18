@@ -569,6 +569,8 @@ async def importa_articoli(payload: ImportArticoliRequest):
     """
     created, updated, prezzi_aggiornati = 0, 0, 0
     spese_salvate = 0
+    if not payload.fornitore_id:
+        raise HTTPException(400, "Fornitore obbligatorio per importare il DDT")
 
     fornitore_nome = ""
     if payload.fornitore_id:

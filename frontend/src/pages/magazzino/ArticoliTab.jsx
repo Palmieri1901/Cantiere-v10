@@ -422,6 +422,7 @@ export default function ArticoliTab() {
         open={ddtOpen}
         onOpenChange={setDdtOpen}
         fornitori={fornitori}
+        onFornitoreCreato={(f) => setFornitori((s) => [...s, f])}
         onDone={() => { setDdtOpen(false); load(); }}
       />
 
