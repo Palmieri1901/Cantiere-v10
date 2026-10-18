@@ -430,6 +430,7 @@ export default function ArticoliTab() {
         open={ricarichiOpen}
         onOpenChange={setRicarichiOpen}
         categorie={categorie}
+        onApplicato={load}
       />
 
       <ComponiOrdineDialog

@@ -10,9 +10,10 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
-import { Percent, Plus, Save, Trash2, AlertTriangle } from "lucide-react";
+import { Percent, Plus, Save, Trash2, AlertTriangle, RefreshCw } from "lucide-react";
+import { confirmDialog } from "@/components/ConfirmDialog";
 
-function RicaricoRow({ item, onSave, onDelete }) {
+function RicaricoRow({ item, onSave, onDelete, onApplica }) {
   const [val, setVal] = useState(item.ricarico_percent);
   const dirty = Number(val) !== Number(item.ricarico_percent);
   return (
@@ -36,6 +37,9 @@ function RicaricoRow({ item, onSave, onDelete }) {
             <Save className="w-3.5 h-3.5 text-primary" />
           </Button>
         )}
+        <Button size="icon" variant="ghost" onClick={onApplica} title="Aggiorna il prezzo di vendita degli articoli di questa categoria" data-testid={`btn-applica-ricarico-${item.id}`}>
+          <RefreshCw className="w-3.5 h-3.5" />
+        </Button>
         <Button size="icon" variant="ghost" onClick={onDelete} data-testid={`btn-del-ricarico-${item.id}`}>
           <Trash2 className="w-3.5 h-3.5 text-destructive" />
         </Button>
@@ -44,8 +48,9 @@ function RicaricoRow({ item, onSave, onDelete }) {
   );
 }
 
-export default function RicarichiCategoriaDialog({ open, onOpenChange, categorie }) {
+export default function RicarichiCategoriaDialog({ open, onOpenChange, categorie, onApplicato }) {
   const [items, setItems] = useState([]);
+  const [applicando, setApplicando] = useState(false);
   const [loading, setLoading] = useState(false);
   const [nuovaCat, setNuovaCat] = useState("");
   const [nuovoPercent, setNuovoPercent] = useState(30);
@@ -73,9 +78,28 @@ export default function RicarichiCategoriaDialog({ open, onOpenChange, categorie
       });
       toast.success(`Ricarico salvato: ${categoria} → +${ricarico_percent}%`);
       load();
+      if (await confirmDialog(`Aggiornare subito il prezzo di vendita di tutti gli articoli "${categoria}" con ricarico +${ricarico_percent}% sul prezzo di acquisto?`, { title: "Aggiorna listino", okLabel: "Aggiorna prezzi", danger: false })) {
+        await applica(categoria);
+      }
     } catch (e) {
       toast.error(e.response?.data?.detail || "Errore salvataggio");
     }
+  };
+
+  const applica = async (categoria = "") => {
+    setApplicando(true);
+    try {
+      const r = await api.post(`/magazzino/ricarichi-categoria/applica${categoria ? `?categoria=${encodeURIComponent(categoria)}` : ""}`);
+      toast.success(`Listino aggiornato: ${r.data.articoli_aggiornati} prezzi di vendita ricalcolati${r.data.articoli_saltati ? `, ${r.data.articoli_saltati} senza prezzo di acquisto saltati` : ""}`);
+      onApplicato?.();
+    } catch (e) {
+      toast.error(e.response?.data?.detail || "Errore aggiornamento listino");
+    } finally { setApplicando(false); }
+  };
+
+  const applicaTutti = async () => {
+    if (!(await confirmDialog("Ricalcolare il prezzo di vendita di TUTTI gli articoli delle categorie con ricarico impostato (prezzo acquisto × ricarico)? I prezzi modificati a mano verranno sovrascritti.", { title: "Aggiorna listino", okLabel: "Aggiorna tutto", danger: false }))) return;
+    await applica("");
   };
 
   const remove = async (item) => {
@@ -110,7 +134,7 @@ export default function RicarichiCategoriaDialog({ open, onOpenChange, categorie
             <Percent className="w-4 h-4 text-primary" /> Ricarichi predefiniti per categoria
           </DialogTitle>
           <DialogDescription>
-            Imposta un ricarico % standard per ogni categoria. Sarà applicato automaticamente:
+            Imposta un ricarico % standard per ogni categoria. Salvandolo puoi aggiornare subito il prezzo di vendita degli articoli (prezzo acquisto × ricarico); viene inoltre applicato:
             <span className="block mt-1">• ai <b>nuovi articoli</b> importati dal DDT (calcolando il prezzo di vendita)</span>
             <span className="block">• agli articoli aggiornati dal DDT senza ricarico corrente</span>
           </DialogDescription>
@@ -173,14 +197,18 @@ export default function RicarichiCategoriaDialog({ open, onOpenChange, categorie
                   <TableRow><TableCell colSpan={3} className="text-center py-6 text-muted-foreground" data-testid="empty-ricarichi">Nessun ricarico impostato</TableCell></TableRow>
                 )}
                 {items.map((it) => (
-                  <RicaricoRow key={it.id} item={it} onSave={saveOne} onDelete={() => setConfirmDelete(it)} />
+                  <RicaricoRow key={it.id} item={it} onSave={saveOne} onDelete={() => setConfirmDelete(it)}
+                    onApplica={async () => { if (await confirmDialog(`Aggiornare il prezzo di vendita degli articoli "${it.categoria}" con +${it.ricarico_percent}%?`, { title: "Aggiorna listino", okLabel: "Aggiorna", danger: false })) applica(it.categoria); }} />
                 ))}
               </TableBody>
             </Table>
           </div>
         </div>
 
-        <DialogFooter>
+        <DialogFooter className="gap-2">
+          <Button variant="outline" onClick={applicaTutti} disabled={applicando || items.length === 0} data-testid="btn-aggiorna-listino">
+            <RefreshCw className={`w-4 h-4 mr-1.5 ${applicando ? "animate-spin" : ""}`} /> {applicando ? "Aggiornamento…" : "Aggiorna listino"}
+          </Button>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Chiudi</Button>
         </DialogFooter>
 

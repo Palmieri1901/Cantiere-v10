@@ -551,6 +551,31 @@ async def upsert_ricarico(payload: RicaricoCategoriaCreate):
     return r
 
 
+async def _applica_ricarico_categoria(cat: str, ricarico: float) -> dict:
+    docs = await db.articoli.find({"categoria": cat}, {"_id": 0, "id": 1, "prezzo_acquisto": 1}).to_list(20000)
+    updated = skipped = 0
+    now = datetime.now(timezone.utc)
+    for d in docs:
+        pa = float(d.get("prezzo_acquisto") or 0)
+        if pa <= 0:
+            skipped += 1
+            continue
+        await db.articoli.update_one({"id": d["id"]}, {"$set": {"prezzo_listino": round(pa * (1 + ricarico / 100), 2), "updated_at": now}})
+        updated += 1
+    return {"categoria": cat, "ricarico_percent": ricarico, "articoli_aggiornati": updated, "articoli_saltati": skipped, "totale": len(docs)}
+
+
+@router.post("/ricarichi-categoria/applica")
+async def applica_ricarichi_categoria(categoria: str = ""):
+    """Aggiorna il listino: prezzo_listino = prezzo_acquisto × (1 + ricarico/100) per la categoria indicata o per tutte."""
+    q = {"categoria": categoria} if categoria else {}
+    ric = await db.ricarichi_categoria.find(q, {"_id": 0}).to_list(500)
+    if not ric:
+        raise HTTPException(404, "Nessun ricarico impostato")
+    dett = [await _applica_ricarico_categoria(r["categoria"], float(r["ricarico_percent"])) for r in ric]
+    return {"ok": True, "articoli_aggiornati": sum(d["articoli_aggiornati"] for d in dett), "articoli_saltati": sum(d["articoli_saltati"] for d in dett), "dettaglio": dett}
+
+
 @router.delete("/ricarichi-categoria/{rid}")
 async def delete_ricarico(rid: str):
     res = await db.ricarichi_categoria.delete_one({"id": rid})
