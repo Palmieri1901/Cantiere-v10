@@ -10,6 +10,8 @@ services:
     build:
       context: ..
       dockerfile: deploy/Dockerfile.backend
+      args:
+        APP_COMMIT: ${APP_COMMIT:-}
     restart: unless-stopped
     env_file: .env
     environment:

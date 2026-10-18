@@ -30,3 +30,17 @@ async def update_cantiere(payload: CantiereUpdate):
     c = Cantiere(**new_data)
     await db.cantiere.update_one({"id": "default"}, {"$set": serialize(c)}, upsert=True)
     return c
+
+
+@router.get("/manuale/info")
+async def manuale_info():
+    from manuale import versione_app
+    return versione_app()
+
+
+@router.get("/manuale.pdf")
+async def manuale_pdf():
+    from fastapi.responses import Response
+    from manuale import build_manuale_pdf
+    doc = await db.cantiere.find_one({"id": "default"}, {"_id": 0}) or {}
+    return Response(build_manuale_pdf(doc), media_type="application/pdf", headers={"Content-Disposition": 'inline; filename="manuale_gestionale_gebnautica.pdf"'})

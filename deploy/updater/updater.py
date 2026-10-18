@@ -20,8 +20,8 @@ _lock = threading.Lock()
 _state = {"stato": "idle", "fase": "", "errore": "", "iniziato": None, "terminato": None}
 
 
-def _run(cmd, cwd=PROJECT_DIR, check=True):
-    r = subprocess.run(cmd, cwd=cwd, capture_output=True, text=True)
+def _run(cmd, cwd=PROJECT_DIR, check=True, env=None):
+    r = subprocess.run(cmd, cwd=cwd, capture_output=True, text=True, env=env)
     _log(f"$ {' '.join(cmd)}\n{r.stdout}{r.stderr}")
     if check and r.returncode != 0:
         raise RuntimeError(f"{' '.join(cmd)} → {r.stderr.strip() or r.stdout.strip()}")
@@ -102,7 +102,8 @@ def _set(**kw):
 
 def _rebuild():
     _set(fase="Ricostruzione container (può richiedere alcuni minuti)…")
-    _run(["docker", "compose", "up", "-d", "--build", "--remove-orphans", *SERVICES], cwd=DEPLOY_DIR)
+    sha = subprocess.run(["git", "rev-parse", "--short", "HEAD"], cwd=PROJECT_DIR, capture_output=True, text=True).stdout.strip()
+    _run(["docker", "compose", "up", "-d", "--build", "--remove-orphans", *SERVICES], cwd=DEPLOY_DIR, env={**os.environ, "APP_COMMIT": sha})
 
 
 def _backup_db(tag):

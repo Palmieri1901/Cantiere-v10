@@ -18,7 +18,7 @@ git clone <repository>  portomare      # oppure copia la cartella del progetto
 cd portomare/deploy
 cp .env.example .env
 nano .env                              # compila DOMAIN, password, SMTP, GEMINI_API_KEY, TAVILY_API_KEY (ricerca web Assistente officina)
-docker compose up -d --build
+APP_COMMIT=$(git rev-parse --short HEAD) docker compose up -d --build   # APP_COMMIT = versione mostrata nel manuale PDF
 ```
 Al primo avvio Caddy richiede automaticamente il certificato HTTPS (Let's Encrypt) per il dominio.
 Dopo 1-2 minuti il programma è su **https://genbnautica.it** e l'app dipendenti su **https://lavori.genbnautica.it**.

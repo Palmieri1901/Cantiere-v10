@@ -1,0 +1,1 @@
+- Aggiornare backend/manuale.py (SEZIONI + VERSIONE) ad ogni nuova funzionalità: il manuale PDF in Impostazioni deve restare allineato alla versione.
