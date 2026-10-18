@@ -90,7 +90,7 @@ def _pub(s: dict) -> dict:
 
 @router.get("/schede")
 async def lista_schede():
-    docs = await db.officina_schede.find({}, {"_id": 0, "testo": 0, "file_path": 0}).sort("created_at", -1).to_list(2000)
+    docs = await db.officina_schede.find({"tipo": {"$ne": "web"}}, {"_id": 0, "testo": 0, "file_path": 0}).sort("created_at", -1).to_list(2000)
     return docs
 
 
@@ -288,15 +288,28 @@ async def set_config(p: ConfigIn):
     return await get_config()
 
 
+async def _tavily_call(cl, query: str, key: str, max_results: int, domini: Optional[List[str]] = None) -> List[dict]:
+    body = {"api_key": key, "query": query, "max_results": max_results, "search_depth": "advanced", "include_answer": False}
+    if domini:
+        body["include_domains"] = domini
+    r = await cl.post("https://api.tavily.com/search", json=body)
+    if r.status_code != 200:
+        raise HTTPException(502, f"Ricerca web non riuscita ({r.status_code}): controlla la chiave Tavily")
+    return [{"titolo": x.get("title", ""), "url": x.get("url", ""), "testo": (x.get("content") or "")[:1200], "preferito": bool(domini)} for x in r.json().get("results", [])]
+
+
 async def _tavily(query: str, key: str) -> List[dict]:
+    """Prima i siti di riferimento scelti dall'officina (in ordine di priorità), poi il resto del web."""
     if not key:
         return []
+    from routers.officina_siti import domini_prioritari
+    domini = await domini_prioritari()
     try:
         async with httpx.AsyncClient(timeout=25) as cl:
-            r = await cl.post("https://api.tavily.com/search", json={"api_key": key, "query": query, "max_results": 5, "search_depth": "advanced", "include_answer": False})
-        if r.status_code != 200:
-            raise HTTPException(502, f"Ricerca web non riuscita ({r.status_code}): controlla la chiave Tavily")
-        return [{"titolo": x.get("title", ""), "url": x.get("url", ""), "testo": (x.get("content") or "")[:1200]} for x in r.json().get("results", [])]
+            out = await _tavily_call(cl, query, key, 4, domini) if domini else []
+            urls = {w["url"] for w in out}
+            out += [w for w in await _tavily_call(cl, query, key, 5) if w["url"] not in urls]
+        return out[:8]
     except httpx.HTTPError as e:
         raise HTTPException(502, f"Ricerca web non raggiungibile: {e}")
 
@@ -577,10 +590,13 @@ async def _rispondi(p: ChatIn, canale: str) -> dict:
         for m in top_memo:
             ctx.append(f"[Memo: {m['titolo']}] {m.get('testo','')}")
     if top:
-        ctx.append("=== SCHEDE TECNICHE ===")
+        ctx.append("=== SCHEDE TECNICHE (incluse pagine dei SITI DI RIFERIMENTO indicizzati, citale come [Sito: nome · titolo]) ===")
         for c in top:
             s = schede.get(c["scheda_id"], {})
-            ctx.append(f"[Scheda: {s.get('titolo','?')}{(' · ' + s.get('marca')) if s.get('marca') else ''}{(' ' + s.get('modello')) if s.get('modello') else ''}]\n{c['testo']}")
+            if s.get("tipo") == "web":
+                ctx.append(f"[Sito: {s.get('sito','')} · {s.get('titolo','?')}] ({s.get('url','')})\n{c['testo']}")
+            else:
+                ctx.append(f"[Scheda: {s.get('titolo','?')}{(' · ' + s.get('marca')) if s.get('marca') else ''}{(' ' + s.get('modello')) if s.get('modello') else ''}]\n{c['testo']}")
     else:
         ctx.append("=== SCHEDE TECNICHE === (nessuna scheda pertinente trovata)")
     if top_casi:
@@ -590,7 +606,7 @@ async def _rispondi(p: ChatIn, canale: str) -> dict:
     if web:
         ctx.append("=== RISULTATI WEB ===")
         for w in web:
-            ctx.append(f"[Web: {w['titolo']}] ({w['url']})\n{w['testo']}")
+            ctx.append(f"[Web{' · sito di riferimento' if w.get('preferito') else ''}: {w['titolo']}] ({w['url']})\n{w['testo']}")
     if storia:
         ctx.append("=== CONVERSAZIONE PRECEDENTE ===")
         for h in storia:
@@ -605,7 +621,10 @@ async def _rispondi(p: ChatIn, canale: str) -> dict:
     ])
     fonti = [{"tipo": "codice", "titolo": f"{c['marca']} {c['codice']}", "id": c["id"]} for c in codici]
     fonti += [{"tipo": "memo", "titolo": m["titolo"], "id": m["id"]} for m in top_memo]
-    fonti += [{"tipo": "scheda", "titolo": schede.get(c["scheda_id"], {}).get("titolo", "?"), "id": c["scheda_id"]} for c in top]
+    for c in top:
+        s = schede.get(c["scheda_id"], {})
+        fonti.append({"tipo": "sito", "titolo": f"{s.get('sito','')} · {s.get('titolo','?')}", "id": c["scheda_id"], "url": s.get("url", "")} if s.get("tipo") == "web"
+                     else {"tipo": "scheda", "titolo": s.get("titolo", "?"), "id": c["scheda_id"]})
     fonti = list({(f["tipo"], f["id"]): f for f in fonti}.values())
     fonti += [{"tipo": "caso", "titolo": f"{c.get('motore','')} · {c.get('sintomo','')[:60]}", "id": c["id"]} for c in top_casi]
     fonti += [{"tipo": "web", "titolo": w["titolo"], "url": w["url"]} for w in web]

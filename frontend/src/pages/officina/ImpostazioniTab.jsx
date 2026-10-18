@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Globe, KeyRound } from "lucide-react";
+import SitiCard from "@/pages/officina/SitiCard";
 
 export default function ImpostazioniTab() {
   const [cfg, setCfg] = useState(null);
@@ -27,6 +28,7 @@ export default function ImpostazioniTab() {
         </div>
         <label className="flex items-center gap-2 text-sm pt-1"><Switch checked={cfg.web_default} onCheckedChange={setWeb} disabled={!cfg.tavily_configurata} data-testid="switch-web-default" /> Attiva "Consulta anche il web" per impostazione predefinita</label>
       </Card>
+      <SitiCard />
     </div>
   );
 }
