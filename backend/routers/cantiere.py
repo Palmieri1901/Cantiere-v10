@@ -43,4 +43,4 @@ async def manuale_pdf():
     from fastapi.responses import Response
     from manuale import build_manuale_pdf
     doc = await db.cantiere.find_one({"id": "default"}, {"_id": 0}) or {}
-    return Response(build_manuale_pdf(doc), media_type="application/pdf", headers={"Content-Disposition": 'inline; filename="manuale_gestionale_gebnautica.pdf"'})
+    return Response(build_manuale_pdf(doc), media_type="application/pdf", headers={"Content-Disposition": 'inline; filename="manuale_gestionale_gebnautica.pdf"', "Cache-Control": "no-store, max-age=0", "Pragma": "no-cache"})

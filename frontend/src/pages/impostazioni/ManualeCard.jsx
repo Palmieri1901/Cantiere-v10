@@ -6,6 +6,7 @@ import { BookOpen, Download, Printer } from "lucide-react";
 
 export default function ManualeCard() {
   const [info, setInfo] = useState(null);
+  const pdfUrl = `${API}/manuale.pdf?v=${encodeURIComponent(info ? `${info.versione}-${info.commit}-${info.data}` : Date.now())}&t=${Date.now()}`;
   useEffect(() => { api.get("/manuale/info").then((r) => setInfo(r.data)).catch(() => {}); }, []);
   return (
     <Card className="p-6 mt-6" data-testid="manuale-card">
@@ -20,10 +21,10 @@ export default function ManualeCard() {
         </div>
         <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto shrink-0">
           <Button asChild variant="outline" className="w-full sm:w-auto" data-testid="btn-manuale-apri">
-            <a href={`${API}/manuale.pdf`} target="_blank" rel="noreferrer"><Printer className="w-4 h-4 mr-2" /> Apri e stampa</a>
+            <a href={pdfUrl} target="_blank" rel="noreferrer"><Printer className="w-4 h-4 mr-2" /> Apri e stampa</a>
           </Button>
           <Button asChild className="w-full sm:w-auto" data-testid="btn-manuale-scarica">
-            <a href={`${API}/manuale.pdf`} download="manuale_gestionale_gebnautica.pdf"><Download className="w-4 h-4 mr-2" /> Scarica PDF</a>
+            <a href={pdfUrl} download="manuale_gestionale_gebnautica.pdf"><Download className="w-4 h-4 mr-2" /> Scarica PDF</a>
           </Button>
         </div>
       </div>
