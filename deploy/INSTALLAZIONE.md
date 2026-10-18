@@ -17,7 +17,7 @@ Funziona su qualsiasi server Linux con Docker (VPS Aruba, Hetzner, OVH, un mini-
 git clone <repository>  portomare      # oppure copia la cartella del progetto
 cd portomare/deploy
 cp .env.example .env
-nano .env                              # compila DOMAIN, password, SMTP, GEMINI_API_KEY
+nano .env                              # compila DOMAIN, password, SMTP, GEMINI_API_KEY, TAVILY_API_KEY (ricerca web Assistente officina)
 docker compose up -d --build
 ```
 Al primo avvio Caddy richiede automaticamente il certificato HTTPS (Let's Encrypt) per il dominio.
