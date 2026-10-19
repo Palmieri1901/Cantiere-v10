@@ -99,6 +99,7 @@ export default function ScanDDTDialog({ open, onOpenChange, fornitori, onDone, o
   const updateRow = (i, k, v) => setRows((rr) => rr.map((r) => r._i === i ? { ...r, [k]: v } : r));
 
   const IVA = 1.22;
+  const isCf = (um) => ["cf", "conf", "confezione", "pacco", "scatola"].includes((um || "").toLowerCase());
   const updateRowDDT = (i, k, v) => setRows((rr) => rr.map((r) => {
     if (r._i !== i) return r;
     const nr = { ...r, [k]: v };
@@ -127,6 +128,8 @@ export default function ScanDDTDialog({ open, onOpenChange, fornitori, onDone, o
     const speseSel = spese.filter((s) => s._sel && Number(s.importo) > 0);
     if (sel.length === 0 && speseSel.length === 0) { toast.error("Nessuna riga selezionata"); return; }
     if (fornitoreMancante) { toast.error("Seleziona o crea il fornitore prima di importare"); return; }
+    const senzaPezzi = sel.filter((r) => isCf(r.unita_misura) && !(Number(r.pezzi_confezione) >= 1));
+    if (senzaPezzi.length) { toast.error(`Indica i pezzi per confezione per: ${senzaPezzi.map((r) => r.nome || r.codice).join(", ")}`); return; }
     setSaving(true);
     try {
       const r = await api.post("/magazzino/importa-articoli", {
@@ -291,6 +294,7 @@ export default function ScanDDTDialog({ open, onOpenChange, fornitori, onDone, o
                     <TableHead className="min-w-[110px]" title="Categoria dedotta automaticamente dalla AI (modificabile)">Categoria</TableHead>
                     <TableHead className="text-center w-20">U.M.</TableHead>
                     <TableHead className="text-right w-20">Q.tà</TableHead>
+                    <TableHead className="text-right w-20" title="Pezzi per confezione (solo se U.M. = cf)">Pz/CF</TableHead>
                     <TableHead className="text-right w-28" title="Prezzo unitario IVA compresa">Listino IVA €</TableHead>
                     <TableHead className="text-right w-20" title="Sconto in percentuale">Sconto %</TableHead>
                     <TableHead className="text-right w-32" title="Prezzo di acquisto: netto scontato IVA esclusa">Netto acquisto €</TableHead>
@@ -342,6 +346,11 @@ export default function ScanDDTDialog({ open, onOpenChange, fornitori, onDone, o
                       </TableCell>
                       <TableCell><Input type="number" step="0.01" value={r.quantita} onChange={(e) => updateRow(r._i, "quantita", Number(e.target.value))} className="h-8 text-right" /></TableCell>
                       <TableCell>
+                        {isCf(r.unita_misura) ? (
+                          <Input type="number" min="1" step="1" value={r.pezzi_confezione || ""} onChange={(e) => updateRow(r._i, "pezzi_confezione", Number(e.target.value))} placeholder="pz/cf" className={`h-8 text-right ${!(Number(r.pezzi_confezione) >= 1) ? "border-destructive" : ""}`} title="Pezzi contenuti in una confezione: prezzo e giacenza verranno convertiti a pezzo" data-testid={`ddt-pzcf-${r._i}`} />
+                        ) : <span className="text-xs text-muted-foreground">—</span>}
+                      </TableCell>
+                      <TableCell>
                         <Input
                           type="number" step="0.01"
                           value={r.prezzo_listino_ivato ?? 0}
@@ -373,7 +382,7 @@ export default function ScanDDTDialog({ open, onOpenChange, fornitori, onDone, o
                 </TableBody>
               </Table>
               <div className="p-2 text-[11px] text-muted-foreground bg-muted/20 border-t border-border">
-                Modifica <b>Listino IVA</b> o <b>Sconto</b> per ricalcolare il <b>Netto</b>. Modifica direttamente il <b>Netto</b> per ricalcolare lo sconto. IVA assunta al 22%.
+                Modifica <b>Listino IVA</b> o <b>Sconto</b> per ricalcolare il <b>Netto</b>. Modifica direttamente il <b>Netto</b> per ricalcolare lo sconto. IVA assunta al 22%. Con U.M. <b>cf</b> indica i <b>Pz/CF</b>: prezzo e giacenza verranno convertiti a pezzo.
               </div>
             </div>
           )}

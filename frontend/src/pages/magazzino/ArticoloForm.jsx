@@ -30,8 +30,10 @@ export default function ArticoloForm({ open, onOpenChange, value, fornitori, onS
     r.readAsDataURL(file);
   };
 
+  const isCf = ["cf", "conf", "confezione", "pacco", "scatola"].includes((form.unita_misura || "").toLowerCase());
   const save = async () => {
     if (!form.nome.trim()) { toast.error("Il nome è obbligatorio"); return; }
+    if (isCf && !(Number(form.pezzi_confezione) >= 1)) { toast.error("Indica quanti pezzi contiene la confezione"); return; }
     setSaving(true);
     try {
       const payload = {
@@ -41,6 +43,7 @@ export default function ArticoloForm({ open, onOpenChange, value, fornitori, onS
         prezzo_listino: Number(form.prezzo_listino || 0),
         quantita: Number(form.quantita || 0),
         scorta_minima: Number(form.scorta_minima || 0),
+        pezzi_confezione: Number(form.pezzi_confezione || 0),
       };
       if (form.id) {
         await api.put(`/magazzino/articoli/${form.id}`, payload);
@@ -136,6 +139,15 @@ export default function ArticoloForm({ open, onOpenChange, value, fornitori, onS
           <FormField label={`Prezzo acquisto € / ${form.unita_misura || "pz"}`}>
             <Input type="number" step="0.01" value={form.prezzo_acquisto} onChange={(e) => set("prezzo_acquisto", e.target.value)} data-testid="input-prezzo-acquisto" />
           </FormField>
+          {isCf && (
+            <FormField label="Pezzi per confezione *" full>
+              <Input type="number" min="1" step="1" value={form.pezzi_confezione || ""} onChange={(e) => set("pezzi_confezione", e.target.value)} placeholder="es. 12" data-testid="input-pezzi-confezione" />
+              <div className="text-[11px] text-muted-foreground mt-1.5" data-testid="hint-pezzi-confezione">
+                Il prezzo indicato è a confezione: al salvataggio verrà convertito a pezzo (÷ {Number(form.pezzi_confezione) || "…"}) e la giacenza in pezzi (× {Number(form.pezzi_confezione) || "…"}).
+                {Number(form.pezzi_confezione) > 0 && <> Acquisto {(Number(form.prezzo_acquisto || 0) / Number(form.pezzi_confezione)).toFixed(3)} €/pz · vendita {(Number(form.prezzo_listino || 0) / Number(form.pezzi_confezione)).toFixed(2)} €/pz.</>}
+              </div>
+            </FormField>
+          )}
           <FormField label={`Prezzo vendita € / ${form.unita_misura || "pz"}`}>
             <Input type="number" step="0.01" value={form.prezzo_listino} onChange={(e) => set("prezzo_listino", e.target.value)} data-testid="input-prezzo-listino" />
           </FormField>

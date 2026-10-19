@@ -544,6 +544,7 @@ class ArticoloCreate(BaseModel):
     unita_misura: Optional[str] = "pz"
     immagine_base64: Optional[str] = ""
     note: Optional[str] = ""
+    pezzi_confezione: Optional[int] = 0
 
 
 class MovimentoMagazzino(BaseModel):

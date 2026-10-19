@@ -168,8 +168,20 @@ async def count_sotto_scorta():
 async def create_articolo(payload: ArticoloCreate):
     if not payload.nome.strip():
         raise HTTPException(400, "Il nome dell'articolo è obbligatorio")
-    art = Articolo(**payload.model_dump())
-    await db.articoli.insert_one(art.model_dump())
+    data = payload.model_dump()
+    pezzi_cf = 0
+    if _is_confezione(data.get("unita_misura")):
+        pezzi_cf = int(data.pop("pezzi_confezione", 0) or 0)
+        if pezzi_cf < 1:
+            raise HTTPException(400, "Prezzo a confezione: indica quanti pezzi contiene la confezione")
+        data.update(unita_misura="pz", quantita=float(data.get("quantita") or 0) * pezzi_cf,
+                    prezzo_acquisto=round(float(data.get("prezzo_acquisto") or 0) / pezzi_cf, 4), prezzo_listino=round(float(data.get("prezzo_listino") or 0) / pezzi_cf, 2))
+    data.pop("pezzi_confezione", None)
+    art = Articolo(**data)
+    doc_art = art.model_dump()
+    if pezzi_cf:
+        doc_art["pezzi_confezione"] = pezzi_cf
+    await db.articoli.insert_one(doc_art)
     # Movimento iniziale se quantità > 0
     if art.quantita > 0:
         mv = MovimentoMagazzino(
@@ -551,6 +563,47 @@ async def upsert_ricarico(payload: RicaricoCategoriaCreate):
     return r
 
 
+def _is_confezione(um) -> bool:
+    return str(um or "").strip().lower() in ("cf", "conf", "confezione", "cf.", "pacco", "scatola", "sc")
+
+
+class RettificaConfezioneIn(_BM):
+    items: List[dict]  # [{id, pezzi}]
+
+
+@router.get("/articoli-confezione")
+async def articoli_confezione():
+    """Articoli con prezzo ancora espresso a confezione (U.M. cf) da rettificare in pezzi."""
+    docs = await db.articoli.find({}, {"_id": 0, "id": 1, "codice": 1, "nome": 1, "unita_misura": 1, "quantita": 1, "prezzo_acquisto": 1, "prezzo_listino": 1, "pezzi_confezione": 1}).to_list(20000)
+    return [d for d in docs if _is_confezione(d.get("unita_misura"))]
+
+
+@router.post("/rettifica-confezione")
+async def rettifica_confezione(p: RettificaConfezioneIn):
+    """Converte prezzo e giacenza da confezione a pezzo: prezzi / pezzi, giacenza × pezzi, U.M. = pz."""
+    n = 0
+    now = datetime.now(timezone.utc)
+    for it in p.items:
+        pezzi = int(float(it.get("pezzi") or 0))
+        if pezzi < 1:
+            continue
+        a = await db.articoli.find_one({"id": it.get("id")}, {"_id": 0})
+        if not a or not _is_confezione(a.get("unita_misura")):
+            continue
+        q_prima = float(a.get("quantita") or 0)
+        upd = {"unita_misura": "pz", "pezzi_confezione": pezzi, "quantita": q_prima * pezzi,
+               "prezzo_acquisto": round(float(a.get("prezzo_acquisto") or 0) / pezzi, 4),
+               "prezzo_listino": round(float(a.get("prezzo_listino") or 0) / pezzi, 2), "updated_at": now}
+        if a.get("prezzo_listino_ivato"):
+            upd["prezzo_listino_ivato"] = round(float(a["prezzo_listino_ivato"]) / pezzi, 2)
+        await db.articoli.update_one({"id": a["id"]}, {"$set": upd})
+        if q_prima:
+            await db.movimenti_magazzino.insert_one(MovimentoMagazzino(articolo_id=a["id"], tipo="rettifica", quantita=upd["quantita"] - q_prima, quantita_dopo=upd["quantita"],
+                                                                        motivo=f"Rettifica confezione → {pezzi} pz/cf", data=datetime.now().strftime("%Y-%m-%d")).model_dump())
+        n += 1
+    return {"ok": True, "rettificati": n}
+
+
 async def _applica_ricarico_categoria(cat: str, ricarico: float) -> dict:
     docs = await db.articoli.find({"categoria": cat}, {"_id": 0, "id": 1, "prezzo_acquisto": 1}).to_list(20000)
     updated = skipped = 0
@@ -611,6 +664,13 @@ async def importa_articoli(payload: ImportArticoliRequest):
             continue
         qt = float(a.get("quantita") or 0)
         prezzo = float(a.get("prezzo_unitario") or 0)
+        pezzi_cf = 0
+        if _is_confezione(a.get("unita_misura")):
+            pezzi_cf = int(float(a.get("pezzi_confezione") or 0))
+            if pezzi_cf < 1:
+                raise HTTPException(400, f"'{nome or codice}': prezzo a confezione, indica quanti pezzi contiene la confezione")
+            qt, prezzo = qt * pezzi_cf, round(prezzo / pezzi_cf, 4)
+            a = {**a, "unita_misura": "pz"}
 
         existing = None
         if codice:
@@ -621,6 +681,9 @@ async def importa_articoli(payload: ImportArticoliRequest):
                 "fornitore_id": payload.fornitore_id or existing.get("fornitore_id"),
                 "updated_at": datetime.now(timezone.utc),
             }
+            if pezzi_cf:
+                update_set["pezzi_confezione"] = pezzi_cf
+                update_set["unita_misura"] = "pz"
             # Se il DDT porta una U.M. valida e l'articolo non ne ha ancora una impostata, aggiornala
             um_ddt = (a.get("unita_misura") or "").strip().lower()
             if um_ddt and not (existing.get("unita_misura") or "").strip():
@@ -668,7 +731,10 @@ async def importa_articoli(payload: ImportArticoliRequest):
                 prezzo_acquisto=prezzo, prezzo_listino=prezzo_listino,
                 quantita=qt,
             )
-            await db.articoli.insert_one(art.model_dump())
+            doc_art = art.model_dump()
+            if pezzi_cf:
+                doc_art["pezzi_confezione"] = pezzi_cf
+            await db.articoli.insert_one(doc_art)
             if qt > 0:
                 mv = MovimentoMagazzino(
                     articolo_id=art.id, tipo="carico", quantita=qt,

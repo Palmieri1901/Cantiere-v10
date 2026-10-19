@@ -17,6 +17,7 @@ import {
   Plus, Search, Trash2, Pencil, FileDown, FileSpreadsheet,
   Camera, ScanLine, AlertTriangle, ArrowDownCircle, ArrowUpCircle,
   Filter, ShoppingCart, Percent, ScanBarcode,
+  Boxes,
 } from "lucide-react";
 import { EMPTY_ART } from "./common";
 import ArticoloForm from "./ArticoloForm";
@@ -24,6 +25,7 @@ import ScanBarcodeDialog from "./ScanBarcodeDialog";
 import ScanArticoloDialog from "./ScanArticoloDialog";
 import ScanDDTDialog from "./ScanDDTDialog";
 import RicarichiCategoriaDialog from "./RicarichiCategoriaDialog";
+import RettificaConfezioniDialog from "./RettificaConfezioniDialog";
 import ComponiOrdineDialog from "./ComponiOrdineDialog";
 
 export default function ArticoliTab() {
@@ -47,6 +49,8 @@ export default function ArticoliTab() {
   const [exportCat, setExportCat] = useState("all");
   const [exportOpen, setExportOpen] = useState(false);
   const [ricarichiOpen, setRicarichiOpen] = useState(false);
+  const [rettificaOpen, setRettificaOpen] = useState(false);
+  const nCf = articoli.filter((a) => ["cf", "conf", "confezione", "pacco", "scatola"].includes((a.unita_misura || "").toLowerCase())).length;
   const [componiOpen, setComponiOpen] = useState(false);
   const [scaricoInput, setScaricoInput] = useState({});
   const [scaricoLoading, setScaricoLoading] = useState({});
@@ -324,6 +328,11 @@ export default function ArticoliTab() {
           <Button variant="outline" onClick={() => setRicarichiOpen(true)} data-testid="btn-ricarichi-categoria">
             <Percent className="w-4 h-4 mr-1.5" /> Ricarichi categoria
           </Button>
+          {nCf > 0 && (
+            <Button variant="outline" className="border-amber-400 text-amber-800" onClick={() => setRettificaOpen(true)} data-testid="btn-rettifica-confezioni">
+              <Boxes className="w-4 h-4 mr-1.5" /> Rettifica confezioni ({nCf})
+            </Button>
+          )}
           <div className="ml-auto flex gap-2 flex-wrap">
             <Button variant="outline" onClick={() => setExportOpen(true)} data-testid="btn-listino-pdf">
               <FileDown className="w-4 h-4 mr-1.5" /> Listino PDF
@@ -432,6 +441,7 @@ export default function ArticoliTab() {
         categorie={categorie}
         onApplicato={load}
       />
+      <RettificaConfezioniDialog open={rettificaOpen} onOpenChange={setRettificaOpen} onDone={load} />
 
       <ComponiOrdineDialog
         open={componiOpen}
