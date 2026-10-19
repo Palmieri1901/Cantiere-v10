@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Building2, User, AlertTriangle, BookUser } from "lucide-react";
+import { validaCf, validaPiva, validaCap, validaProvincia } from "@/lib/fiscale";
 
 const Campo = ({ label, obbl, children }) => <div className="space-y-1"><Label className="text-[11px] uppercase tracking-wider text-muted-foreground">{label}{obbl && <span className="text-destructive"> *</span>}</Label>{children}</div>;
 
@@ -17,8 +18,11 @@ export default function CompletaDatiFiscaliDialog({ open, onOpenChange, tipo, id
   const [saving, setSaving] = useState(false);
   const az = f.tipo_soggetto === "azienda";
   const upd = (k, v) => setF((s) => ({ ...s, [k]: v }));
-  const manca = az ? [["ragione_sociale"], ["indirizzo"], ["partita_iva"], ["codice_sdi"]] : [["cognome"], ["nome"], ["indirizzo"], ["codice_fiscale"]];
-  const incompleti = manca.filter(([k]) => !(f[k] || "").trim());
+  const manca = az ? [["ragione_sociale"], ["partita_iva"], ["codice_sdi"]] : [["cognome"], ["nome"], ["codice_fiscale"]];
+  const incompleti = [...manca, ["via"], ["cap"], ["citta"], ["provincia"]].filter(([k]) => !(f[k] || "").trim());
+  const errCf = validaCf(f.codice_fiscale), errPiva = validaPiva(f.partita_iva), errCap = validaCap(f.cap), errProv = validaProvincia(f.provincia);
+  const errori = [errCf, errPiva, errCap, errProv].filter(Boolean);
+  const Err = ({ e, id }) => e ? <div className="text-[11px] text-destructive mt-1" data-testid={id}>{e}</div> : null;
   const salva = async () => {
     setSaving(true);
     try {
@@ -33,7 +37,7 @@ export default function CompletaDatiFiscaliDialog({ open, onOpenChange, tipo, id
         <DialogHeader>
           <DialogTitle>Dati per la fatturazione</DialogTitle>
           <DialogDescription>
-            {verifica.mancanti?.length ? <span className="inline-flex items-start gap-1.5 text-amber-800"><AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" /> Mancano: {verifica.mancanti.join(", ")}. Completa i dati per inviare il documento.</span>
+            {verifica.mancanti?.length || verifica.errori?.length ? <span className="inline-flex items-start gap-1.5 text-amber-800"><AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" /> {verifica.mancanti?.length ? `Mancano: ${verifica.mancanti.join(", ")}. ` : ""}{verifica.errori?.length ? verifica.errori.join("; ") + ". " : ""}Completa i dati per inviare il documento.</span>
               : "Controlla i dati del cliente prima dell'invio."}
           </DialogDescription>
         </DialogHeader>
@@ -47,9 +51,14 @@ export default function CompletaDatiFiscaliDialog({ open, onOpenChange, tipo, id
             {az && <div className="sm:col-span-2"><Campo label="Ragione sociale" obbl><Input value={f.ragione_sociale} onChange={(e) => upd("ragione_sociale", e.target.value)} data-testid="cd-ragione" /></Campo></div>}
             <Campo label={az ? "Cognome referente" : "Cognome"} obbl={!az}><Input value={f.cognome} onChange={(e) => upd("cognome", e.target.value)} data-testid="cd-cognome" /></Campo>
             <Campo label={az ? "Nome referente" : "Nome"} obbl={!az}><Input value={f.nome} onChange={(e) => upd("nome", e.target.value)} data-testid="cd-nome" /></Campo>
-            <div className="sm:col-span-2"><Campo label="Indirizzo completo (via, CAP, città, provincia)" obbl><Input value={f.indirizzo} onChange={(e) => upd("indirizzo", e.target.value)} placeholder="Via Roma 1, 57037 Portoferraio (LI)" data-testid="cd-indirizzo" /></Campo></div>
-            <Campo label="Codice fiscale" obbl={!az}><Input value={f.codice_fiscale} onChange={(e) => upd("codice_fiscale", e.target.value.toUpperCase())} maxLength={16} className="uppercase font-mono-num" data-testid="cd-cf" /></Campo>
-            {az && <Campo label="Partita IVA" obbl><Input value={f.partita_iva} onChange={(e) => upd("partita_iva", e.target.value.replace(/\D/g, ""))} maxLength={11} className="font-mono-num" data-testid="cd-piva" /></Campo>}
+            <div className="sm:col-span-2"><Campo label="Via e numero civico" obbl><Input value={f.via} onChange={(e) => upd("via", e.target.value)} placeholder="Via Roma 1" data-testid="cd-via" /></Campo></div>
+            <div className="sm:col-span-2 grid grid-cols-[90px_1fr_64px] gap-2">
+              <Campo label="CAP" obbl><Input value={f.cap} onChange={(e) => upd("cap", e.target.value.replace(/\D/g, "").slice(0, 5))} inputMode="numeric" className="font-mono-num" data-testid="cd-cap" /><Err e={errCap} id="cd-err-cap" /></Campo>
+              <Campo label="Città" obbl><Input value={f.citta} onChange={(e) => upd("citta", e.target.value)} data-testid="cd-citta" /></Campo>
+              <Campo label="Prov." obbl><Input value={f.provincia} onChange={(e) => upd("provincia", e.target.value.toUpperCase().slice(0, 2))} className="uppercase text-center" placeholder="LI" data-testid="cd-provincia" /><Err e={errProv} id="cd-err-prov" /></Campo>
+            </div>
+            <Campo label="Codice fiscale" obbl={!az}><Input value={f.codice_fiscale} onChange={(e) => upd("codice_fiscale", e.target.value.toUpperCase())} maxLength={16} className={`uppercase font-mono-num ${errCf ? "border-destructive" : ""}`} data-testid="cd-cf" /><Err e={errCf} id="cd-err-cf" /></Campo>
+            {az && <Campo label="Partita IVA" obbl><Input value={f.partita_iva} onChange={(e) => upd("partita_iva", e.target.value.replace(/\D/g, ""))} maxLength={11} className={`font-mono-num ${errPiva ? "border-destructive" : ""}`} data-testid="cd-piva" /><Err e={errPiva} id="cd-err-piva" /></Campo>}
             {az && <Campo label="Codice SDI" obbl><Input value={f.codice_sdi} onChange={(e) => upd("codice_sdi", e.target.value.toUpperCase())} maxLength={7} className="uppercase font-mono-num" data-testid="cd-sdi" /></Campo>}
             {az && <Campo label="PEC"><Input value={f.pec} onChange={(e) => upd("pec", e.target.value)} data-testid="cd-pec" /></Campo>}
             <Campo label="Email"><Input value={f.email} onChange={(e) => upd("email", e.target.value)} data-testid="cd-email" /></Campo>
@@ -62,7 +71,7 @@ export default function CompletaDatiFiscaliDialog({ open, onOpenChange, tipo, id
         </div>
         <DialogFooter className="gap-2">
           <Button variant="outline" onClick={() => onOpenChange(false)}>Annulla</Button>
-          <Button onClick={salva} disabled={saving || incompleti.length > 0} data-testid="cd-salva">{saving ? "Salvo…" : incompleti.length ? `Mancano ${incompleti.length} campi` : "Salva e continua"}</Button>
+          <Button onClick={salva} disabled={saving || incompleti.length > 0 || errori.length > 0} data-testid="cd-salva">{saving ? "Salvo…" : incompleti.length ? `Mancano ${incompleti.length} campi` : errori.length ? "Correggi i dati evidenziati" : "Salva e continua"}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

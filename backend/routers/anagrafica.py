@@ -8,12 +8,13 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
 from database import db
+from fiscale import componi_indirizzo, separa_indirizzo, valida_cf, valida_piva
 from helpers import capitalizza_nome
 
 router = APIRouter()
 
 CAMPI = ("nome", "cognome", "tipo_soggetto", "ragione_sociale", "partita_iva", "codice_sdi", "pec",
-         "codice_fiscale", "indirizzo", "telefono", "cellulare", "email", "note")
+         "codice_fiscale", "indirizzo", "via", "cap", "citta", "provincia", "telefono", "cellulare", "email", "note")
 
 
 class AnagraficaIn(BaseModel):
@@ -26,6 +27,10 @@ class AnagraficaIn(BaseModel):
     pec: Optional[str] = ""
     codice_fiscale: Optional[str] = ""
     indirizzo: Optional[str] = ""
+    via: Optional[str] = ""
+    cap: Optional[str] = ""
+    citta: Optional[str] = ""
+    provincia: Optional[str] = ""
     telefono: Optional[str] = ""
     cellulare: Optional[str] = ""
     email: Optional[str] = ""
@@ -38,6 +43,14 @@ def _norm(d: dict) -> dict:
     out["tipo_soggetto"] = out["tipo_soggetto"] if out["tipo_soggetto"] in ("privato", "azienda") else "privato"
     out["codice_fiscale"], out["codice_sdi"] = out["codice_fiscale"].upper(), out["codice_sdi"].upper()
     out["partita_iva"] = re.sub(r"\D", "", out["partita_iva"])
+    out["provincia"] = out["provincia"].upper()
+    if out["via"] or out["cap"] or out["citta"]:
+        out["indirizzo"] = componi_indirizzo(out)
+    elif out["indirizzo"]:
+        out.update(separa_indirizzo(out["indirizzo"]))
+    for e in (valida_cf(out["codice_fiscale"]), valida_piva(out["partita_iva"])):
+        if e:
+            raise HTTPException(400, e)
     if out["tipo_soggetto"] == "azienda" and not out["ragione_sociale"]:
         raise HTTPException(400, "Intestazione (ragione sociale) obbligatoria per le aziende")
     if not out["cognome"] and not out["ragione_sociale"]:

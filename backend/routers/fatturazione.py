@@ -1,5 +1,6 @@
 """Integrazione Fatture in Cloud (API v2, token manuale): clienti + bozze fattura da conti/preventivi."""
 import uuid
+import re
 from datetime import datetime, timezone
 from typing import Optional, List
 
@@ -8,6 +9,7 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
 from database import db
+from fiscale import valida_cf, valida_piva, separa_indirizzo, componi_indirizzo
 from pdf_builders import righe_lavoro
 
 router = APIRouter(prefix="/fatturazione")
@@ -136,8 +138,16 @@ async def _entita(tok: str, cid: int, soggetto: dict, nome: str) -> int:
         payload["email"] = soggetto["email"]
     if soggetto.get("telefono") or soggetto.get("cellulare"):
         payload["phone"] = soggetto.get("telefono") or soggetto.get("cellulare")
-    if soggetto.get("indirizzo"):
-        payload["address_street"] = soggetto["indirizzo"][:255]
+    ind = _indirizzo_parti(soggetto)
+    if ind.get("via"):
+        payload["address_street"] = ind["via"][:255]
+    if ind.get("cap"):
+        payload["address_postal_code"] = ind["cap"]
+    if ind.get("citta"):
+        payload["address_city"] = ind["citta"][:255]
+    if ind.get("provincia"):
+        payload["address_province"] = ind["provincia"][:2].upper()
+    payload["country"] = "Italia"
     if payload.get("ei_code") or payload.get("certified_email"):
         payload["e_invoice"] = True
     q = payload.get("vat_number") or payload["name"]
@@ -155,17 +165,44 @@ class InviaIn(BaseModel):
     anno: Optional[int] = None
 
 
-CAMPI_FISCALI = ("tipo_soggetto", "ragione_sociale", "nome", "cognome", "codice_fiscale", "partita_iva", "codice_sdi", "pec", "indirizzo", "email", "telefono", "cellulare")
+CAMPI_FISCALI = ("tipo_soggetto", "ragione_sociale", "nome", "cognome", "codice_fiscale", "partita_iva", "codice_sdi", "pec", "indirizzo", "via", "cap", "citta", "provincia", "email", "telefono", "cellulare")
+
+
+def _indirizzo_parti(s: dict) -> dict:
+    """Usa via/cap/citta/provincia se presenti, altrimenti li ricava dal campo indirizzo libero."""
+    if any(str(s.get(k) or "").strip() for k in ("via", "cap", "citta")):
+        return {k: str(s.get(k) or "").strip() for k in ("via", "cap", "citta", "provincia")}
+    return separa_indirizzo(s.get("indirizzo") or "")
 
 
 def _mancanti(s: dict) -> List[str]:
-    """Campi obbligatori per fatturare: privato = nome, cognome, indirizzo, CF; azienda = ragione sociale, indirizzo, P.IVA, SDI."""
+    """Campi obbligatori per fatturare: privato = nome, cognome, indirizzo completo, CF; azienda = ragione sociale, indirizzo completo, P.IVA, SDI."""
     g = lambda k: str(s.get(k) or "").strip()  # noqa: E731
     if (s.get("tipo_soggetto") or "privato") == "azienda":
-        req = [("ragione_sociale", "Ragione sociale"), ("indirizzo", "Indirizzo"), ("partita_iva", "Partita IVA"), ("codice_sdi", "Codice SDI")]
+        req = [("ragione_sociale", "Ragione sociale"), ("partita_iva", "Partita IVA"), ("codice_sdi", "Codice SDI")]
     else:
-        req = [("cognome", "Cognome"), ("nome", "Nome"), ("indirizzo", "Indirizzo"), ("codice_fiscale", "Codice fiscale")]
-    return [lbl for k, lbl in req if not g(k)]
+        req = [("cognome", "Cognome"), ("nome", "Nome"), ("codice_fiscale", "Codice fiscale")]
+    out = [lbl for k, lbl in req if not g(k)]
+    ind = _indirizzo_parti(s)
+    out += [lbl for k, lbl in (("via", "Via"), ("cap", "CAP"), ("citta", "Città"), ("provincia", "Provincia")) if not ind.get(k)]
+    return out
+
+
+def _errori_formali(s: dict) -> List[str]:
+    out = []
+    e = valida_cf(s.get("codice_fiscale"))
+    if e:
+        out.append(e)
+    e = valida_piva(s.get("partita_iva"))
+    if e:
+        out.append(e)
+    cap = str(s.get("cap") or "").strip()
+    if cap and not re.fullmatch(r"\d{5}", cap):
+        out.append("Il CAP deve avere 5 cifre")
+    prov = str(s.get("provincia") or "").strip()
+    if prov and not re.fullmatch(r"[A-Za-z]{2}", prov):
+        out.append("La provincia è la sigla di 2 lettere (es. LI)")
+    return out
 
 
 async def _soggetto_doc(tipo: str, id_: str):
@@ -198,12 +235,14 @@ async def verifica(p: InviaIn):
     s = _split_nome(doc)
     sogg = {k: str(s.get(k) or "") for k in CAMPI_FISCALI}
     sogg["tipo_soggetto"] = sogg["tipo_soggetto"] or "privato"
+    sogg.update(_indirizzo_parti(sogg))
     from routers.anagrafica import _trova_esistente, _norm
     try:
         in_ana = bool(await _trova_esistente(_norm(sogg)))
     except HTTPException:
         in_ana = False
-    return {"ok": not _mancanti(sogg), "mancanti": _mancanti(sogg), "soggetto": sogg, "in_anagrafica": in_ana}
+    errori = _errori_formali(sogg)
+    return {"ok": not _mancanti(sogg) and not errori, "mancanti": _mancanti(sogg), "errori": errori, "soggetto": sogg, "in_anagrafica": in_ana}
 
 
 class CompletaIn(InviaIn):
@@ -218,10 +257,15 @@ async def completa_dati(p: CompletaIn):
     if not doc:
         raise HTTPException(404, "Soggetto non trovato")
     dati = {k: str(p.dati.get(k) or "").strip() for k in CAMPI_FISCALI}
-    dati["codice_fiscale"], dati["codice_sdi"] = dati["codice_fiscale"].upper(), dati["codice_sdi"].upper()
+    dati["codice_fiscale"], dati["codice_sdi"], dati["provincia"] = dati["codice_fiscale"].upper(), dati["codice_sdi"].upper(), dati["provincia"].upper()
+    dati["partita_iva"] = re.sub(r"\D", "", dati["partita_iva"])
+    dati["indirizzo"] = componi_indirizzo(dati) or dati["indirizzo"]
     mancanti = _mancanti(dati)
     if mancanti:
         raise HTTPException(400, "Dati incompleti: " + ", ".join(mancanti))
+    errori = _errori_formali(dati)
+    if errori:
+        raise HTTPException(400, "; ".join(errori))
     upd = dict(dati)
     if coll == "clienti_esterni":
         upd["nome"] = dati["ragione_sociale"] if dati["tipo_soggetto"] == "azienda" and dati["ragione_sociale"] else f"{dati['cognome']} {dati['nome']}".strip()
@@ -276,6 +320,9 @@ async def invia(p: InviaIn):
     manc = _mancanti(_split_nome(sogg))
     if manc:
         raise HTTPException(422, "Dati del cliente incompleti per la fatturazione: " + ", ".join(manc))
+    errf = _errori_formali(sogg)
+    if errf:
+        raise HTTPException(422, "Dati del cliente non validi: " + "; ".join(errf))
     sogg = _split_nome(sogg)
     entity_id = await _entita(tok, cid, sogg, nome)
     items = [{"name": r["name"], "description": r["description"], "qty": r["qty"], "net_price": r["net_price"], "vat": {"id": c["vat_id"]}} for r in righe]
