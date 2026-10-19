@@ -879,3 +879,7 @@ Backend spezzato in moduli (`server.py` ora 112 righe, prima 2761):
 
 ## 2026-10-19 — Fix alaggio/varo nel listino lavori
 - ListinoPicker moltiplicava la tariffa 'oltre 5 m' per i metri; ora è forfait fisso come nel backend (helpers.calcola_alaggio/varo). Riga inserita con quantità 1.
+
+## 2026-10-19 — Fix Scan DDT
+- U.M. lette dall'AI normalizzate (`normalizzaUm`: PZ/NR/N./CAD→pz, CONF/SC→cf, L→lt, M/ML→mt, M2→mq, RT→rotolo…); Select U.M. non riceve più valori fuori lista.
+- Colonna Contenuto ora facoltativa anche per cf/rotolo/latta: se vuota il prezzo resta per unità così com'è (backend non blocca più l'import).

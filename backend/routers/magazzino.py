@@ -594,9 +594,7 @@ def _applica_conversione(um, qt: float, prezzo: float, contenuto, nome: str = ""
     if fin is None:
         return um, qt, prezzo, 0
     if c <= 0:
-        if obbligatorio:
-            raise HTTPException(400, f"'{nome}': prezzo a {um}, indica quanti {_etichetta_contenuto(um)} contiene")
-        return fin, qt, prezzo, 0
+        return (fin if not obbligatorio else um), qt, prezzo, 0
     if c == 1 and not obbligatorio:
         return fin, qt, prezzo, 0
     return fin, qt * c, round(prezzo / c, 4), c

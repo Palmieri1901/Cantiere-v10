@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { toast } from "sonner";
 import { Sparkles, ScanLine, X, FileDown, AlertTriangle, Percent, Camera } from "lucide-react";
 import { TIPI_SPESA } from "./common";
-import { conversione, isContenitore, UNITA_SCELTA } from "@/lib/confezioni";
+import { conversione, UNITA_SCELTA, normalizzaUm } from "@/lib/confezioni";
 
 export default function ScanDDTDialog({ open, onOpenChange, fornitori, onDone, onFornitoreCreato }) {
   const [image, setImage] = useState("");
@@ -77,7 +77,8 @@ export default function ScanDDTDialog({ open, onOpenChange, fornitori, onDone, o
       }
       setRows((data.articoli || []).map((a, i) => ({
         ...a,
-        unita_misura: a.unita_misura || "pz",
+        unita_misura: normalizzaUm(a.unita_misura),
+        pezzi_confezione: Number(a.pezzi_confezione) > 0 ? Number(a.pezzi_confezione) : "",
         categoria: a.categoria || "",
         categoria_confidenza: a.categoria_confidenza || "media",
         prezzo_listino_ivato: a.prezzo_listino_ivato ?? 0,
@@ -100,7 +101,6 @@ export default function ScanDDTDialog({ open, onOpenChange, fornitori, onDone, o
   const updateRow = (i, k, v) => setRows((rr) => rr.map((r) => r._i === i ? { ...r, [k]: v } : r));
 
   const IVA = 1.22;
-  const isCf = (um) => isContenitore(um);
   const conv = (um) => conversione(um);
   const updateRowDDT = (i, k, v) => setRows((rr) => rr.map((r) => {
     if (r._i !== i) return r;
@@ -130,8 +130,6 @@ export default function ScanDDTDialog({ open, onOpenChange, fornitori, onDone, o
     const speseSel = spese.filter((s) => s._sel && Number(s.importo) > 0);
     if (sel.length === 0 && speseSel.length === 0) { toast.error("Nessuna riga selezionata"); return; }
     if (fornitoreMancante) { toast.error("Seleziona o crea il fornitore prima di importare"); return; }
-    const senzaPezzi = sel.filter((r) => isCf(r.unita_misura) && !(Number(r.pezzi_confezione) > 0));
-    if (senzaPezzi.length) { toast.error(`Indica il contenuto della confezione per: ${senzaPezzi.map((r) => r.nome || r.codice).join(", ")}`); return; }
     setSaving(true);
     try {
       const r = await api.post("/magazzino/importa-articoli", {
@@ -296,7 +294,7 @@ export default function ScanDDTDialog({ open, onOpenChange, fornitori, onDone, o
                     <TableHead className="min-w-[110px]" title="Categoria dedotta automaticamente dalla AI (modificabile)">Categoria</TableHead>
                     <TableHead className="text-center w-20">U.M.</TableHead>
                     <TableHead className="text-right w-20">Q.tà</TableHead>
-                    <TableHead className="text-right w-20" title="Contenuto per confezione: obbligatorio per cf/rotolo/latta/sacco, facoltativo per lt/kg/mt/mq">Contenuto</TableHead>
+                    <TableHead className="text-right w-20" title="Contenuto per confezione (facoltativo): compila solo se il prezzo è della confezione intera">Contenuto</TableHead>
                     <TableHead className="text-right w-28" title="Prezzo unitario IVA compresa">Listino IVA €</TableHead>
                     <TableHead className="text-right w-20" title="Sconto in percentuale">Sconto %</TableHead>
                     <TableHead className="text-right w-32" title="Prezzo di acquisto: netto scontato IVA esclusa">Netto acquisto €</TableHead>
@@ -334,22 +332,19 @@ export default function ScanDDTDialog({ open, onOpenChange, fornitori, onDone, o
                         </div>
                       </TableCell>
                       <TableCell>
-                        <Select value={r.unita_misura || "pz"} onValueChange={(v) => updateRow(r._i, "unita_misura", v)}>
+                        <Select value={UNITA_SCELTA.includes(r.unita_misura) ? r.unita_misura : "pz"} onValueChange={(v) => updateRow(r._i, "unita_misura", v)}>
                           <SelectTrigger className="h-8 text-xs px-2" data-testid={`ddt-um-${r._i}`}><SelectValue /></SelectTrigger>
                           <SelectContent>
                             {UNITA_SCELTA.map((u) => (
                               <SelectItem key={u} value={u}>{u}</SelectItem>
                             ))}
-                            {r.unita_misura && !UNITA_SCELTA.includes(r.unita_misura) && (
-                              <SelectItem value={r.unita_misura}>{r.unita_misura}</SelectItem>
-                            )}
                           </SelectContent>
                         </Select>
                       </TableCell>
                       <TableCell><Input type="number" step="0.01" value={r.quantita} onChange={(e) => updateRow(r._i, "quantita", Number(e.target.value))} className="h-8 text-right" /></TableCell>
                       <TableCell>
                         {conv(r.unita_misura) ? (
-                          <Input type="number" min="0" step="any" value={r.pezzi_confezione || ""} onChange={(e) => updateRow(r._i, "pezzi_confezione", Number(e.target.value))} placeholder={conv(r.unita_misura).obbligatorio ? conv(r.unita_misura).etichetta : "facolt."} className={`h-8 text-right ${conv(r.unita_misura).obbligatorio && !(Number(r.pezzi_confezione) > 0) ? "border-destructive" : ""}`} title={`${conv(r.unita_misura).etichetta} contenuti in 1 ${r.unita_misura}: prezzo e giacenza verranno convertiti a ${conv(r.unita_misura).finale}${conv(r.unita_misura).obbligatorio ? "" : " (compila solo se il prezzo è della confezione intera)"}`} data-testid={`ddt-pzcf-${r._i}`} />
+                          <Input type="number" min="0" step="any" value={r.pezzi_confezione || ""} onChange={(e) => updateRow(r._i, "pezzi_confezione", e.target.value === "" ? "" : Number(e.target.value))} placeholder="facolt." className="h-8 text-right" title={`${conv(r.unita_misura).etichetta} contenuti in 1 ${r.unita_misura}: compila solo se il prezzo del DDT è della confezione intera; prezzo e giacenza verranno convertiti a ${conv(r.unita_misura).finale}. Lascia vuoto se il prezzo è già al pezzo.`} data-testid={`ddt-pzcf-${r._i}`} />
                         ) : <span className="text-xs text-muted-foreground">—</span>}
                       </TableCell>
                       <TableCell>
@@ -384,7 +379,7 @@ export default function ScanDDTDialog({ open, onOpenChange, fornitori, onDone, o
                 </TableBody>
               </Table>
               <div className="p-2 text-[11px] text-muted-foreground bg-muted/20 border-t border-border">
-                Modifica <b>Listino IVA</b> o <b>Sconto</b> per ricalcolare il <b>Netto</b>. Modifica direttamente il <b>Netto</b> per ricalcolare lo sconto. IVA assunta al 22%. Colonna <b>Contenuto</b>: per cf/rotolo/latta/sacco indica pezzi/metri/litri/kg contenuti (obbligatorio); per lt/kg/mt/mq compilala solo se il prezzo del DDT è della confezione intera. Prezzo e giacenza verranno convertiti all'unità base.
+                Modifica <b>Listino IVA</b> o <b>Sconto</b> per ricalcolare il <b>Netto</b>. Modifica direttamente il <b>Netto</b> per ricalcolare lo sconto. IVA assunta al 22%. Colonna <b>Contenuto</b> (facoltativa): compilala solo se il prezzo del DDT è della confezione/latta/rotolo intero, indicando pezzi/litri/metri/kg contenuti; prezzo e giacenza verranno convertiti all'unità base. Se il prezzo è già al pezzo lasciala vuota.
               </div>
             </div>
           )}

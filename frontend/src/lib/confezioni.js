@@ -11,3 +11,9 @@ export function conversione(um) {
 }
 export const isContenitore = (um) => !!conversione(um)?.obbligatorio;
 export const UNITA_SCELTA = ["pz", "lt", "kg", "mt", "mq", "rotolo", "cf", "latta", "sacco", "cad", "set", "paio"];
+const ALIAS = { pz: "pz", "pz.": "pz", pcs: "pz", pc: "pz", pezzi: "pz", pezzo: "pz", n: "pz", "n.": "pz", nr: "pz", num: "pz", cad: "pz", cadauno: "pz", un: "pz", unit: "pz", "": "pz",
+  lt: "lt", l: "lt", litri: "lt", litro: "lt", kg: "kg", chili: "kg", chilogrammi: "kg", g: "kg", mt: "mt", m: "mt", ml: "mt", metri: "mt", metro: "mt", mq: "mq", m2: "mq", "m²": "mq",
+  cf: "cf", "cf.": "cf", conf: "cf", cnf: "cf", confezione: "cf", confezioni: "cf", sc: "cf", scat: "cf", scatola: "cf", pacco: "cf", bl: "cf", blister: "cf",
+  rotolo: "rotolo", rotoli: "rotolo", rt: "rotolo", rot: "rotolo", bobina: "rotolo", latta: "latta", lattina: "latta", tanica: "latta", fusto: "latta", flacone: "latta", sacco: "sacco", sacchi: "sacco", secchio: "sacco", set: "set", kit: "set", paio: "paio", pa: "paio" };
+// Normalizza la sigla letta dal DDT in una delle unità gestite (default pz)
+export const normalizzaUm = (um) => { const u = String(um || "").trim().toLowerCase().replace(/\s+/g, ""); return ALIAS[u] || (UNITA_SCELTA.includes(u) ? u : "pz"); };
