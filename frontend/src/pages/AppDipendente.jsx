@@ -18,6 +18,7 @@ export default function AppDipendente() {
   const [logged, setLogged] = useState(!!mobileStore.getKey());
   const [online, setOnline] = useState(navigator.onLine);
   const [coda, setCoda] = useState(mobileStore.coda());
+  const [inModifica, setInModifica] = useState(null);
   const [syncing, setSyncing] = useState(false);
   const [view, setView] = useState("home");
 
@@ -92,11 +93,12 @@ export default function AppDipendente() {
 
       <main className="flex-1 p-4 pb-24">
         {view === "home" && <HomeDipendente pendenti={pendenti} onScegli={setView} />}
-        {view === "nuovo" && <NuovoLavoro onSaved={(l) => { salvaCoda([l, ...coda]); toast.success("Lavoro salvato sul telefono"); setView("coda"); }} />}
+        {view === "nuovo" && <NuovoLavoro key={inModifica?.client_uid || "nuovo"} iniziale={inModifica} onAnnulla={() => { setInModifica(null); setView("coda"); }}
+          onSaved={(l) => { const esiste = coda.some((x) => x.client_uid === l.client_uid); salvaCoda(esiste ? coda.map((x) => x.client_uid === l.client_uid ? l : x) : [l, ...coda]); toast.success(esiste ? "Lavoro aggiornato" : "Lavoro salvato sul telefono"); setInModifica(null); setView("coda"); }} />}
         {view === "listino" && <Listino />}
         {view === "officina" && <ChatOfficina client={mobileApi()} basePath="/officina" compact autore={mobileStore.getNome()} />}
         {view === "capitaneria" && <CapitaneriaMobile />}
-        {view === "coda" && <Coda coda={coda} setCoda={salvaCoda} onSync={sincronizza} syncing={syncing} online={online} />}
+        {view === "coda" && <Coda coda={coda} setCoda={salvaCoda} onSync={sincronizza} syncing={syncing} online={online} onModifica={(x) => { setInModifica(x); setView("nuovo"); }} />}
       </main>
 
       <nav className="fixed bottom-0 left-0 right-0 max-w-lg mx-auto grid grid-cols-6 border-t border-border/60 bg-card">

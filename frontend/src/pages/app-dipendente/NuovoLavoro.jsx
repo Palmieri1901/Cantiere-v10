@@ -16,11 +16,15 @@ import { Save, Search, X, Plus, StickyNote } from "lucide-react";
 const TIPI = ["Riparazione", "Manutenzione motore", "Antivegetativa", "Pulizia", "Elettrico", "Altro"];
 const L = ({ children }) => <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{children}</Label>;
 const empty = () => ({ cliente_id: "", cliente_nuovo: "", data: new Date().toISOString().slice(0, 10), tipo: "Riparazione", descrizione: "", ore: "", materiali: "", articoli: [], articoli_liberi: [] });
+// Ricostruisce il form da un lavoro salvato in coda (per la modifica)
+const daLavoro = (l) => ({ cliente_id: l.cliente_id || "", cliente_nuovo: l.cliente_id ? "" : (l.cliente_nome || ""), data: l.data, tipo: l.tipo, descrizione: l.descrizione || "", ore: l.ore ? String(l.ore) : "", materiali: l.materiali || "",
+  articoli: (l.articoli_magazzino || []).map((a) => ({ articolo_id: a.articolo_id, quantita: a.quantita })),
+  articoli_liberi: (l.articoli_liberi || []).map((a) => ({ descrizione: a.descrizione, quantita: a.quantita, prezzo_unitario: a.prezzo_unitario || "", unita: a.unita || "" })) });
 
-export default function NuovoLavoro({ onSaved }) {
+export default function NuovoLavoro({ onSaved, iniziale = null, onAnnulla }) {
   const clienti = mobileStore.clienti();
   const articoli = mobileStore.articoli();
-  const [f, setF] = useState(empty());
+  const [f, setF] = useState(iniziale ? daLavoro(iniziale) : empty());
   const [q, setQ] = useState("");
   const set = (k, v) => setF((s) => ({ ...s, [k]: v }));
 
@@ -62,17 +66,23 @@ export default function NuovoLavoro({ onSaved }) {
     if (!f.descrizione.trim()) return toast.error("Descrivi il lavoro eseguito");
     const c = cliente;
     onSaved({
-      client_uid: uid(), cliente_id: f.cliente_id || null, cliente_nome: `${c.cognome} ${c.nome}`.trim(), nuovo_cliente: !f.cliente_id, data: f.data, tipo: f.tipo,
+      client_uid: iniziale?.client_uid || uid(), cliente_id: f.cliente_id || null, cliente_nome: `${c.cognome} ${c.nome}`.trim(), nuovo_cliente: !f.cliente_id, data: f.data, tipo: f.tipo,
       descrizione: f.descrizione.trim(), ore: Number(f.ore) || 0, materiali: f.materiali,
       articoli_magazzino: f.articoli.map((a) => ({ articolo_id: a.articolo_id, quantita: Number(a.quantita) || 1 })),
       articoli_liberi: f.articoli_liberi.filter((a) => a.descrizione.trim()).map((a) => ({ descrizione: a.descrizione.trim(), quantita: Number(a.quantita) || 1, prezzo_unitario: Number(a.prezzo_unitario) || 0, unita: a.unita || "" })),
-      creato_at: new Date().toISOString(), inviato: false,
+      creato_at: iniziale?.creato_at || new Date().toISOString(), modificato_at: iniziale ? new Date().toISOString() : undefined, inviato: false,
     });
     setF(empty()); setQ("");
   };
 
   return (
     <div className="space-y-4" data-testid="nuovo-lavoro-mobile">
+      {iniziale && (
+        <div className="flex items-center justify-between rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm" data-testid="banner-modifica-lavoro">
+          <span className="font-medium text-amber-900">Modifica lavoro salvato</span>
+          <Button size="sm" variant="ghost" className="h-8" onClick={onAnnulla} data-testid="btn-annulla-modifica">Annulla</Button>
+        </div>
+      )}
       {navigator.onLine && <HallWidget interpreta={hallInterpreta} esegui={async () => ({})} onCompila={compilaDaHall} esempi={["Lavoro per Rossi, antivegetativa, 3 ore, usato 2 litri di antivegetativa", "Pulizia carena a Bianchi, 2 ore"]} />}
       <div className="space-y-1.5">
         <L>Cliente</L>
@@ -164,7 +174,7 @@ export default function NuovoLavoro({ onSaved }) {
         ))}
       </div>
 
-      <Button onClick={salva} className="w-full h-12 bg-primary hover:bg-primary/90 text-base" data-testid="btn-mobile-salva"><Save className="w-4 h-4 mr-2" /> Salva lavoro</Button>
+      <Button onClick={salva} className="w-full h-12 bg-primary hover:bg-primary/90 text-base" data-testid="btn-mobile-salva"><Save className="w-4 h-4 mr-2" /> {iniziale ? "Aggiorna lavoro" : "Salva lavoro"}</Button>
     </div>
   );
 }

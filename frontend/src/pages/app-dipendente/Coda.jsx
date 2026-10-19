@@ -5,11 +5,11 @@ import { confirmDialog } from "@/components/ConfirmDialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Send, QrCode, Trash2, Check, ChevronLeft, ChevronRight } from "lucide-react";
+import { Send, QrCode, Trash2, Check, ChevronLeft, ChevronRight, Pencil } from "lucide-react";
 
 const CHUNK = 6;
 
-export default function Coda({ coda, setCoda, onSync, syncing, online }) {
+export default function Coda({ coda, setCoda, onSync, syncing, online, onModifica }) {
   const [qr, setQr] = useState(false);
   const [page, setPage] = useState(0);
   const daInviare = coda.filter((x) => !x.inviato);
@@ -52,9 +52,14 @@ export default function Coda({ coda, setCoda, onSync, syncing, online }) {
               <div className="flex-1 min-w-0">
                 <div className="font-semibold text-sm">{x.cliente_nome}</div>
                 <div className="text-xs">{x.tipo} — {x.descrizione}</div>
-                <div className="text-[11px] text-muted-foreground mt-0.5">{x.data} · {x.ore} h {x.inviato ? <Badge variant="outline" className="ml-1 text-[9px] text-emerald-700 border-emerald-300"><Check className="w-2.5 h-2.5 mr-0.5" /> Inviato</Badge> : <Badge variant="outline" className="ml-1 text-[9px]">Da inviare</Badge>}</div>
+                <div className="text-[11px] text-muted-foreground mt-0.5">{x.data} · {x.ore} h {x.inviato ? <Badge variant="outline" className="ml-1 text-[9px] text-emerald-700 border-emerald-300"><Check className="w-2.5 h-2.5 mr-0.5" /> Inviato</Badge> : <Badge variant="outline" className="ml-1 text-[9px]">Da inviare{x.modificato_at ? " · modificato" : ""}</Badge>}</div>
               </div>
-              {!x.inviato && <button onClick={() => elimina(x)} data-testid={`btn-coda-del-${x.client_uid}`}><Trash2 className="w-4 h-4 text-destructive" /></button>}
+              {!x.inviato && (
+                <div className="flex items-center gap-2 shrink-0">
+                  <button onClick={() => onModifica(x)} className="p-1.5 rounded-md border border-border text-primary" title="Modifica" data-testid={`btn-coda-edit-${x.client_uid}`}><Pencil className="w-4 h-4" /></button>
+                  <button onClick={() => elimina(x)} className="p-1.5" data-testid={`btn-coda-del-${x.client_uid}`}><Trash2 className="w-4 h-4 text-destructive" /></button>
+                </div>
+              )}
             </div>
           ))}
         </div>
