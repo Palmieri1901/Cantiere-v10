@@ -169,18 +169,16 @@ async def create_articolo(payload: ArticoloCreate):
     if not payload.nome.strip():
         raise HTTPException(400, "Il nome dell'articolo è obbligatorio")
     data = payload.model_dump()
-    pezzi_cf = 0
-    if _is_confezione(data.get("unita_misura")):
-        pezzi_cf = int(data.pop("pezzi_confezione", 0) or 0)
-        if pezzi_cf < 1:
-            raise HTTPException(400, "Prezzo a confezione: indica quanti pezzi contiene la confezione")
-        data.update(unita_misura="pz", quantita=float(data.get("quantita") or 0) * pezzi_cf,
-                    prezzo_acquisto=round(float(data.get("prezzo_acquisto") or 0) / pezzi_cf, 4), prezzo_listino=round(float(data.get("prezzo_listino") or 0) / pezzi_cf, 2))
-    data.pop("pezzi_confezione", None)
+    contenuto = data.pop("pezzi_confezione", 0) or 0
+    um_fin, qt_c, pa_c, fattore = _applica_conversione(data.get("unita_misura"), float(data.get("quantita") or 0), float(data.get("prezzo_acquisto") or 0), contenuto, payload.nome)
+    if fattore:
+        data.update(unita_misura=um_fin, quantita=qt_c, prezzo_acquisto=pa_c, prezzo_listino=round(float(data.get("prezzo_listino") or 0) / fattore, 2))
+    elif um_fin:
+        data["unita_misura"] = um_fin
     art = Articolo(**data)
     doc_art = art.model_dump()
-    if pezzi_cf:
-        doc_art["pezzi_confezione"] = pezzi_cf
+    if fattore:
+        doc_art["pezzi_confezione"] = fattore
     await db.articoli.insert_one(doc_art)
     # Movimento iniziale se quantità > 0
     if art.quantita > 0:
@@ -567,39 +565,82 @@ def _is_confezione(um) -> bool:
     return str(um or "").strip().lower() in ("cf", "conf", "confezione", "cf.", "pacco", "scatola", "sc")
 
 
+# U.M. "contenitore" → unità base in cui convertire prezzo e giacenza (contenuto obbligatorio)
+_CONTENITORI = {"cf": "pz", "conf": "pz", "confezione": "pz", "cf.": "pz", "pacco": "pz", "scatola": "pz", "sc": "pz", "rotolo": "mt", "rotoli": "mt", "bobina": "mt",
+                "latta": "lt", "lattina": "lt", "tanica": "lt", "fusto": "lt", "flacone": "lt", "sacco": "kg", "sacchi": "kg", "secchio": "kg"}
+# Unità base per cui il contenuto per confezione è facoltativo (es. latta da 2,5 lt prezzata a latta)
+_UNITA_BASE = ("lt", "kg", "mt", "m", "mq")
+
+
+def _conversione(um) -> tuple:
+    """Ritorna (unita_finale, contenuto_obbligatorio) oppure (None, False) se non c'è nulla da convertire."""
+    u = str(um or "").strip().lower()
+    if u in _CONTENITORI:
+        return _CONTENITORI[u], True
+    if u in _UNITA_BASE:
+        return ("mt" if u == "m" else u), False
+    return None, False
+
+
+def _etichetta_contenuto(um) -> str:
+    fin, _ = _conversione(um)
+    return {"pz": "pezzi", "lt": "litri", "kg": "kg", "mt": "metri", "mq": "mq"}.get(fin or "", "contenuto")
+
+
+def _applica_conversione(um, qt: float, prezzo: float, contenuto, nome: str = ""):
+    """Converte quantità/prezzo da confezione a unità base. Ritorna (um_finale, qt, prezzo, fattore o 0)."""
+    fin, obbligatorio = _conversione(um)
+    c = float(contenuto or 0)
+    if fin is None:
+        return um, qt, prezzo, 0
+    if c <= 0:
+        if obbligatorio:
+            raise HTTPException(400, f"'{nome}': prezzo a {um}, indica quanti {_etichetta_contenuto(um)} contiene")
+        return fin, qt, prezzo, 0
+    if c == 1 and not obbligatorio:
+        return fin, qt, prezzo, 0
+    return fin, qt * c, round(prezzo / c, 4), c
+
+
 class RettificaConfezioneIn(_BM):
     items: List[dict]  # [{id, pezzi}]
 
 
 @router.get("/articoli-confezione")
 async def articoli_confezione():
-    """Articoli con prezzo ancora espresso a confezione (U.M. cf) da rettificare in pezzi."""
+    """Articoli con prezzo riferito a un contenitore (cf, rotolo, latta, sacco…) da convertire, più quelli a lt/kg/mt/mq (facoltativi)."""
     docs = await db.articoli.find({}, {"_id": 0, "id": 1, "codice": 1, "nome": 1, "unita_misura": 1, "quantita": 1, "prezzo_acquisto": 1, "prezzo_listino": 1, "pezzi_confezione": 1}).to_list(20000)
-    return [d for d in docs if _is_confezione(d.get("unita_misura"))]
+    out = []
+    for d in docs:
+        fin, obbl = _conversione(d.get("unita_misura"))
+        if fin and not d.get("pezzi_confezione"):
+            out.append({**d, "unita_finale": fin, "obbligatorio": obbl, "etichetta": _etichetta_contenuto(d.get("unita_misura"))})
+    return out
 
 
 @router.post("/rettifica-confezione")
 async def rettifica_confezione(p: RettificaConfezioneIn):
-    """Converte prezzo e giacenza da confezione a pezzo: prezzi / pezzi, giacenza × pezzi, U.M. = pz."""
+    """Converte prezzo e giacenza da contenitore a unità base: prezzi / contenuto, giacenza × contenuto."""
     n = 0
     now = datetime.now(timezone.utc)
     for it in p.items:
-        pezzi = int(float(it.get("pezzi") or 0))
-        if pezzi < 1:
+        c = float(it.get("pezzi") or 0)
+        if c <= 0:
             continue
         a = await db.articoli.find_one({"id": it.get("id")}, {"_id": 0})
-        if not a or not _is_confezione(a.get("unita_misura")):
+        fin, _ = _conversione(a.get("unita_misura")) if a else (None, False)
+        if not a or not fin:
             continue
         q_prima = float(a.get("quantita") or 0)
-        upd = {"unita_misura": "pz", "pezzi_confezione": pezzi, "quantita": q_prima * pezzi,
-               "prezzo_acquisto": round(float(a.get("prezzo_acquisto") or 0) / pezzi, 4),
-               "prezzo_listino": round(float(a.get("prezzo_listino") or 0) / pezzi, 2), "updated_at": now}
+        upd = {"unita_misura": fin, "pezzi_confezione": c, "quantita": round(q_prima * c, 3),
+               "prezzo_acquisto": round(float(a.get("prezzo_acquisto") or 0) / c, 4),
+               "prezzo_listino": round(float(a.get("prezzo_listino") or 0) / c, 2), "updated_at": now}
         if a.get("prezzo_listino_ivato"):
-            upd["prezzo_listino_ivato"] = round(float(a["prezzo_listino_ivato"]) / pezzi, 2)
+            upd["prezzo_listino_ivato"] = round(float(a["prezzo_listino_ivato"]) / c, 2)
         await db.articoli.update_one({"id": a["id"]}, {"$set": upd})
         if q_prima:
             await db.movimenti_magazzino.insert_one(MovimentoMagazzino(articolo_id=a["id"], tipo="rettifica", quantita=upd["quantita"] - q_prima, quantita_dopo=upd["quantita"],
-                                                                        motivo=f"Rettifica confezione → {pezzi} pz/cf", data=datetime.now().strftime("%Y-%m-%d")).model_dump())
+                                                                        motivo=f"Rettifica {a.get('unita_misura')} → {c:g} {fin} per confezione", data=datetime.now().strftime("%Y-%m-%d")).model_dump())
         n += 1
     return {"ok": True, "rettificati": n}
 
@@ -664,13 +705,9 @@ async def importa_articoli(payload: ImportArticoliRequest):
             continue
         qt = float(a.get("quantita") or 0)
         prezzo = float(a.get("prezzo_unitario") or 0)
-        pezzi_cf = 0
-        if _is_confezione(a.get("unita_misura")):
-            pezzi_cf = int(float(a.get("pezzi_confezione") or 0))
-            if pezzi_cf < 1:
-                raise HTTPException(400, f"'{nome or codice}': prezzo a confezione, indica quanti pezzi contiene la confezione")
-            qt, prezzo = qt * pezzi_cf, round(prezzo / pezzi_cf, 4)
-            a = {**a, "unita_misura": "pz"}
+        um_fin, qt, prezzo, pezzi_cf = _applica_conversione(a.get("unita_misura"), qt, prezzo, a.get("pezzi_confezione"), nome or codice)
+        if um_fin:
+            a = {**a, "unita_misura": um_fin}
 
         existing = None
         if codice:
@@ -683,7 +720,7 @@ async def importa_articoli(payload: ImportArticoliRequest):
             }
             if pezzi_cf:
                 update_set["pezzi_confezione"] = pezzi_cf
-                update_set["unita_misura"] = "pz"
+                update_set["unita_misura"] = um_fin
             # Se il DDT porta una U.M. valida e l'articolo non ne ha ancora una impostata, aggiornala
             um_ddt = (a.get("unita_misura") or "").strip().lower()
             if um_ddt and not (existing.get("unita_misura") or "").strip():

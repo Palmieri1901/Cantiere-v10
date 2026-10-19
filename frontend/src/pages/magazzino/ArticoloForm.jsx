@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { Camera, X, Image as ImageIcon, Package } from "lucide-react";
 import { EMPTY_ART, FormField } from "./common";
 import { BarcodeButton } from "@/components/BarcodeButton";
+import { conversione } from "@/lib/confezioni";
 
 export default function ArticoloForm({ open, onOpenChange, value, fornitori, onSaved }) {
   const [form, setForm] = useState(EMPTY_ART);
@@ -30,10 +31,11 @@ export default function ArticoloForm({ open, onOpenChange, value, fornitori, onS
     r.readAsDataURL(file);
   };
 
-  const isCf = ["cf", "conf", "confezione", "pacco", "scatola"].includes((form.unita_misura || "").toLowerCase());
+  const conv = conversione(form.unita_misura);
+  const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
   const save = async () => {
     if (!form.nome.trim()) { toast.error("Il nome è obbligatorio"); return; }
-    if (isCf && !(Number(form.pezzi_confezione) >= 1)) { toast.error("Indica quanti pezzi contiene la confezione"); return; }
+    if (conv?.obbligatorio && !(Number(form.pezzi_confezione) > 0)) { toast.error(`Indica quanti ${conv.etichetta} contiene 1 ${form.unita_misura}`); return; }
     setSaving(true);
     try {
       const payload = {
@@ -106,6 +108,8 @@ export default function ArticoloForm({ open, onOpenChange, value, fornitori, onS
                 { v: "mq", l: "Metri quadri (mq)" },
                 { v: "rotolo", l: "Rotolo" },
                 { v: "cf", l: "Confezione (cf)" },
+                { v: "latta", l: "Latta/Tanica" },
+                { v: "sacco", l: "Sacco" },
                 { v: "cad", l: "Cadauno (cad)" },
                 { v: "set", l: "Set" },
                 { v: "paio", l: "Paio" },
@@ -139,12 +143,14 @@ export default function ArticoloForm({ open, onOpenChange, value, fornitori, onS
           <FormField label={`Prezzo acquisto € / ${form.unita_misura || "pz"}`}>
             <Input type="number" step="0.01" value={form.prezzo_acquisto} onChange={(e) => set("prezzo_acquisto", e.target.value)} data-testid="input-prezzo-acquisto" />
           </FormField>
-          {isCf && (
-            <FormField label="Pezzi per confezione *" full>
-              <Input type="number" min="1" step="1" value={form.pezzi_confezione || ""} onChange={(e) => set("pezzi_confezione", e.target.value)} placeholder="es. 12" data-testid="input-pezzi-confezione" />
+          {conv && (
+            <FormField label={conv.obbligatorio ? `${cap(conv.etichetta)} per ${form.unita_misura} *` : `${cap(conv.etichetta)} per confezione (facoltativo)`} full>
+              <Input type="number" min="0" step="any" value={form.pezzi_confezione || ""} onChange={(e) => set("pezzi_confezione", e.target.value)} placeholder={conv.obbligatorio ? "es. 12" : "es. 2,5 se il prezzo è della latta/rotolo"} data-testid="input-pezzi-confezione" />
               <div className="text-[11px] text-muted-foreground mt-1.5" data-testid="hint-pezzi-confezione">
-                Il prezzo indicato è a confezione: al salvataggio verrà convertito a pezzo (÷ {Number(form.pezzi_confezione) || "…"}) e la giacenza in pezzi (× {Number(form.pezzi_confezione) || "…"}).
-                {Number(form.pezzi_confezione) > 0 && <> Acquisto {(Number(form.prezzo_acquisto || 0) / Number(form.pezzi_confezione)).toFixed(3)} €/pz · vendita {(Number(form.prezzo_listino || 0) / Number(form.pezzi_confezione)).toFixed(2)} €/pz.</>}
+                {conv.obbligatorio
+                  ? <>Il prezzo è riferito a 1 {form.unita_misura}: al salvataggio verrà convertito a {conv.finale} (÷ {Number(form.pezzi_confezione) || "…"}) e la giacenza in {conv.etichetta} (× {Number(form.pezzi_confezione) || "…"}).</>
+                  : <>Compila solo se il prezzo inserito è della confezione intera (es. latta da 2,5 lt, rotolo da 50 mt): verrà diviso per il contenuto e la giacenza convertita in {conv.etichetta}.</>}
+                {Number(form.pezzi_confezione) > 0 && <> Acquisto {(Number(form.prezzo_acquisto || 0) / Number(form.pezzi_confezione)).toFixed(3)} €/{conv.finale} · vendita {(Number(form.prezzo_listino || 0) / Number(form.pezzi_confezione)).toFixed(2)} €/{conv.finale}.</>}
               </div>
             </FormField>
           )}

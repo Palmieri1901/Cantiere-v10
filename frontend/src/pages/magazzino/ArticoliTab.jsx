@@ -26,6 +26,7 @@ import ScanArticoloDialog from "./ScanArticoloDialog";
 import ScanDDTDialog from "./ScanDDTDialog";
 import RicarichiCategoriaDialog from "./RicarichiCategoriaDialog";
 import RettificaConfezioniDialog from "./RettificaConfezioniDialog";
+import { isContenitore } from "@/lib/confezioni";
 import ComponiOrdineDialog from "./ComponiOrdineDialog";
 
 export default function ArticoliTab() {
@@ -50,7 +51,7 @@ export default function ArticoliTab() {
   const [exportOpen, setExportOpen] = useState(false);
   const [ricarichiOpen, setRicarichiOpen] = useState(false);
   const [rettificaOpen, setRettificaOpen] = useState(false);
-  const nCf = articoli.filter((a) => ["cf", "conf", "confezione", "pacco", "scatola"].includes((a.unita_misura || "").toLowerCase())).length;
+  const nCf = articoli.filter((a) => isContenitore(a.unita_misura) && !a.pezzi_confezione).length;
   const [componiOpen, setComponiOpen] = useState(false);
   const [scaricoInput, setScaricoInput] = useState({});
   const [scaricoLoading, setScaricoLoading] = useState({});
@@ -331,6 +332,11 @@ export default function ArticoliTab() {
           {nCf > 0 && (
             <Button variant="outline" className="border-amber-400 text-amber-800" onClick={() => setRettificaOpen(true)} data-testid="btn-rettifica-confezioni">
               <Boxes className="w-4 h-4 mr-1.5" /> Rettifica confezioni ({nCf})
+            </Button>
+          )}
+          {nCf === 0 && (
+            <Button variant="ghost" onClick={() => setRettificaOpen(true)} data-testid="btn-rettifica-confezioni">
+              <Boxes className="w-4 h-4 mr-1.5" /> Rettifica confezioni
             </Button>
           )}
           <div className="ml-auto flex gap-2 flex-wrap">
