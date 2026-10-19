@@ -11,6 +11,8 @@ import { confirmDialog } from "@/components/ConfirmDialog";
 import { RefreshCw, LogOut, Wifi, WifiOff, Sailboat, Home, ClipboardPlus, Package, Send, Wrench, Anchor } from "lucide-react";
 import ChatOfficina from "@/pages/officina/ChatOfficina";
 import CapitaneriaMobile from "@/pages/app-dipendente/CapitaneriaMobile";
+import AppLock from "@/components/AppLock";
+import { resetSblocco } from "@/lib/passkey";
 
 export default function AppDipendente() {
   const [logged, setLogged] = useState(!!mobileStore.getKey());
@@ -55,7 +57,7 @@ export default function AppDipendente() {
       ? `Hai ${pendenti} ${pendenti === 1 ? "lavoro non ancora inviato" : "lavori non ancora inviati"} al cantiere. Uscendo dovrai reinserire la chiave: i lavori restano salvati sul telefono. Vuoi uscire?`
       : "Vuoi uscire dall'app? Per rientrare dovrai reinserire la chiave.";
     if (!await confirmDialog(msg, { title: "Esci dall'app", okLabel: "Esci" })) return;
-    mobileStore.logout(); setLogged(false);
+    mobileStore.logout(); resetSblocco(); setLogged(false);
   };
 
   const sincronizza = async () => {
@@ -74,6 +76,7 @@ export default function AppDipendente() {
   if (!logged) return <LoginKey onLogged={() => setLogged(true)} />;
 
   return (
+    <AppLock client={mobileApi()} base="/webauthn" onPassword={() => { mobileStore.logout(); resetSblocco(); setLogged(false); }} passwordLabel="Esci e reinserisci la chiave">
     <div className="min-h-screen bg-background flex flex-col max-w-lg mx-auto" data-testid="app-dipendente">
       <header className="px-4 py-3 border-b border-border/60 bg-card flex items-center gap-3 sticky top-0 z-10">
         <div className="w-9 h-9 rounded-md bg-primary text-primary-foreground grid place-items-center"><Sailboat className="w-5 h-5" /></div>
@@ -105,5 +108,6 @@ export default function AppDipendente() {
         ))}
       </nav>
     </div>
+    </AppLock>
   );
 }

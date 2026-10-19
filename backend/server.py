@@ -20,7 +20,7 @@ from fastapi import Depends
 from routers import (
     tariffe, clienti, lavori, stats, export,
     cantiere, backup, preventivo, report, anni, contratti, magazzino, tubolari, suzuki, gommoni, ddt,
-    dipendenti, mobile, esterni, servizio, capitaneria, mezzi, aggiornamenti, calendario, assistente, unisci, anagrafica, officina, officina_siti, fatturazione,
+    dipendenti, mobile, esterni, servizio, capitaneria, mezzi, aggiornamenti, calendario, assistente, unisci, anagrafica, officina, officina_siti, fatturazione, webauthn_lock,
 )
 
 
@@ -40,6 +40,7 @@ api_router.include_router(clienti.router)
 api_router.include_router(anagrafica.router)
 api_router.include_router(officina.router)
 api_router.include_router(officina_siti.router)
+api_router.include_router(webauthn_lock.router)
 api_router.include_router(fatturazione.router)
 api_router.include_router(lavori.router)
 api_router.include_router(stats.router)
@@ -71,6 +72,7 @@ app.include_router(mobile.router)
 app.include_router(assistente.mobile_router)
 app.include_router(officina.mobile_router)
 app.include_router(capitaneria.mobile_router)
+app.include_router(webauthn_lock.mobile_router)
 app.include_router(capitaneria.public_router)
 
 app.add_middleware(
@@ -94,6 +96,7 @@ async def _startup():
     try:
         await db.password_reset_tokens.create_index("expires_at", expireAfterSeconds=0)
         await db.password_reset_tokens.create_index("token", unique=True)
+        await db.webauthn_challenges.create_index("expires_at", expireAfterSeconds=0)
     except Exception as e:
         logger.warning(f"password_reset_tokens indexes skipped: {e}")
     # Indici magazzino
