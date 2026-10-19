@@ -37,7 +37,7 @@ export function InviaFatturazioneButton({ tipo, id, anno, nome, size = "sm", var
   };
   const data = esito?.ts ? new Date(esito.ts).toLocaleDateString("it-IT") : "";
   return (
-    <span className="inline-flex items-center gap-1.5 flex-wrap">
+    <span className="inline-flex items-center gap-1.5 flex-wrap" onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()} data-testid={`fattura-wrap-${tipo}-${id}`}>
       {esito && (
         <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-full px-2 py-0.5" data-testid={`stato-fattura-${tipo}-${id}`}>
           <CheckCircle2 className="w-3.5 h-3.5" /> Bozza emessa{data ? ` · ${data}` : ""}

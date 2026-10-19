@@ -24,6 +24,7 @@ export default function CompletaDatiFiscaliDialog({ open, onOpenChange, tipo, id
   const incompleti = obbligatori.filter(([k]) => !(f[k] || "").trim());
   const errCf = estero ? "" : validaCf(f.codice_fiscale), errPiva = estero ? "" : validaPiva(f.partita_iva), errCap = estero ? "" : validaCap(f.cap), errProv = estero ? "" : validaProvincia(f.provincia);
   const ob = (k) => !estero && !!k;
+  const ETICHETTE = { cognome: "Cognome", nome: "Nome", codice_fiscale: "Codice fiscale", ragione_sociale: "Ragione sociale", partita_iva: "Partita IVA", codice_sdi: "Codice SDI", via: "Via", cap: "CAP", citta: "Città", provincia: "Provincia" };
   const errori = [errCf, errPiva, errCap, errProv].filter(Boolean);
   const Err = ({ e, id }) => e ? <div className="text-[11px] text-destructive mt-1" data-testid={id}>{e}</div> : null;
   const salva = async () => {
@@ -54,11 +55,11 @@ export default function CompletaDatiFiscaliDialog({ open, onOpenChange, tipo, id
             {az && <div className="sm:col-span-2"><Campo label="Ragione sociale" obbl={ob(1)}><Input value={f.ragione_sociale} onChange={(e) => upd("ragione_sociale", e.target.value)} data-testid="cd-ragione" /></Campo></div>}
             <Campo label={az ? "Cognome referente" : "Cognome"} obbl={!az}><Input value={f.cognome} onChange={(e) => upd("cognome", e.target.value)} data-testid="cd-cognome" /></Campo>
             <Campo label={az ? "Nome referente" : "Nome"} obbl={!az}><Input value={f.nome} onChange={(e) => upd("nome", e.target.value)} data-testid="cd-nome" /></Campo>
-            <div className="sm:col-span-2"><Campo label="Via e numero civico" obbl={ob(1)}><Input value={f.via} onChange={(e) => upd("via", e.target.value)} placeholder="Via Roma 1" data-testid="cd-via" /></Campo></div>
+            <div className="sm:col-span-2"><Campo label="Via e numero civico" obbl={ob(1)}><Input value={f.via} onChange={(e) => upd("via", e.target.value)} placeholder="es. Via Roma 1" data-testid="cd-via" /></Campo></div>
             <div className="sm:col-span-2 grid grid-cols-[90px_1fr_64px] gap-2">
               <Campo label={estero ? "Cod. post." : "CAP"} obbl={ob(1)}><Input value={f.cap} onChange={(e) => upd("cap", estero ? e.target.value.slice(0, 10) : e.target.value.replace(/\D/g, "").slice(0, 5))} inputMode={estero ? "text" : "numeric"} className="font-mono-num" data-testid="cd-cap" /><Err e={errCap} id="cd-err-cap" /></Campo>
               <Campo label="Città" obbl={ob(1)}><Input value={f.citta} onChange={(e) => upd("citta", e.target.value)} data-testid="cd-citta" /></Campo>
-              <Campo label={estero ? "Regione" : "Prov."} obbl={ob(1)}><Input value={f.provincia} onChange={(e) => upd("provincia", estero ? e.target.value.slice(0, 20) : e.target.value.toUpperCase().slice(0, 2))} className={estero ? "" : "uppercase text-center"} placeholder={estero ? "" : "LI"} data-testid="cd-provincia" /><Err e={errProv} id="cd-err-prov" /></Campo>
+              <Campo label={estero ? "Regione" : "Prov."} obbl={ob(1)}><Input value={f.provincia} onChange={(e) => upd("provincia", estero ? e.target.value.slice(0, 20) : e.target.value.toUpperCase().slice(0, 2))} className={estero ? "" : "uppercase text-center"} placeholder={estero ? "" : "es. LI"} data-testid="cd-provincia" /><Err e={errProv} id="cd-err-prov" /></Campo>
             </div>
             <div className="sm:col-span-2"><Campo label="Nazione (vuoto = Italia)"><Input value={f.nazione || ""} onChange={(e) => upd("nazione", e.target.value)} placeholder="Italia" data-testid="cd-nazione" /></Campo>
               {estero && <p className="text-[11px] text-muted-foreground mt-1" data-testid="cd-estero-nota">Cliente estero: bastano nome e cognome (o ragione sociale); gli altri dati possono restare vuoti o parziali.</p>}</div>
@@ -76,7 +77,7 @@ export default function CompletaDatiFiscaliDialog({ open, onOpenChange, tipo, id
         </div>
         <DialogFooter className="gap-2">
           <Button variant="outline" onClick={() => onOpenChange(false)}>Annulla</Button>
-          <Button onClick={salva} disabled={saving || incompleti.length > 0 || errori.length > 0} data-testid="cd-salva">{saving ? "Salvo…" : incompleti.length ? `Mancano ${incompleti.length} campi` : errori.length ? "Correggi i dati evidenziati" : "Salva e continua"}</Button>
+          <Button onClick={salva} disabled={saving || incompleti.length > 0 || errori.length > 0} data-testid="cd-salva">{saving ? "Salvo…" : incompleti.length ? `Manca: ${incompleti.map(([k]) => ETICHETTE[k] || k).join(", ")}` : errori.length ? "Correggi i dati evidenziati" : "Salva e continua"}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

@@ -868,3 +868,7 @@ Backend spezzato in moduli (`server.py` ora 112 righe, prima 2761):
 ## 2026-10-19 — Clienti esteri
 - Nuovo campo `nazione` (vuoto = Italia) in Anagrafica, Rimessaggio, Esterni e dialog dati fiscali.
 - Se la nazione non è Italia: CF/P.IVA/CAP/provincia non validati e facoltativi; per fatturazione bastano nome+cognome (o ragione sociale). `indirizzo` composto include la nazione; `country` inviato a Fatture in Cloud.
+
+## 2026-10-19 — Fix dialog fatturazione
+- I click dentro il dialog 'Dati per la fatturazione' non aprono più la scheda lavori del cliente esterno (stopPropagation sul wrapper InviaFatturazioneButton).
+- Il pulsante Salva elenca i campi mancanti per nome; placeholder 'es. …' per non confondere con valori reali.
