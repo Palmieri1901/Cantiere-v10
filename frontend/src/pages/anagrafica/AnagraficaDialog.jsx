@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { SoggettoFiscale, erroreSoggetto } from "@/components/SoggettoFiscale";
 
-export const VUOTA = { nome: "", cognome: "", tipo_soggetto: "privato", ragione_sociale: "", partita_iva: "", codice_sdi: "", pec: "", codice_fiscale: "", indirizzo: "", via: "", cap: "", citta: "", provincia: "", telefono: "", cellulare: "", email: "", note: "" };
+export const VUOTA = { nome: "", cognome: "", tipo_soggetto: "privato", ragione_sociale: "", partita_iva: "", codice_sdi: "", pec: "", codice_fiscale: "", indirizzo: "", via: "", cap: "", citta: "", provincia: "", nazione: "", telefono: "", cellulare: "", email: "", note: "" };
 
 const Campo = ({ label, children }) => (<div><label className="text-xs text-muted-foreground">{label}</label>{children}</div>);
 

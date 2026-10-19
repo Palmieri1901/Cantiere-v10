@@ -24,5 +24,6 @@ export function validaCf(cf) {
   return "ABCDEFGHIJKLMNOPQRSTUVWXYZ"[s % 26] === cf[15] ? "" : "Codice fiscale non valido (carattere di controllo errato)";
 }
 
+export const isEstero = (f) => { const n = (f?.nazione || "").trim().toUpperCase(); return !!n && !["IT", "ITA", "ITALIA", "ITALY"].includes(n); };
 export const validaCap = (c) => (!c || /^\d{5}$/.test(c) ? "" : "Il CAP deve avere 5 cifre");
 export const validaProvincia = (p) => (!p || /^[A-Za-z]{2}$/.test(p) ? "" : "Sigla provincia di 2 lettere");

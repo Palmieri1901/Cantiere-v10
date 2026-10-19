@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Building2, User, AlertTriangle, BookUser } from "lucide-react";
-import { validaCf, validaPiva, validaCap, validaProvincia } from "@/lib/fiscale";
+import { validaCf, validaPiva, validaCap, validaProvincia, isEstero } from "@/lib/fiscale";
 
 const Campo = ({ label, obbl, children }) => <div className="space-y-1"><Label className="text-[11px] uppercase tracking-wider text-muted-foreground">{label}{obbl && <span className="text-destructive"> *</span>}</Label>{children}</div>;
 
@@ -18,9 +18,12 @@ export default function CompletaDatiFiscaliDialog({ open, onOpenChange, tipo, id
   const [saving, setSaving] = useState(false);
   const az = f.tipo_soggetto === "azienda";
   const upd = (k, v) => setF((s) => ({ ...s, [k]: v }));
+  const estero = isEstero(f);
   const manca = az ? [["ragione_sociale"], ["partita_iva"], ["codice_sdi"]] : [["cognome"], ["nome"], ["codice_fiscale"]];
-  const incompleti = [...manca, ["via"], ["cap"], ["citta"], ["provincia"]].filter(([k]) => !(f[k] || "").trim());
-  const errCf = validaCf(f.codice_fiscale), errPiva = validaPiva(f.partita_iva), errCap = validaCap(f.cap), errProv = validaProvincia(f.provincia);
+  const obbligatori = estero ? (az && (f.ragione_sociale || "").trim() ? [] : [["cognome"], ["nome"]]) : [...manca, ["via"], ["cap"], ["citta"], ["provincia"]];
+  const incompleti = obbligatori.filter(([k]) => !(f[k] || "").trim());
+  const errCf = estero ? "" : validaCf(f.codice_fiscale), errPiva = estero ? "" : validaPiva(f.partita_iva), errCap = estero ? "" : validaCap(f.cap), errProv = estero ? "" : validaProvincia(f.provincia);
+  const ob = (k) => !estero && !!k;
   const errori = [errCf, errPiva, errCap, errProv].filter(Boolean);
   const Err = ({ e, id }) => e ? <div className="text-[11px] text-destructive mt-1" data-testid={id}>{e}</div> : null;
   const salva = async () => {
@@ -48,18 +51,20 @@ export default function CompletaDatiFiscaliDialog({ open, onOpenChange, tipo, id
             ))}
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {az && <div className="sm:col-span-2"><Campo label="Ragione sociale" obbl><Input value={f.ragione_sociale} onChange={(e) => upd("ragione_sociale", e.target.value)} data-testid="cd-ragione" /></Campo></div>}
+            {az && <div className="sm:col-span-2"><Campo label="Ragione sociale" obbl={ob(1)}><Input value={f.ragione_sociale} onChange={(e) => upd("ragione_sociale", e.target.value)} data-testid="cd-ragione" /></Campo></div>}
             <Campo label={az ? "Cognome referente" : "Cognome"} obbl={!az}><Input value={f.cognome} onChange={(e) => upd("cognome", e.target.value)} data-testid="cd-cognome" /></Campo>
             <Campo label={az ? "Nome referente" : "Nome"} obbl={!az}><Input value={f.nome} onChange={(e) => upd("nome", e.target.value)} data-testid="cd-nome" /></Campo>
-            <div className="sm:col-span-2"><Campo label="Via e numero civico" obbl><Input value={f.via} onChange={(e) => upd("via", e.target.value)} placeholder="Via Roma 1" data-testid="cd-via" /></Campo></div>
+            <div className="sm:col-span-2"><Campo label="Via e numero civico" obbl={ob(1)}><Input value={f.via} onChange={(e) => upd("via", e.target.value)} placeholder="Via Roma 1" data-testid="cd-via" /></Campo></div>
             <div className="sm:col-span-2 grid grid-cols-[90px_1fr_64px] gap-2">
-              <Campo label="CAP" obbl><Input value={f.cap} onChange={(e) => upd("cap", e.target.value.replace(/\D/g, "").slice(0, 5))} inputMode="numeric" className="font-mono-num" data-testid="cd-cap" /><Err e={errCap} id="cd-err-cap" /></Campo>
-              <Campo label="Città" obbl><Input value={f.citta} onChange={(e) => upd("citta", e.target.value)} data-testid="cd-citta" /></Campo>
-              <Campo label="Prov." obbl><Input value={f.provincia} onChange={(e) => upd("provincia", e.target.value.toUpperCase().slice(0, 2))} className="uppercase text-center" placeholder="LI" data-testid="cd-provincia" /><Err e={errProv} id="cd-err-prov" /></Campo>
+              <Campo label={estero ? "Cod. post." : "CAP"} obbl={ob(1)}><Input value={f.cap} onChange={(e) => upd("cap", estero ? e.target.value.slice(0, 10) : e.target.value.replace(/\D/g, "").slice(0, 5))} inputMode={estero ? "text" : "numeric"} className="font-mono-num" data-testid="cd-cap" /><Err e={errCap} id="cd-err-cap" /></Campo>
+              <Campo label="Città" obbl={ob(1)}><Input value={f.citta} onChange={(e) => upd("citta", e.target.value)} data-testid="cd-citta" /></Campo>
+              <Campo label={estero ? "Regione" : "Prov."} obbl={ob(1)}><Input value={f.provincia} onChange={(e) => upd("provincia", estero ? e.target.value.slice(0, 20) : e.target.value.toUpperCase().slice(0, 2))} className={estero ? "" : "uppercase text-center"} placeholder={estero ? "" : "LI"} data-testid="cd-provincia" /><Err e={errProv} id="cd-err-prov" /></Campo>
             </div>
-            <Campo label="Codice fiscale" obbl={!az}><Input value={f.codice_fiscale} onChange={(e) => upd("codice_fiscale", e.target.value.toUpperCase())} maxLength={16} className={`uppercase font-mono-num ${errCf ? "border-destructive" : ""}`} data-testid="cd-cf" /><Err e={errCf} id="cd-err-cf" /></Campo>
-            {az && <Campo label="Partita IVA" obbl><Input value={f.partita_iva} onChange={(e) => upd("partita_iva", e.target.value.replace(/\D/g, ""))} maxLength={11} className={`font-mono-num ${errPiva ? "border-destructive" : ""}`} data-testid="cd-piva" /><Err e={errPiva} id="cd-err-piva" /></Campo>}
-            {az && <Campo label="Codice SDI" obbl><Input value={f.codice_sdi} onChange={(e) => upd("codice_sdi", e.target.value.toUpperCase())} maxLength={7} className="uppercase font-mono-num" data-testid="cd-sdi" /></Campo>}
+            <div className="sm:col-span-2"><Campo label="Nazione (vuoto = Italia)"><Input value={f.nazione || ""} onChange={(e) => upd("nazione", e.target.value)} placeholder="Italia" data-testid="cd-nazione" /></Campo>
+              {estero && <p className="text-[11px] text-muted-foreground mt-1" data-testid="cd-estero-nota">Cliente estero: bastano nome e cognome (o ragione sociale); gli altri dati possono restare vuoti o parziali.</p>}</div>
+            <Campo label="Codice fiscale" obbl={ob(!az)}><Input value={f.codice_fiscale} onChange={(e) => upd("codice_fiscale", e.target.value.toUpperCase())} maxLength={estero ? 30 : 16} className={`uppercase font-mono-num ${errCf ? "border-destructive" : ""}`} data-testid="cd-cf" /><Err e={errCf} id="cd-err-cf" /></Campo>
+            {az && <Campo label="Partita IVA" obbl={ob(1)}><Input value={f.partita_iva} onChange={(e) => upd("partita_iva", estero ? e.target.value.toUpperCase() : e.target.value.replace(/\D/g, ""))} maxLength={estero ? 20 : 11} className={`font-mono-num ${errPiva ? "border-destructive" : ""}`} data-testid="cd-piva" /><Err e={errPiva} id="cd-err-piva" /></Campo>}
+            {az && <Campo label="Codice SDI" obbl={ob(1)}><Input value={f.codice_sdi} onChange={(e) => upd("codice_sdi", e.target.value.toUpperCase())} maxLength={7} className="uppercase font-mono-num" data-testid="cd-sdi" /></Campo>}
             {az && <Campo label="PEC"><Input value={f.pec} onChange={(e) => upd("pec", e.target.value)} data-testid="cd-pec" /></Campo>}
             <Campo label="Email"><Input value={f.email} onChange={(e) => upd("email", e.target.value)} data-testid="cd-email" /></Campo>
             <Campo label="Telefono"><Input value={f.telefono || f.cellulare} onChange={(e) => upd("telefono", e.target.value)} data-testid="cd-telefono" /></Campo>

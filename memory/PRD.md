@@ -863,3 +863,8 @@ Backend spezzato in moduli (`server.py` ora 112 righe, prima 2761):
 - ✅ (2026-10-19) Fatturazione: controllo completezza prima dell'invio (POST /fatturazione/verifica → mancanti/soggetto/in_anagrafica; POST /fatturazione/completa-dati salva su clienti/clienti_esterni + upsert_anagrafica origine 'fatturazione'; /invia rifiuta 422 se incompleto). Privato: cognome, nome, indirizzo, CF. Azienda: ragione sociale, indirizzo, P.IVA, SDI. components/CompletaDatiFiscaliDialog.jsx con spunta 'Registra in Anagrafica generale' (default on); si apre anche se il contatto non è in anagrafica.
 - ✅ (2026-10-19) Indirizzo separato (via/cap/citta/provincia) in anagrafica e dati fatturazione → FIC address_street/postal_code/city/province; fallback parsing del campo indirizzo libero (fiscale.separa_indirizzo). Validazione formale CF (checksum) e P.IVA (Luhn) backend (fiscale.py, usata in anagrafica._norm e fatturazione) e frontend (lib/fiscale.js) nel CompletaDatiFiscaliDialog.
 - ✅ (2026-10-19) Indirizzo separato ovunque: components/IndirizzoFields.jsx (via/cap/citta/provincia, ricompone 'indirizzo', scompone il vecchio campo al primo apertura) incluso in SoggettoFiscale → Anagrafica, Rimessaggio (ClienteForm), Esterni (nuovo/modifica). Backend: ClienteCreate/Update, EsternoIn, AnagraficaIn con i 4 campi; indirizzo ricomposto server-side.
+
+
+## 2026-10-19 — Clienti esteri
+- Nuovo campo `nazione` (vuoto = Italia) in Anagrafica, Rimessaggio, Esterni e dialog dati fiscali.
+- Se la nazione non è Italia: CF/P.IVA/CAP/provincia non validati e facoltativi; per fatturazione bastano nome+cognome (o ragione sociale). `indirizzo` composto include la nazione; `country` inviato a Fatture in Cloud.

@@ -52,7 +52,16 @@ def separa_indirizzo(ind: str) -> dict:
     return out
 
 
+def is_estero(d: dict) -> bool:
+    """True se la nazione è valorizzata e diversa dall'Italia (per esteri CF/P.IVA/CAP/provincia non si controllano)."""
+    n = str(d.get("nazione") or "").strip().upper()
+    return bool(n) and n not in ("IT", "ITA", "ITALIA", "ITALY")
+
+
 def componi_indirizzo(d: dict) -> str:
     via, cap, citta, prov = (str(d.get(k) or "").strip() for k in ("via", "cap", "citta", "provincia"))
     loc = " ".join(x for x in [cap, citta] if x) + (f" ({prov})" if prov else "")
-    return ", ".join(x for x in [via, loc] if x)
+    parti = [via, loc]
+    if is_estero(d):
+        parti.append(str(d.get("nazione")).strip())
+    return ", ".join(x for x in parti if x)

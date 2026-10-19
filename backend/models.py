@@ -102,6 +102,7 @@ class Cliente(BaseModel):
     cap: Optional[str] = ""
     citta: Optional[str] = ""
     provincia: Optional[str] = ""
+    nazione: Optional[str] = ""
     cellulare: Optional[str] = ""
     pagato: bool = False
     data_pagamento: Optional[str] = None
@@ -190,6 +191,7 @@ class ClienteCreate(BaseModel):
     cap: Optional[str] = ""
     citta: Optional[str] = ""
     provincia: Optional[str] = ""
+    nazione: Optional[str] = ""
     cellulare: Optional[str] = ""
     pagato: Optional[bool] = None
     data_pagamento: Optional[str] = None

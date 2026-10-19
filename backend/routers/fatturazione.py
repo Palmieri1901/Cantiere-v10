@@ -9,7 +9,7 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
 from database import db
-from fiscale import valida_cf, valida_piva, separa_indirizzo, componi_indirizzo
+from fiscale import valida_cf, valida_piva, separa_indirizzo, componi_indirizzo, is_estero
 from pdf_builders import righe_lavoro
 
 router = APIRouter(prefix="/fatturazione")
@@ -147,7 +147,7 @@ async def _entita(tok: str, cid: int, soggetto: dict, nome: str) -> int:
         payload["address_city"] = ind["citta"][:255]
     if ind.get("provincia"):
         payload["address_province"] = ind["provincia"][:2].upper()
-    payload["country"] = "Italia"
+    payload["country"] = str(soggetto.get("nazione") or "").strip() if is_estero(soggetto) else "Italia"
     if payload.get("ei_code") or payload.get("certified_email"):
         payload["e_invoice"] = True
     q = payload.get("vat_number") or payload["name"]
@@ -165,7 +165,7 @@ class InviaIn(BaseModel):
     anno: Optional[int] = None
 
 
-CAMPI_FISCALI = ("tipo_soggetto", "ragione_sociale", "nome", "cognome", "codice_fiscale", "partita_iva", "codice_sdi", "pec", "indirizzo", "via", "cap", "citta", "provincia", "email", "telefono", "cellulare")
+CAMPI_FISCALI = ("tipo_soggetto", "ragione_sociale", "nome", "cognome", "codice_fiscale", "partita_iva", "codice_sdi", "pec", "indirizzo", "via", "cap", "citta", "provincia", "nazione", "email", "telefono", "cellulare")
 
 
 def _indirizzo_parti(s: dict) -> dict:
@@ -178,6 +178,9 @@ def _indirizzo_parti(s: dict) -> dict:
 def _mancanti(s: dict) -> List[str]:
     """Campi obbligatori per fatturare: privato = nome, cognome, indirizzo completo, CF; azienda = ragione sociale, indirizzo completo, P.IVA, SDI."""
     g = lambda k: str(s.get(k) or "").strip()  # noqa: E731
+    if is_estero(s):
+        az = (s.get("tipo_soggetto") or "privato") == "azienda" and g("ragione_sociale")
+        return [] if az else [lbl for k, lbl in (("cognome", "Cognome"), ("nome", "Nome")) if not g(k)]
     if (s.get("tipo_soggetto") or "privato") == "azienda":
         req = [("ragione_sociale", "Ragione sociale"), ("partita_iva", "Partita IVA"), ("codice_sdi", "Codice SDI")]
     else:
@@ -190,6 +193,8 @@ def _mancanti(s: dict) -> List[str]:
 
 def _errori_formali(s: dict) -> List[str]:
     out = []
+    if is_estero(s):
+        return out
     e = valida_cf(s.get("codice_fiscale"))
     if e:
         out.append(e)

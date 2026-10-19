@@ -30,9 +30,10 @@ class EsternoIn(BaseModel):
     cap: Optional[str] = ""
     citta: Optional[str] = ""
     provincia: Optional[str] = ""
+    nazione: Optional[str] = ""
 
 
-FISCALI = ("tipo_soggetto", "ragione_sociale", "partita_iva", "codice_sdi", "pec", "codice_fiscale", "indirizzo", "via", "cap", "citta", "provincia")
+FISCALI = ("tipo_soggetto", "ragione_sociale", "partita_iva", "codice_sdi", "pec", "codice_fiscale", "indirizzo", "via", "cap", "citta", "provincia", "nazione")
 
 
 def _fiscali(p: EsternoIn) -> dict:
