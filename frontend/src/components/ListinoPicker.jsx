@@ -8,7 +8,7 @@ import { normUnita } from "@/lib/unita";
 
 // Voci del listino (Tariffe) con unità e domanda da porre per calcolare il totale
 const fmtQ = (n) => Number(n).toLocaleString("it-IT", { maximumFractionDigits: 2 });
-const sogliaCalc = (fisso, perMetro) => (m) => (m <= 5 ? fisso : +(m * perMetro).toFixed(2));
+const sogliaCalc = (fisso, oltre) => (m) => (m <= 5 ? fisso : oltre);
 
 // Larghezza standard a scaglioni (come nel calcolo rimessaggio)
 export const larghezzaStd = (L) => (L <= 6.5 ? 2.5 : L <= 9 ? 3 : 4);
@@ -28,8 +28,8 @@ export function vociListino(t) {
     perM("taccaggio", "Taccaggio", t.costo_taccaggio_per_metro, "Rimessaggio"),
     perM("scafo_sporco", "Maggiorazione scafo sporco", t.maggiorazione_scafo_sporco_per_metro, "Rimessaggio"),
     { id: "sosta_temp", cat: "Rimessaggio", nome: "Sosta temporanea", unita: "giorni", domanda: "Numero giorni", prezzo: t.sosta_temporanea_giornaliera, calc: (g) => +(g * t.sosta_temporanea_giornaliera).toFixed(2), label: (g) => `Sosta temporanea ${fmtQ(g)} giorni` },
-    { id: "alaggio", cat: "Alaggio e varo", nome: "Alaggio", unita: "m", domanda: "Metri barca", prezzo: t.alaggio_oltre_5m_per_metro, nota: `fino a 5 m ${fmtEuro(t.alaggio_fino_5m)}, oltre ${fmtEuro(t.alaggio_oltre_5m_per_metro)}/m`, calc: sogliaCalc(t.alaggio_fino_5m, t.alaggio_oltre_5m_per_metro), label: (m) => `Alaggio barca ${fmtQ(m)} m` },
-    { id: "varo", cat: "Alaggio e varo", nome: "Varo", unita: "m", domanda: "Metri barca", prezzo: t.varo_oltre_5m_per_metro, nota: `fino a 5 m ${fmtEuro(t.varo_fino_5m)}, oltre ${fmtEuro(t.varo_oltre_5m_per_metro)}/m`, calc: sogliaCalc(t.varo_fino_5m, t.varo_oltre_5m_per_metro), label: (m) => `Varo barca ${fmtQ(m)} m` },
+    { id: "alaggio", cat: "Alaggio e varo", nome: "Alaggio", unita: "", forfait: true, domanda: "Metri barca", prezzo: t.alaggio_oltre_5m_per_metro, nota: `fino a 5 m ${fmtEuro(t.alaggio_fino_5m)}, oltre 5 m ${fmtEuro(t.alaggio_oltre_5m_per_metro)} (forfait)`, calc: sogliaCalc(t.alaggio_fino_5m, t.alaggio_oltre_5m_per_metro), label: (m) => `Alaggio barca ${fmtQ(m)} m` },
+    { id: "varo", cat: "Alaggio e varo", nome: "Varo", unita: "", forfait: true, domanda: "Metri barca", prezzo: t.varo_oltre_5m_per_metro, nota: `fino a 5 m ${fmtEuro(t.varo_fino_5m)}, oltre 5 m ${fmtEuro(t.varo_oltre_5m_per_metro)} (forfait)`, calc: sogliaCalc(t.varo_fino_5m, t.varo_oltre_5m_per_metro), label: (m) => `Varo barca ${fmtQ(m)} m` },
     perM("lavaggio_inizio", "Lavaggio inizio stagione", t.costo_lavaggio_inizio_stagione, "Lavaggi e manodopera"),
     perM("lavaggio_fine", "Lavaggio fine stagione", t.costo_lavaggio_fine_stagione, "Lavaggi e manodopera"),
     { id: "manodopera", cat: "Lavaggi e manodopera", nome: "Manodopera", unita: "ore", domanda: "Ore di lavoro", prezzo: t.costo_orario_manodopera, calc: (h) => +(h * t.costo_orario_manodopera).toFixed(2), label: (h) => `Manodopera ${fmtQ(h)} h` },
@@ -70,7 +70,7 @@ export function ListinoPicker({ onAdd, metriDefault, label = "Dal listino", size
   const num = (s) => Number(String(s).replace(",", ".")) || 0;
   const scegli = (v) => {
     setVoce(v); setQ2Auto(true);
-    const m = metriDefault && (v.unita === "m" || v.mq) ? String(metriDefault) : "";
+    const m = metriDefault && (v.unita === "m" || v.mq || v.forfait) ? String(metriDefault) : "";
     setQ(v.domanda ? m : "1");
     setQ2(v.mq && m ? String(larghezzaStd(num(m))) : "");
   };
@@ -78,7 +78,7 @@ export function ListinoPicker({ onAdd, metriDefault, label = "Dal listino", size
   const qn = num(q), qn2 = num(q2);
   const totale = voce ? voce.calc(qn, qn2) : 0;
   const conferma = () => {
-    const quantita = voce.mq ? +(qn * qn2).toFixed(2) : voce.domanda ? qn : 1;
+    const quantita = voce.forfait ? 1 : voce.mq ? +(qn * qn2).toFixed(2) : voce.domanda ? qn : 1;
     const totaleV = voce.calc(qn, qn2);
     onAdd({ descrizione: voce.label(qn, qn2), quantita, prezzo_unitario: quantita > 0 ? +(totaleV / quantita).toFixed(4) : totaleV, totale: totaleV, listino_id: voce.id, unita: voce.mq ? "mq" : voce.unita === "ore" ? "h" : voce.unita === "giorni" ? "gg" : voce.unita || "" });
     setOpen(false); setVoce(null);

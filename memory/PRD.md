@@ -876,3 +876,6 @@ Backend spezzato in moduli (`server.py` ora 112 righe, prima 2761):
 ## 2026-10-19 — Anagrafica generale come riferimento per i nomi
 - Componente `AnagraficaSuggerimenti`: scrivendo cognome/nome in Rimessaggio (nuovo cliente), Esterni (nuovo), Nuova anagrafica e Approva lavoro → mostra le voci già in Anagrafica (un tap precompila) oppure avvisa 'verrà creato come nuovo cliente'.
 - PWA: `/api/mobile/clienti` include le voci di Anagrafica non già clienti (id `ana:<id>`); il lavoro inviato porta `anagrafica_id` e in approvazione il cliente esterno nasce con dati fiscali/indirizzo copiati (`crea_esterno(anagrafica_id=)`).
+
+## 2026-10-19 — Fix alaggio/varo nel listino lavori
+- ListinoPicker moltiplicava la tariffa 'oltre 5 m' per i metri; ora è forfait fisso come nel backend (helpers.calcola_alaggio/varo). Riga inserita con quantità 1.
