@@ -342,9 +342,6 @@ export default function ClienteForm({ open, onOpenChange, cliente, onSaved, mode
               <Field label="Codice fiscale">
                 <Input value={f.codice_fiscale} onChange={(e) => update("codice_fiscale", e.target.value.toUpperCase())} maxLength={16} className="uppercase font-mono-num" data-testid="input-codice-fiscale" />
               </Field>
-              <Field label="Indirizzo">
-                <Input value={f.indirizzo} onChange={(e) => update("indirizzo", e.target.value)} placeholder="Via, città, CAP" data-testid="input-indirizzo" />
-              </Field>
               <Field label="Telefono">
                 <Input value={f.telefono} onChange={(e) => update("telefono", e.target.value)} data-testid="input-telefono" />
               </Field>

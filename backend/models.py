@@ -98,6 +98,10 @@ class Cliente(BaseModel):
     codice_sdi: Optional[str] = ""
     pec: Optional[str] = ""
     indirizzo: Optional[str] = ""
+    via: Optional[str] = ""
+    cap: Optional[str] = ""
+    citta: Optional[str] = ""
+    provincia: Optional[str] = ""
     cellulare: Optional[str] = ""
     pagato: bool = False
     data_pagamento: Optional[str] = None
@@ -182,6 +186,10 @@ class ClienteCreate(BaseModel):
     codice_sdi: Optional[str] = ""
     pec: Optional[str] = ""
     indirizzo: Optional[str] = ""
+    via: Optional[str] = ""
+    cap: Optional[str] = ""
+    citta: Optional[str] = ""
+    provincia: Optional[str] = ""
     cellulare: Optional[str] = ""
     pagato: Optional[bool] = None
     data_pagamento: Optional[str] = None

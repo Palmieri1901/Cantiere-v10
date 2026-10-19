@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { BookUser, Building2, User } from "lucide-react";
 
-const CAMPI = ["nome", "cognome", "tipo_soggetto", "ragione_sociale", "partita_iva", "codice_sdi", "pec", "codice_fiscale", "indirizzo", "telefono", "cellulare", "email"];
+const CAMPI = ["nome", "cognome", "tipo_soggetto", "ragione_sociale", "partita_iva", "codice_sdi", "pec", "codice_fiscale", "indirizzo", "via", "cap", "citta", "provincia", "telefono", "cellulare", "email"];
 
 // Tasto "Da anagrafica": sceglie una voce e precompila i dati anagrafici del form
 export function AnagraficaPicker({ onPick, testId = "btn-da-anagrafica" }) {

@@ -1,5 +1,6 @@
 import { Input } from "@/components/ui/input";
 import { Building2, User } from "lucide-react";
+import { IndirizzoFields } from "@/components/IndirizzoFields";
 
 // Privato / Azienda + dati fiscali richiesti per l'azienda
 export function SoggettoFiscale({ f, update, compact = false }) {
@@ -15,6 +16,9 @@ export function SoggettoFiscale({ f, update, compact = false }) {
       <div className="flex gap-2">
         <Btn v="privato" icon={User} label="Privato" />
         <Btn v="azienda" icon={Building2} label="Azienda" />
+      </div>
+      <div className={compact ? "space-y-2" : "grid grid-cols-1 sm:grid-cols-2 gap-3"}>
+        <div className={compact ? "" : "sm:col-span-2"}><IndirizzoFields f={f} update={update} prefix="input-ind" labelClass="text-xs text-muted-foreground" /></div>
       </div>
       {azienda && (
         <div className={compact ? "space-y-2" : "grid grid-cols-1 sm:grid-cols-2 gap-3"}>

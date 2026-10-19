@@ -43,14 +43,14 @@ export default function LavorazioniEsterne() {
   const load = () => api.get("/esterni").then((r) => setList(r.data));
   useEffect(() => { load(); }, []);
 
-  const [nuovo, setNuovo] = useState({ tipo_soggetto: "privato", ragione_sociale: "", partita_iva: "", codice_sdi: "", pec: "" });
+  const [nuovo, setNuovo] = useState({ tipo_soggetto: "privato", ragione_sociale: "", partita_iva: "", codice_sdi: "", pec: "", via: "", cap: "", citta: "", provincia: "", indirizzo: "" });
   const updNuovo = (k, v) => setNuovo((s) => ({ ...s, [k]: v }));
   const add = async () => {
     if (!nome.trim()) return toast.error("Inserisci il nominativo");
     const err = erroreSoggetto(nuovo);
     if (err) return toast.error(err);
     const r = await api.post("/esterni", { nome, ...nuovo });
-    setNome(""); setNuovo({ tipo_soggetto: "privato", ragione_sociale: "", partita_iva: "", codice_sdi: "", pec: "" }); await load(); setOpen(r.data);
+    setNome(""); setNuovo({ tipo_soggetto: "privato", ragione_sociale: "", partita_iva: "", codice_sdi: "", pec: "", via: "", cap: "", citta: "", provincia: "", indirizzo: "" }); await load(); setOpen(r.data);
     const chi = nuovo.tipo_soggetto === "azienda" && nuovo.ragione_sociale ? nuovo.ragione_sociale : nome.trim();
     if (await confirmDialog(`Vuoi aggiungere "${chi}" all'Anagrafica generale?\nI dati anagrafici e fiscali saranno disponibili per tutti i moduli.`, { title: "Anagrafica generale", okLabel: "Sì, aggiungi", cancelLabel: "No", danger: false })) {
       try { await api.post(`/anagrafica/da-esterno/${r.data.id}`); toast.success("Aggiunto all'anagrafica generale"); } catch { toast.error("Errore anagrafica"); }
@@ -58,7 +58,8 @@ export default function LavorazioniEsterne() {
   };
   const daAnagrafica = (d) => {
     setNome(`${d.cognome || ""} ${d.nome || ""}`.trim());
-    setNuovo({ tipo_soggetto: d.tipo_soggetto || "privato", ragione_sociale: d.ragione_sociale || "", partita_iva: d.partita_iva || "", codice_sdi: d.codice_sdi || "", pec: d.pec || "", telefono: d.telefono || d.cellulare || "" });
+    setNuovo({ tipo_soggetto: d.tipo_soggetto || "privato", ragione_sociale: d.ragione_sociale || "", partita_iva: d.partita_iva || "", codice_sdi: d.codice_sdi || "", pec: d.pec || "", telefono: d.telefono || d.cellulare || "",
+      via: d.via || "", cap: d.cap || "", citta: d.citta || "", provincia: d.provincia || "", indirizzo: d.indirizzo || "", codice_fiscale: d.codice_fiscale || "" });
   };
   const salvaEdit = async () => {
     const err = erroreSoggetto(edit);

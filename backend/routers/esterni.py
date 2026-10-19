@@ -8,6 +8,7 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
 from database import db
+from fiscale import componi_indirizzo
 from helpers import capitalizza_nome
 from pdf_builders import build_conto_esterno_pdf, build_preventivo_esterno_pdf
 
@@ -23,9 +24,15 @@ class EsternoIn(BaseModel):
     partita_iva: Optional[str] = ""
     codice_sdi: Optional[str] = ""
     pec: Optional[str] = ""
+    codice_fiscale: Optional[str] = ""
+    indirizzo: Optional[str] = ""
+    via: Optional[str] = ""
+    cap: Optional[str] = ""
+    citta: Optional[str] = ""
+    provincia: Optional[str] = ""
 
 
-FISCALI = ("tipo_soggetto", "ragione_sociale", "partita_iva", "codice_sdi", "pec")
+FISCALI = ("tipo_soggetto", "ragione_sociale", "partita_iva", "codice_sdi", "pec", "codice_fiscale", "indirizzo", "via", "cap", "citta", "provincia")
 
 
 def _fiscali(p: EsternoIn) -> dict:
@@ -33,6 +40,9 @@ def _fiscali(p: EsternoIn) -> dict:
     d["tipo_soggetto"] = d["tipo_soggetto"] if d["tipo_soggetto"] in ("privato", "azienda") else "privato"
     if d["tipo_soggetto"] == "privato":
         d.update(ragione_sociale="", partita_iva="", codice_sdi="", pec="")
+    d["provincia"], d["codice_fiscale"] = d["provincia"].upper(), d["codice_fiscale"].upper()
+    if d["via"] or d["cap"] or d["citta"]:
+        d["indirizzo"] = componi_indirizzo(d)
     return d
 
 

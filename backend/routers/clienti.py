@@ -8,6 +8,7 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
 from database import db, TOTAL_POSTI
+from fiscale import componi_indirizzo
 from models import Cliente, ClienteCreate, PagatoUpdate
 from helpers import (
     capitalizza_nome,
@@ -154,6 +155,9 @@ async def create_cliente(payload: ClienteCreate):
     data = payload.model_dump()
     data["nome"] = capitalizza_nome(data.get("nome"))
     data["cognome"] = capitalizza_nome(data.get("cognome"))
+    if data.get("via") or data.get("cap") or data.get("citta"):
+        data["provincia"] = (data.get("provincia") or "").upper()
+        data["indirizzo"] = componi_indirizzo(data)
     if data.get("lavorazioni_extra") is not None:
         data["lavorazioni_extra"] = _sanitize_lavorazioni_extra(data["lavorazioni_extra"])
     manual_alaggio_varo = (payload.alaggio_varo_attivo and payload.destinazione_alaggio_varo == "altra")
@@ -246,6 +250,9 @@ async def update_cliente(cliente_id: str, payload: ClienteCreate):
     data = payload.model_dump()
     data["nome"] = capitalizza_nome(data.get("nome"))
     data["cognome"] = capitalizza_nome(data.get("cognome"))
+    if data.get("via") or data.get("cap") or data.get("citta"):
+        data["provincia"] = (data.get("provincia") or "").upper()
+        data["indirizzo"] = componi_indirizzo(data)
     if data.get("lavorazioni_extra") is not None:
         data["lavorazioni_extra"] = _sanitize_lavorazioni_extra(data["lavorazioni_extra"])
     dest_effettiva = payload.destinazione_alaggio_varo or existing.get("destinazione_alaggio_varo") or "marina_di_campo"
