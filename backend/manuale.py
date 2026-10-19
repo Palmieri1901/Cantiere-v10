@@ -94,6 +94,7 @@ SEZIONI = [
         ("-", "Nuovo lavoro: cliente (ricerca tra rimessaggio ed esterni o nome nuovo), descrizione, ore, articoli dal magazzino (anche con scanner), voci dal Listino con calcolo per unità (mq = lunghezza × larghezza), note."),
         ("-", "I miei lavori: elenco dei lavori inviati con stato (in attesa / approvato)."),
         ("-", "Listino magazzino con ricerca; memo dei clienti; Assistente officina (stesse schede e codici del gestionale)."),
+        ("-", "Comunicazione Capitaneria: avviso preventivo di alaggio/varo con autogrù per Marina di Campo o Marciana Marina, precompilato con i dati del cantiere; Salva (il titolare la invia dal gestionale) oppure Salva e invia via email all'ufficio; PDF e stato inviata/da inviare."),
         ("-", "Uscita: l'app chiede conferma prima di chiudere o scollegarsi."),
     ]),
     ("8. Lavorazioni esterne", [

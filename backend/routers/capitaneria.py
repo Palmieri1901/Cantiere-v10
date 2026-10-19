@@ -246,6 +246,10 @@ def _public_base(request: Request) -> str:
 
 @router.post("/capitaneria/comunicazioni/{cid}/invia-email")
 async def invia_email(cid: str, request: Request):
+    return await _invia_email(cid, request)
+
+
+async def _invia_email(cid: str, request: Request, inviata_da: str = ""):
     doc = await db.comunicazioni_capitaneria.find_one({"id": cid}, {"_id": 0})
     if not doc:
         raise HTTPException(404, "Comunicazione non trovata")
@@ -280,5 +284,49 @@ async def invia_email(cid: str, request: Request):
         attachments = [{"filename": _filename(doc), "bytes": build_comunicazione_capitaneria_pdf(doc, await _cantiere())}]
     mid = await send_email(to=to, subject=subject, html=html, attachments=attachments, from_name=(s.get("email_mittente") or "GEB Nautica").strip())
     now = datetime.now(timezone.utc).isoformat()
-    await db.comunicazioni_capitaneria.update_one({"id": cid}, {"$set": {"inviata_at": now, "inviata_a": to, "inviata_con_allegato": con_allegato}})
+    await db.comunicazioni_capitaneria.update_one({"id": cid}, {"$set": {"inviata_at": now, "inviata_a": to, "inviata_con_allegato": con_allegato, "inviata_da": inviata_da}})
     return {"ok": True, "inviata_a": to, "inviata_at": now, "email_id": mid, "con_allegato": con_allegato, "link_pdf": link}
+
+
+# ---------- App dipendenti ----------
+from fastapi import Depends  # noqa: E402
+from routers.mobile import get_dipendente  # noqa: E402
+
+mobile_router = APIRouter(prefix="/api/mobile/capitaneria")
+
+
+@mobile_router.get("/impostazioni")
+async def impostazioni_mobile(dip: dict = Depends(get_dipendente)):
+    s = await get_settings()
+    s.pop("smtp_configurato", None)
+    s["porti"] = {k: {**v, "email_impostata": bool(v.get("email")), "email": ""} for k, v in s["porti"].items()}
+    return s
+
+
+@mobile_router.get("/comunicazioni")
+async def comunicazioni_mobile(dip: dict = Depends(get_dipendente)):
+    docs = await db.comunicazioni_capitaneria.find({}, {"_id": 0, "pdf_token": 0}).sort("created_at", -1).to_list(30)
+    docs.sort(key=lambda d: (d.get("data_operazione") or "", d.get("created_at") or ""), reverse=True)
+    return docs
+
+
+@mobile_router.post("/comunicazioni")
+async def crea_comunicazione_mobile(payload: ComunicazioneIn, dip: dict = Depends(get_dipendente)):
+    _check_porto(payload.porto)
+    if not payload.alaggio and not payload.varo:
+        raise HTTPException(400, "Seleziona alaggio e/o varo")
+    now = datetime.now(timezone.utc).isoformat()
+    doc = {**payload.model_dump(), "id": str(uuid.uuid4()), "created_at": now, "updated_at": now, "inviata_at": None, "inviata_a": "", "creata_da": dip.get("nome", "")}
+    await db.comunicazioni_capitaneria.insert_one(doc)
+    doc.pop("_id", None)
+    return doc
+
+
+@mobile_router.get("/comunicazioni/{cid}/pdf")
+async def pdf_mobile(cid: str, dip: dict = Depends(get_dipendente)):
+    return await pdf_comunicazione(cid)
+
+
+@mobile_router.post("/comunicazioni/{cid}/invia-email")
+async def invia_email_mobile(cid: str, request: Request, dip: dict = Depends(get_dipendente)):
+    return await _invia_email(cid, request, inviata_da=dip.get("nome", ""))

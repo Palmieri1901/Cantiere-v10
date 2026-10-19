@@ -70,6 +70,7 @@ app.include_router(auth_router)
 app.include_router(mobile.router)
 app.include_router(assistente.mobile_router)
 app.include_router(officina.mobile_router)
+app.include_router(capitaneria.mobile_router)
 app.include_router(capitaneria.public_router)
 
 app.add_middleware(
