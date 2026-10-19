@@ -49,7 +49,13 @@ async def clienti(dip: dict = Depends(get_dipendente)):
 
 @router.get("/articoli")
 async def articoli(dip: dict = Depends(get_dipendente)):
-    return await db.articoli.find({}, {"_id": 0, "id": 1, "codice": 1, "barcode": 1, "nome": 1, "categoria": 1, "quantita": 1, "unita": 1, "unita_misura": 1, "prezzo_listino": 1}).sort("nome", 1).to_list(5000)
+    """Listino per i dipendenti: niente giacenze né prezzi netti, solo prezzo al pubblico IVA inclusa."""
+    docs = await db.articoli.find({}, {"_id": 0, "id": 1, "codice": 1, "barcode": 1, "nome": 1, "categoria": 1, "unita": 1, "unita_misura": 1, "prezzo_listino": 1, "prezzo_listino_ivato": 1}).sort("nome", 1).to_list(5000)
+    out = []
+    for d in docs:
+        ivato = float(d.get("prezzo_listino_ivato") or 0) or round(float(d.get("prezzo_listino") or 0) * 1.22, 2)
+        out.append({"id": d["id"], "codice": d.get("codice", ""), "barcode": d.get("barcode", ""), "nome": d.get("nome", ""), "categoria": d.get("categoria", ""), "unita": d.get("unita") or d.get("unita_misura") or "", "prezzo_pubblico": ivato})
+    return out
 
 
 @router.get("/tariffe")
