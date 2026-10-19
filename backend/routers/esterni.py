@@ -47,12 +47,18 @@ def _fiscali(p: EsternoIn) -> dict:
     return d
 
 
-async def crea_esterno(nome: str, telefono: str = "", note: str = "") -> dict:
+async def crea_esterno(nome: str, telefono: str = "", note: str = "", anagrafica_id: str = "") -> dict:
     nome = capitalizza_nome(nome)
     if not nome:
         raise HTTPException(400, "Nominativo obbligatorio")
     doc = {"id": str(uuid.uuid4()), "nome": nome, "telefono": telefono or "", "note": note or "",
            "created_at": datetime.now(timezone.utc).isoformat()}
+    ana = await db.anagrafica.find_one({"id": anagrafica_id}, {"_id": 0}) if anagrafica_id else None
+    if ana:
+        doc.update({k: ana.get(k) or "" for k in FISCALI})
+        doc["tipo_soggetto"] = doc["tipo_soggetto"] or "privato"
+        doc["telefono"] = doc["telefono"] or ana.get("telefono") or ana.get("cellulare") or ""
+        doc["anagrafica_id"] = anagrafica_id
     await db.clienti_esterni.insert_one(doc)
     doc.pop("_id", None)
     return doc

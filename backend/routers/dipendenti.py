@@ -38,6 +38,7 @@ class QrImport(BaseModel):
 class ApprovaIn(BaseModel):
     cliente_id: Optional[str] = None
     esterno_nome: Optional[str] = None
+    anagrafica_id: Optional[str] = None
     data: Optional[str] = None
     tipo: Optional[str] = None
     descrizione: Optional[str] = None
@@ -108,16 +109,23 @@ async def inserisci_pending(items: list, dipendente: dict, origine: str) -> int:
         if await db.lavori_pending.find_one({"client_uid": uid}):
             continue
         cid = it.get("cliente_id")
+        anagrafica_id = ""
+        if cid and str(cid).startswith("ana:"):
+            anagrafica_id, cid = cid[4:], None
         cliente = await db.clienti.find_one({"id": cid}, {"_id": 0, "nome": 1, "cognome": 1, "tipo_barca": 1}) if cid else None
         if not cliente and cid:
             est = await db.clienti_esterni.find_one({"id": cid}, {"_id": 0, "nome": 1})
             if est:
                 cliente = {"cognome": est["nome"], "nome": "", "tipo_barca": "esterno"}
+        if anagrafica_id and not it.get("cliente_nome"):
+            ana = await db.anagrafica.find_one({"id": anagrafica_id}, {"_id": 0, "nome": 1, "cognome": 1})
+            if ana:
+                it["cliente_nome"] = f"{ana.get('cognome','')} {ana.get('nome','')}".strip()
         cliente_nome = f"{cliente.get('cognome','')} {cliente.get('nome','')}".strip() if cliente else capitalizza_nome(it.get("cliente_nome") or "")
         doc = {
             "id": str(uuid.uuid4()), "client_uid": uid,
             "dipendente_id": dipendente.get("id"), "dipendente_nome": dipendente.get("nome", ""),
-            "cliente_id": cid, "cliente_nome": cliente_nome, "cliente_trovato": bool(cliente),
+            "cliente_id": cid, "cliente_nome": cliente_nome, "cliente_trovato": bool(cliente), "anagrafica_id": anagrafica_id,
             "tipo_barca": (cliente or {}).get("tipo_barca", ""),
             "data": it.get("data") or datetime.now().strftime("%Y-%m-%d"),
             "tipo": it.get("tipo") or "Riparazione",
@@ -172,10 +180,11 @@ async def approva_pending(pid: str, payload: ApprovaIn):
         raise HTTPException(404, "Lavoro in attesa non trovato")
     override = {k: v for k, v in payload.model_dump().items() if v is not None}
     esterno_nome = override.pop("esterno_nome", None)
+    anagrafica_id = override.pop("anagrafica_id", None) or p.get("anagrafica_id") or ""
     merged = {**p, **override}
     if esterno_nome:
         from routers.esterni import crea_esterno
-        est = await crea_esterno(esterno_nome)
+        est = await crea_esterno(esterno_nome, anagrafica_id=anagrafica_id)
         merged["cliente_id"] = est["id"]
         await db.lavori_pending.update_one({"id": pid}, {"$set": {"cliente_id": est["id"], "cliente_nome": est["nome"], "cliente_trovato": True, "esterno": True}})
     cid_ok = merged.get("cliente_id") and (

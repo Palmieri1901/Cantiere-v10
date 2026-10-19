@@ -23,6 +23,7 @@ import MotoreSection from "@/pages/cliente-form/MotoreSection";
 import LavorazioniExtraSection from "@/pages/cliente-form/LavorazioniExtraSection";
 import RitiroConsegnaSection, { descrRitiroConsegna } from "@/pages/cliente-form/RitiroConsegnaSection";
 import { SoggettoFiscale, erroreSoggetto } from "@/components/SoggettoFiscale";
+import { AnagraficaSuggerimenti } from "@/components/AnagraficaSuggerimenti";
 import { AnagraficaPicker } from "@/components/AnagraficaPicker";
 import { confirmDialog } from "@/components/ConfirmDialog";
 import MagazzinoPickerDialog from "@/pages/cliente-form/MagazzinoPickerDialog";
@@ -339,6 +340,7 @@ export default function ClienteForm({ open, onOpenChange, cliente, onSaved, mode
               <Field label={f.tipo_soggetto === "azienda" ? "Nome referente *" : "Nome *"}>
                 <Input value={f.nome} onChange={(e) => update("nome", e.target.value)} data-testid="input-nome" />
               </Field>
+              {!cliente?.id && <div className="col-span-2"><AnagraficaSuggerimenti query={`${f.cognome || ""} ${f.nome || ""}`} onPick={(d) => setF((s) => ({ ...s, ...d }))} testId="ana-sugg-cliente" /></div>}
               <Field label="Codice fiscale">
                 <Input value={f.codice_fiscale} onChange={(e) => update("codice_fiscale", e.target.value.toUpperCase())} maxLength={16} className="uppercase font-mono-num" data-testid="input-codice-fiscale" />
               </Field>

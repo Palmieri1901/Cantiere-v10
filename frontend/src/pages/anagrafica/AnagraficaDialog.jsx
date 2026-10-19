@@ -5,6 +5,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { SoggettoFiscale, erroreSoggetto } from "@/components/SoggettoFiscale";
+import { AnagraficaSuggerimenti } from "@/components/AnagraficaSuggerimenti";
 
 export const VUOTA = { nome: "", cognome: "", tipo_soggetto: "privato", ragione_sociale: "", partita_iva: "", codice_sdi: "", pec: "", codice_fiscale: "", indirizzo: "", via: "", cap: "", citta: "", provincia: "", nazione: "", telefono: "", cellulare: "", email: "", note: "" };
 
@@ -44,6 +45,7 @@ export default function AnagraficaDialog({ voce, onClose, onSaved }) {
           <div className="grid grid-cols-2 gap-3">
             <Campo label={azienda ? "Cognome referente" : "Cognome *"}><Input value={f.cognome} onChange={(e) => upd("cognome", e.target.value)} data-testid="ana-cognome" /></Campo>
             <Campo label={azienda ? "Nome referente" : "Nome"}><Input value={f.nome} onChange={(e) => upd("nome", e.target.value)} data-testid="ana-nome" /></Campo>
+            {!voce?.id && <div className="col-span-2"><AnagraficaSuggerimenti query={`${f.cognome} ${f.nome}`} onPick={(d) => { setF((s) => ({ ...s, ...d })); toast.info("Voce già presente in anagrafica: dati caricati, salvando verrà aggiornata"); }} testId="ana-sugg-dialog" /></div>}
             <Campo label="Codice fiscale"><Input value={f.codice_fiscale} onChange={(e) => upd("codice_fiscale", e.target.value.toUpperCase())} maxLength={16} className="uppercase font-mono-num" data-testid="ana-cf" /></Campo>
             <Campo label="Telefono"><Input value={f.telefono} onChange={(e) => upd("telefono", e.target.value)} data-testid="ana-telefono" /></Campo>
             <Campo label="Cellulare"><Input value={f.cellulare} onChange={(e) => upd("cellulare", e.target.value)} data-testid="ana-cellulare" /></Campo>

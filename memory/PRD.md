@@ -872,3 +872,7 @@ Backend spezzato in moduli (`server.py` ora 112 righe, prima 2761):
 ## 2026-10-19 — Fix dialog fatturazione
 - I click dentro il dialog 'Dati per la fatturazione' non aprono più la scheda lavori del cliente esterno (stopPropagation sul wrapper InviaFatturazioneButton).
 - Il pulsante Salva elenca i campi mancanti per nome; placeholder 'es. …' per non confondere con valori reali.
+
+## 2026-10-19 — Anagrafica generale come riferimento per i nomi
+- Componente `AnagraficaSuggerimenti`: scrivendo cognome/nome in Rimessaggio (nuovo cliente), Esterni (nuovo), Nuova anagrafica e Approva lavoro → mostra le voci già in Anagrafica (un tap precompila) oppure avvisa 'verrà creato come nuovo cliente'.
+- PWA: `/api/mobile/clienti` include le voci di Anagrafica non già clienti (id `ana:<id>`); il lavoro inviato porta `anagrafica_id` e in approvazione il cliente esterno nasce con dati fiscali/indirizzo copiati (`crea_esterno(anagrafica_id=)`).

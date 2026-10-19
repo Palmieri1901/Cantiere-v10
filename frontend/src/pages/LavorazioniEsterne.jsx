@@ -14,6 +14,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PdfPreviewOverlay } from "@/components/PdfPreviewOverlay";
 import { openBlob } from "@/pages/ddt/common";
 import { SoggettoFiscale, erroreSoggetto } from "@/components/SoggettoFiscale";
+import { AnagraficaSuggerimenti } from "@/components/AnagraficaSuggerimenti";
 import { AnagraficaPicker } from "@/components/AnagraficaPicker";
 import { InviaFatturazioneButton } from "@/components/InviaFatturazioneButton";
 
@@ -95,6 +96,7 @@ export default function LavorazioniEsterne() {
             <Input value={nome} onChange={(e) => setNome(e.target.value)} placeholder={nuovo.tipo_soggetto === "azienda" ? "Referente (es. Rossi Mario)" : "Nominativo (es. Rossi Mario)"} onKeyDown={(e) => e.key === "Enter" && add()} data-testid="input-esterno-nome" />
             <Button onClick={add} className="bg-primary hover:bg-primary/90" data-testid="btn-add-esterno"><Plus className="w-4 h-4 mr-1" /> Aggiungi</Button>
           </div>
+          <AnagraficaSuggerimenti query={nome} onPick={daAnagrafica} testId="ana-sugg-esterno" />
         </div>
       </Card>
 

@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { ClientePicker } from "./ClientePicker";
 import { ArticoloPicker } from "@/components/ArticoloPicker";
 import { ListinoPicker } from "@/components/ListinoPicker";
+import { AnagraficaSuggerimenti } from "@/components/AnagraficaSuggerimenti";
 import { X, Plus } from "lucide-react";
 
 const TIPI = ["Antivegetativa", "Manutenzione motore", "Riparazione", "Pulizia", "Elettrico", "Altro"];
@@ -31,7 +32,7 @@ export default function ApprovaDialog({ item, onClose, onDone }) {
     api.get("/tariffe").then((r) => Number(r.data.costo_orario_manodopera) || 0).catch(() => 0).then((rate) => {
       setTariffa(rate);
       const costo = item.costo || +(Number(item.ore || 0) * rate).toFixed(2);
-      setF({ cliente_id: item.cliente_id || "", esterno_nome: item.cliente_nome || "", data: item.data, tipo: TIPI.includes(item.tipo) ? item.tipo : "Altro", descrizione: item.descrizione, ore: item.ore, costo, materiali: item.materiali || "",
+      setF({ cliente_id: item.cliente_id || "", esterno_nome: item.cliente_nome || "", anagrafica_id: item.anagrafica_id || "", data: item.data, tipo: TIPI.includes(item.tipo) ? item.tipo : "Altro", descrizione: item.descrizione, ore: item.ore, costo, materiali: item.materiali || "",
         articoli_magazzino: (item.articoli_magazzino || []).map((a) => ({ articolo_id: a.articolo_id, quantita: a.quantita ?? 1, nome: a.nome })),
         articoli_liberi: (item.articoli_liberi || []).map((a) => ({ descrizione: a.descrizione || "", quantita: a.quantita ?? 1, prezzo_unitario: a.prezzo_unitario ?? "", unita: a.unita || "" })) });
     });
@@ -61,7 +62,7 @@ export default function ApprovaDialog({ item, onClose, onDone }) {
       const body = { ...rest, ore: Number(f.ore) || 0, costo: Number(f.costo) || 0,
         articoli_magazzino: f.articoli_magazzino.map((a) => ({ articolo_id: a.articolo_id, quantita: Number(a.quantita) || 1 })),
         articoli_liberi: f.articoli_liberi.filter((a) => a.descrizione.trim()).map((a) => ({ descrizione: a.descrizione.trim(), quantita: Number(a.quantita) || 1, prezzo_unitario: Number(a.prezzo_unitario) || 0, unita: a.unita || "" })) };
-      if (usaEsterno) { body.esterno_nome = esterno_nome.trim(); delete body.cliente_id; }
+      if (usaEsterno) { body.esterno_nome = esterno_nome.trim(); body.anagrafica_id = f.anagrafica_id || item.anagrafica_id || null; delete body.cliente_id; }
       await api.post(`/lavori-pending/${item.id}/approva`, body);
       toast.success(usaEsterno ? "Cliente esterno creato e lavoro salvato" : "Lavoro approvato e aggiunto alla scheda cliente");
       window.dispatchEvent(new Event("pending-changed"));
@@ -91,7 +92,10 @@ export default function ApprovaDialog({ item, onClose, onDone }) {
                 <button type="button" onClick={() => setModo("nuovo")} className={`px-2.5 py-1.5 rounded-md border ${modo === "nuovo" ? "bg-primary text-primary-foreground border-primary" : "bg-card"}`} data-testid="btn-modo-esterno">Nuovo cliente esterno</button>
               </div>
               {modo === "nuovo" ? (
-                <div className="space-y-1.5"><L>Nominativo</L><Input value={f.esterno_nome} onChange={(e) => set("esterno_nome", e.target.value)} placeholder="Es. Rossi Mario" data-testid="input-esterno-nome" /></div>
+                <div className="space-y-1.5"><L>Nominativo</L><Input value={f.esterno_nome} onChange={(e) => setF((s) => ({ ...s, esterno_nome: e.target.value, anagrafica_id: "" }))} placeholder="Es. Rossi Mario" data-testid="input-esterno-nome" />
+                  {f.anagrafica_id ? <div className="text-[11px] text-emerald-700" data-testid="approva-ana-collegata">Dati presi dall'Anagrafica generale: il cliente esterno sarà creato con indirizzo e dati fiscali.</div>
+                    : <AnagraficaSuggerimenti query={f.esterno_nome} onPick={(d, a) => setF((s) => ({ ...s, esterno_nome: `${a.cognome} ${a.nome}`.trim(), anagrafica_id: a.id }))} testId="ana-sugg-approva" />}
+                </div>
               ) : (
                 <ClientePicker clienti={clienti} esterni={esterni} value={f.cliente_id} onChange={(v) => set("cliente_id", v)} suggerimento={item.cliente_nome} />
               )}
