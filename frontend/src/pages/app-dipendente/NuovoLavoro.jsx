@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useState } from "react";
 import { mobileStore, mobileApi, uid } from "@/lib/mobileStore";
+import { fmtEuro } from "@/lib/api";
 import HallWidget from "@/components/hall/HallWidget";
 import { Button } from "@/components/ui/button";
 import { ArticoloPicker } from "@/components/ArticoloPicker";
@@ -128,14 +129,17 @@ export default function NuovoLavoro({ onSaved }) {
             const art = articoli.find((x) => x.id === a.articolo_id);
             return (
               <div key={a.articolo_id} className="flex items-center gap-2 text-sm" data-testid={`mobile-art-${i}`}>
-                <div className="flex-1 font-medium text-base leading-tight whitespace-normal">{art?.nome}</div>
+                <div className="flex-1 min-w-0">
+                  <div className="font-medium text-base leading-tight whitespace-normal">{art?.nome}</div>
+                  <div className="text-xs text-muted-foreground font-mono-num" data-testid={`mobile-art-prezzo-${i}`}>{fmtEuro(art?.prezzo_pubblico || 0)} cad.{(Number(a.quantita) || 0) > 1 ? ` · tot. ${fmtEuro((art?.prezzo_pubblico || 0) * Number(a.quantita))}` : ""} <span className="font-sans">IVA incl.</span></div>
+                </div>
                 <Input type="number" inputMode="decimal" min="0.5" step="0.5" value={a.quantita} onChange={(e) => set("articoli", f.articoli.map((x, j) => j === i ? { ...x, quantita: e.target.value } : x))} className="w-20 h-10 text-right" />
                 <button onClick={() => set("articoli", f.articoli.filter((_, j) => j !== i))}><X className="w-4 h-4 text-destructive" /></button>
               </div>
             );
           })}
           <div className="flex gap-2">
-            <div className="flex-1"><ArticoloPicker articoli={articoli} exclude={f.articoli.map((a) => a.articolo_id)} onSelect={(a) => addArt(a.id)} showPrezzo={false} placeholder="+ Cerca articolo (codice o nome)…" testId="select-mobile-articolo" /></div>
+            <div className="flex-1"><ArticoloPicker articoli={articoli} exclude={f.articoli.map((a) => a.articolo_id)} onSelect={(a) => addArt(a.id)} showPrezzo placeholder="+ Cerca articolo (codice o nome)…" testId="select-mobile-articolo" /></div>
             <BarcodeButton label="" size="icon" className="h-10 w-10 shrink-0" onCode={scansiona} testId="btn-mobile-barcode" />
           </div>
         </div>

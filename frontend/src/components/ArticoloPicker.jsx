@@ -24,7 +24,7 @@ export function ArticoloPicker({ articoli = [], onSelect, placeholder = "Cerca a
           {trovati.map((a) => (
             <button key={a.id} type="button" onClick={() => { onSelect(a); setQ(""); }} className="w-full text-left px-3 py-2.5 hover:bg-muted text-sm flex items-center justify-between gap-3" data-testid={`${testId}-opt-${a.id}`}>
               <span className="font-medium text-base leading-tight whitespace-normal"><Package className="w-3.5 h-3.5 inline mr-1.5 text-primary" />{a.nome}</span>
-              {showPrezzo && <span className="font-mono-num text-xs shrink-0 text-muted-foreground">{fmtEuro(a.prezzo_listino || 0)}</span>}
+              {showPrezzo && <span className="font-mono-num text-xs shrink-0 text-muted-foreground">{fmtEuro(a.prezzo_pubblico ?? a.prezzo_listino ?? 0)}</span>}
             </button>
           ))}
           {extra && extra(q.trim(), () => setQ(""))}
