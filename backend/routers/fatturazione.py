@@ -155,6 +155,87 @@ class InviaIn(BaseModel):
     anno: Optional[int] = None
 
 
+CAMPI_FISCALI = ("tipo_soggetto", "ragione_sociale", "nome", "cognome", "codice_fiscale", "partita_iva", "codice_sdi", "pec", "indirizzo", "email", "telefono", "cellulare")
+
+
+def _mancanti(s: dict) -> List[str]:
+    """Campi obbligatori per fatturare: privato = nome, cognome, indirizzo, CF; azienda = ragione sociale, indirizzo, P.IVA, SDI."""
+    g = lambda k: str(s.get(k) or "").strip()  # noqa: E731
+    if (s.get("tipo_soggetto") or "privato") == "azienda":
+        req = [("ragione_sociale", "Ragione sociale"), ("indirizzo", "Indirizzo"), ("partita_iva", "Partita IVA"), ("codice_sdi", "Codice SDI")]
+    else:
+        req = [("cognome", "Cognome"), ("nome", "Nome"), ("indirizzo", "Indirizzo"), ("codice_fiscale", "Codice fiscale")]
+    return [lbl for k, lbl in req if not g(k)]
+
+
+async def _soggetto_doc(tipo: str, id_: str):
+    """Ritorna (collezione, documento soggetto) per il tipo di invio."""
+    if tipo == "cliente":
+        return "clienti", await db.clienti.find_one({"id": id_}, {"_id": 0})
+    if tipo == "esterno":
+        return "clienti_esterni", await db.clienti_esterni.find_one({"id": id_}, {"_id": 0})
+    if tipo == "preventivo_esterno":
+        prev = await db.preventivi_esterni.find_one({"id": id_}, {"_id": 0})
+        return "clienti_esterni", (await db.clienti_esterni.find_one({"id": prev["esterno_id"]}, {"_id": 0}) if prev else None)
+    raise HTTPException(400, "Tipo non valido")
+
+
+def _split_nome(doc: dict) -> dict:
+    """I clienti esterni hanno solo 'nome': prova a separare cognome e nome se mancano."""
+    s = dict(doc)
+    if not s.get("cognome") and s.get("nome") and " " in s["nome"].strip():
+        parti = s["nome"].strip().split()
+        s["cognome"], s["nome"] = parti[0], " ".join(parti[1:])
+    return s
+
+
+@router.post("/verifica")
+async def verifica(p: InviaIn):
+    """Controlla che il soggetto sia completo prima dell'invio; indica se è già in Anagrafica generale."""
+    _, doc = await _soggetto_doc(p.tipo, p.id)
+    if not doc:
+        raise HTTPException(404, "Soggetto non trovato")
+    s = _split_nome(doc)
+    sogg = {k: str(s.get(k) or "") for k in CAMPI_FISCALI}
+    sogg["tipo_soggetto"] = sogg["tipo_soggetto"] or "privato"
+    from routers.anagrafica import _trova_esistente, _norm
+    try:
+        in_ana = bool(await _trova_esistente(_norm(sogg)))
+    except HTTPException:
+        in_ana = False
+    return {"ok": not _mancanti(sogg), "mancanti": _mancanti(sogg), "soggetto": sogg, "in_anagrafica": in_ana}
+
+
+class CompletaIn(InviaIn):
+    dati: dict
+    registra_anagrafica: bool = True
+
+
+@router.post("/completa-dati")
+async def completa_dati(p: CompletaIn):
+    """Salva i dati fiscali sul cliente (rimessaggio o esterno) e, se richiesto, in Anagrafica generale."""
+    coll, doc = await _soggetto_doc(p.tipo, p.id)
+    if not doc:
+        raise HTTPException(404, "Soggetto non trovato")
+    dati = {k: str(p.dati.get(k) or "").strip() for k in CAMPI_FISCALI}
+    dati["codice_fiscale"], dati["codice_sdi"] = dati["codice_fiscale"].upper(), dati["codice_sdi"].upper()
+    mancanti = _mancanti(dati)
+    if mancanti:
+        raise HTTPException(400, "Dati incompleti: " + ", ".join(mancanti))
+    upd = dict(dati)
+    if coll == "clienti_esterni":
+        upd["nome"] = dati["ragione_sociale"] if dati["tipo_soggetto"] == "azienda" and dati["ragione_sociale"] else f"{dati['cognome']} {dati['nome']}".strip()
+        upd["cognome_ref"], upd["nome_ref"] = dati["cognome"], dati["nome"]
+        upd.pop("cognome", None)
+    upd["updated_at"] = datetime.now(timezone.utc).isoformat()
+    await db[coll].update_one({"id": doc["id"]}, {"$set": upd})
+    ana = None
+    if p.registra_anagrafica:
+        from routers.anagrafica import upsert_anagrafica
+        ana = await upsert_anagrafica(dati, "fatturazione")
+    return {"ok": True, "anagrafica": ana}
+
+
 @router.post("/invia")
 async def invia(p: InviaIn):
     c = await _cfg()
@@ -192,6 +273,10 @@ async def invia(p: InviaIn):
     righe = [r for r in righe if r.get("_nota") or r["net_price"] > 0]
     if not any(not r.get("_nota") for r in righe):
         raise HTTPException(400, "Nessuna voce con importo da fatturare")
+    manc = _mancanti(_split_nome(sogg))
+    if manc:
+        raise HTTPException(422, "Dati del cliente incompleti per la fatturazione: " + ", ".join(manc))
+    sogg = _split_nome(sogg)
     entity_id = await _entita(tok, cid, sogg, nome)
     items = [{"name": r["name"], "description": r["description"], "qty": r["qty"], "net_price": r["net_price"], "vat": {"id": c["vat_id"]}} for r in righe]
     data = {"type": "invoice", "entity": {"id": entity_id}, "date": datetime.now().strftime("%Y-%m-%d"), "subject": oggetto[:255], "items_list": items,

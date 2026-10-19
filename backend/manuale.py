@@ -143,6 +143,7 @@ SEZIONI = [
         ("1", "Scegli l'azienda (se ne hai più di una). L'aliquota IVA 22% viene rilevata automaticamente."),
         ("#", "Inviare un documento"),
         ("1", "Premi Invia a fatturazione sul dettaglio del cliente in Rimessaggio, sulla riga del cliente esterno (per l'anno scelto) o su un preventivo esterno."),
+        ("1", "Controllo dati: il documento parte solo se il cliente è completo. Privato: nome, cognome, indirizzo, codice fiscale. Azienda: ragione sociale, indirizzo, P.IVA, codice SDI. Se manca qualcosa (o il contatto non è in Anagrafica generale) si apre la finestra per completare i dati, con la spunta \"Registra in Anagrafica generale\" già attiva."),
         ("1", "Conferma: il cliente viene creato o aggiornato su Fatture in Cloud (P.IVA, CF, SDI, PEC) e la bozza viene creata con tutte le righe separate."),
         ("1", "Accanto al tasto compare Bozza emessa · data con il link \"apri\"; il tasto diventa Reinvia (crea una nuova bozza)."),
     ]),

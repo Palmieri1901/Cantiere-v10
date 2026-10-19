@@ -4,11 +4,13 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Receipt, ExternalLink, CheckCircle2 } from "lucide-react";
 import { confirmDialog } from "@/components/ConfirmDialog";
+import CompletaDatiFiscaliDialog from "@/components/CompletaDatiFiscaliDialog";
 
 // Tasto "Invia a fatturazione" + stato bozza emessa su Fatture in Cloud
 export function InviaFatturazioneButton({ tipo, id, anno, nome, size = "sm", variant = "outline", className = "", testId }) {
   const [busy, setBusy] = useState(false);
   const [esito, setEsito] = useState(null);
+  const [verifica, setVerifica] = useState(null);
   useEffect(() => {
     let on = true;
     api.get("/fatturazione/stato-documento", { params: { tipo, rif_id: id, anno: anno || undefined } })
@@ -17,6 +19,13 @@ export function InviaFatturazioneButton({ tipo, id, anno, nome, size = "sm", var
   }, [tipo, id, anno]);
   const invia = async (e) => {
     e?.stopPropagation?.();
+    let v;
+    try { v = (await api.post("/fatturazione/verifica", { tipo, id, anno: anno || null })).data; }
+    catch (err) { toast.error(err.response?.data?.detail || "Verifica dati non riuscita"); return; }
+    if (!v.ok || !v.in_anagrafica) { setVerifica(v); return; }
+    await conferma();
+  };
+  const conferma = async () => {
     const gia = esito ? "\nATTENZIONE: una bozza risulta già emessa; verrà creata una nuova bozza." : "";
     if (!(await confirmDialog(`Creare su Fatture in Cloud una bozza di fattura per "${nome}"${anno ? ` (anno ${anno})` : ""}?\nIl cliente verrà creato o aggiornato; la fattura resterà in bozza da controllare.${gia}`, { title: "Invia a fatturazione", okLabel: "Invia", danger: false }))) return;
     setBusy(true);
@@ -36,6 +45,7 @@ export function InviaFatturazioneButton({ tipo, id, anno, nome, size = "sm", var
         </span>
       )}
       <Button size={size} variant={variant} onClick={invia} disabled={busy} className={className} data-testid={testId || `btn-fattura-${tipo}-${id}`}><Receipt className="w-3.5 h-3.5 mr-1" /> {busy ? "Invio…" : esito ? "Reinvia a fatturazione" : "Invia a fatturazione"}</Button>
+      {verifica && <CompletaDatiFiscaliDialog open onOpenChange={(o) => { if (!o) setVerifica(null); }} tipo={tipo} id={id} anno={anno || null} verifica={verifica} onCompletato={() => { setVerifica(null); conferma(); }} />}
     </span>
   );
 }
