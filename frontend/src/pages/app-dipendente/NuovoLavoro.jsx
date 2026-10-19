@@ -138,8 +138,8 @@ export default function NuovoLavoro({ onSaved }) {
               </div>
             );
           })}
-          <div className="flex gap-2">
-            <div className="flex-1"><ArticoloPicker articoli={articoli} exclude={f.articoli.map((a) => a.articolo_id)} onSelect={(a) => addArt(a.id)} showPrezzo placeholder="+ Cerca articolo (codice o nome)…" testId="select-mobile-articolo" /></div>
+          <div className="flex gap-2 items-end">
+            <div className="flex-1"><ArticoloPicker articoli={articoli} exclude={f.articoli.map((a) => a.articolo_id)} onSelect={(a) => addArt(a.id)} showPrezzo filtri placeholder="+ Cerca articolo (codice o nome)…" testId="select-mobile-articolo" /></div>
             <BarcodeButton label="" size="icon" className="h-10 w-10 shrink-0" onCode={scansiona} testId="btn-mobile-barcode" />
           </div>
         </div>
