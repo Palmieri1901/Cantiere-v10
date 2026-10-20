@@ -27,6 +27,7 @@ import AppDipendente from "@/pages/AppDipendente";
 import Login from "@/pages/Login";
 import RecuperoPin from "@/pages/RecuperoPin";
 import Capitaneria from "@/pages/Capitaneria";
+import LavagnaPage from "@/pages/LavagnaPage";
 import Mezzi from "@/pages/Mezzi";
 import Calendario from "@/pages/Calendario";
 import Anagrafica from "@/pages/Anagrafica";
@@ -95,6 +96,7 @@ function App() {
                 <Route path="/esterni" element={<LavorazioniEsterne />} />
                 <Route path="/servizio" element={<DocumentiServizio />} />
                 <Route path="/capitaneria" element={<Capitaneria />} />
+                <Route path="/lavagna" element={<LavagnaPage />} />
                 <Route path="/mezzi" element={<Mezzi />} />
                 <Route path="/calendario" element={<Calendario />} />
                 <Route path="*" element={<Navigate to="/" replace />} />

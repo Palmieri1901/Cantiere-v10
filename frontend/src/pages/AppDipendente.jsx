@@ -8,9 +8,10 @@ import Listino from "@/pages/app-dipendente/Listino";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { confirmDialog } from "@/components/ConfirmDialog";
-import { RefreshCw, LogOut, Wifi, WifiOff, Sailboat, Home, ClipboardPlus, Package, Send, Wrench, Anchor } from "lucide-react";
+import { RefreshCw, LogOut, Wifi, WifiOff, Sailboat, Home, ClipboardPlus, Package, Send, Wrench, Anchor, ClipboardList } from "lucide-react";
 import ChatOfficina from "@/pages/officina/ChatOfficina";
 import CapitaneriaMobile from "@/pages/app-dipendente/CapitaneriaMobile";
+import { Lavagna } from "@/components/Lavagna";
 import AppLock from "@/components/AppLock";
 import { resetSblocco } from "@/lib/passkey";
 
@@ -98,11 +99,12 @@ export default function AppDipendente() {
         {view === "listino" && <Listino />}
         {view === "officina" && <ChatOfficina client={mobileApi()} basePath="/officina" compact autore={mobileStore.getNome()} />}
         {view === "capitaneria" && <CapitaneriaMobile />}
+        {view === "lavagna" && <div className="space-y-3" data-testid="lavagna-mobile"><h2 className="font-display text-2xl font-semibold flex items-center gap-2"><ClipboardList className="w-6 h-6 text-primary" /> Lavagna</h2><Lavagna client={mobileApi()} basePath="/lavagna" compact /></div>}
         {view === "coda" && <Coda coda={coda} setCoda={salvaCoda} onSync={sincronizza} syncing={syncing} online={online} onModifica={(x) => { setInModifica(x); setView("nuovo"); }} />}
       </main>
 
-      <nav className="fixed bottom-0 left-0 right-0 max-w-lg mx-auto grid grid-cols-6 border-t border-border/60 bg-card">
-        {[["home", Home, "Home"], ["nuovo", ClipboardPlus, "Lavoro"], ["listino", Package, "Listino"], ["officina", Wrench, "Officina"], ["capitaneria", Anchor, "Capitan."], ["coda", Send, "Invia"]].map(([id, Icon, label]) => (
+      <nav className="fixed bottom-0 left-0 right-0 max-w-lg mx-auto grid grid-cols-7 border-t border-border/60 bg-card">
+        {[["home", Home, "Home"], ["nuovo", ClipboardPlus, "Lavoro"], ["listino", Package, "Listino"], ["officina", Wrench, "Officina"], ["lavagna", ClipboardList, "Lavagna"], ["capitaneria", Anchor, "Capitan."], ["coda", Send, "Invia"]].map(([id, Icon, label]) => (
           <button key={id} onClick={() => setView(id)} className={`py-2 flex flex-col items-center gap-0.5 text-[10px] font-medium relative ${view === id ? "text-primary" : "text-muted-foreground"}`} data-testid={`tab-${id === "nuovo" ? "nuovo-lavoro" : id}`}>
             <Icon className="w-5 h-5" />{label}
             {id === "coda" && pendenti > 0 && <span className="absolute top-1 right-1/4 min-w-4 h-4 px-1 rounded-full bg-primary text-primary-foreground text-[10px] grid place-items-center" data-testid="coda-badge">{pendenti}</span>}

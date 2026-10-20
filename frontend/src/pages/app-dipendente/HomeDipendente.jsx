@@ -1,5 +1,5 @@
 import { mobileStore } from "@/lib/mobileStore";
-import { ClipboardPlus, Package, Send, ChevronRight, Wrench, Anchor } from "lucide-react";
+import { ClipboardPlus, Package, Send, ChevronRight, Wrench, Anchor, ClipboardList } from "lucide-react";
 
 const saluto = () => { const h = new Date().getHours(); return h < 13 ? "Buongiorno" : h < 18 ? "Buon pomeriggio" : "Buonasera"; };
 
@@ -10,6 +10,7 @@ export default function HomeDipendente({ pendenti, onScegli }) {
     { id: "listino", icon: Package, titolo: "Listino magazzino", desc: "Cerca articoli per codice o descrizione, prezzo al pubblico", testId: "home-listino" },
     { id: "officina", icon: Wrench, titolo: "Assistente officina", desc: "Codici errore, sintomi e dati tecnici dalle schede del cantiere", testId: "home-officina" },
     { id: "capitaneria", icon: Anchor, titolo: "Comunicazione Capitaneria", desc: "Avviso preventivo di alaggio/varo con autogrù: compila, PDF e invio email", testId: "home-capitaneria" },
+    { id: "lavagna", icon: ClipboardList, titolo: "Lavagna", desc: "Messaggi per tutti: manca un articolo, commissioni da fare, memo", testId: "home-lavagna" },
     { id: "coda", icon: Send, titolo: "Da inviare", desc: pendenti > 0 ? `${pendenti} ${pendenti === 1 ? "lavoro" : "lavori"} da inviare al cantiere` : "Nessun lavoro in attesa", badge: pendenti, testId: "home-coda" },
   ];
   return (
