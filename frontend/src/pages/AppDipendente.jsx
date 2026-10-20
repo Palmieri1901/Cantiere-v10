@@ -22,6 +22,24 @@ export default function AppDipendente() {
   const [inModifica, setInModifica] = useState(null);
   const [syncing, setSyncing] = useState(false);
   const [view, setView] = useState("home");
+  const [nuoviLavagna, setNuoviLavagna] = useState(0);
+
+  const controllaLavagna = async () => {
+    try {
+      const r = await mobileApi().get("/lavagna");
+      const ultima = localStorage.getItem("geb_lavagna_vista") || "";
+      setNuoviLavagna((r.data || []).filter((m) => !m.fatto && m.created_at > ultima).length);
+    } catch { /* offline */ }
+  };
+  useEffect(() => {
+    if (!logged) return;
+    controllaLavagna();
+    const t = setInterval(controllaLavagna, 60000);
+    return () => clearInterval(t);
+  }, [logged]);
+  useEffect(() => {
+    if (view === "lavagna") { localStorage.setItem("geb_lavagna_vista", new Date().toISOString()); setNuoviLavagna(0); }
+  }, [view]);
 
   useEffect(() => {
     const on = () => setOnline(true), off = () => setOnline(false);
@@ -93,7 +111,7 @@ export default function AppDipendente() {
       </header>
 
       <main className="flex-1 p-4 pb-24">
-        {view === "home" && <HomeDipendente pendenti={pendenti} onScegli={setView} />}
+        {view === "home" && <HomeDipendente pendenti={pendenti} nuoviLavagna={nuoviLavagna} onScegli={setView} />}
         {view === "nuovo" && <NuovoLavoro key={inModifica?.client_uid || "nuovo"} iniziale={inModifica} onAnnulla={() => { setInModifica(null); setView("coda"); }}
           onSaved={(l) => { const esiste = coda.some((x) => x.client_uid === l.client_uid); salvaCoda(esiste ? coda.map((x) => x.client_uid === l.client_uid ? l : x) : [l, ...coda]); toast.success(esiste ? "Lavoro aggiornato" : "Lavoro salvato sul telefono"); setInModifica(null); setView("coda"); }} />}
         {view === "listino" && <Listino />}
@@ -108,6 +126,7 @@ export default function AppDipendente() {
           <button key={id} onClick={() => setView(id)} className={`py-2 flex flex-col items-center gap-0.5 text-[10px] font-medium relative ${view === id ? "text-primary" : "text-muted-foreground"}`} data-testid={`tab-${id === "nuovo" ? "nuovo-lavoro" : id}`}>
             <Icon className="w-5 h-5" />{label}
             {id === "coda" && pendenti > 0 && <span className="absolute top-1 right-1/4 min-w-4 h-4 px-1 rounded-full bg-primary text-primary-foreground text-[10px] grid place-items-center" data-testid="coda-badge">{pendenti}</span>}
+            {id === "lavagna" && nuoviLavagna > 0 && <span className="absolute top-1 right-1/4 min-w-4 h-4 px-1 rounded-full bg-rose-600 text-white text-[10px] grid place-items-center animate-pulse" data-testid="lavagna-badge">{nuoviLavagna}</span>}
           </button>
         ))}
       </nav>

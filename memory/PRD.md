@@ -890,3 +890,6 @@ Backend spezzato in moduli (`server.py` ora 112 righe, prima 2761):
 ## 2026-10-20 — Lavagna condivisa
 - Backend `routers/lavagna.py`: `/api/lavagna` (gestionale) e `/api/mobile/lavagna` (app, X-Api-Key) GET/POST/PUT/DELETE; collezione `lavagna` {testo, tipo memo|manca|commissione|urgente, fatto, autore, modificato_da, fatto_da}. Tutti possono modificare/cancellare.
 - Frontend: componente `components/Lavagna.jsx` riusato in pagina `/lavagna` (menu + tile Home con contatore `stats.lavagna`) e nella PWA (tab Lavagna + voce Home).
+
+## 2026-10-20 — Badge nuovi messaggi Lavagna (PWA)
+- AppDipendente controlla `/mobile/lavagna` al login e ogni 60s; conta i messaggi non fatti con created_at > `localStorage.geb_lavagna_vista`; badge rosso sul tab e sulla voce Home; aprendo la Lavagna la data visita si aggiorna.
