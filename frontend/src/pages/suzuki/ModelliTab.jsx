@@ -68,14 +68,14 @@ export default function ModelliTab() {
         }} data-testid="btn-seed-listino">
           <Download className="w-4 h-4 mr-2" /> Popola listino 2025-2026
         </Button>
-        <Button variant="outline" onClick={() => window.open(`${API}/suzuki/listino.pdf`, "_blank")} data-testid="btn-pdf-listino">
+        <Button variant="outline" onClick={() => window.open(`${API}/suzuki/listino.pdf?v=${Date.now()}`, "_blank")} data-testid="btn-pdf-listino">
           <FileText className="w-4 h-4 mr-2" /> Listino pubblico
         </Button>
         <ListinoConcessionarioButton />
         <Button variant="outline" onClick={() => setOfferteOpen(true)} className="border-orange-500 text-orange-700 hover:bg-orange-50 hover:text-orange-800" data-testid="btn-offerte">
           <Tag className="w-4 h-4 mr-2" /> Motori in offerta
         </Button>
-        <Button variant="outline" onClick={() => window.open(`${API}/suzuki/caratteristiche.pdf`, "_blank")} data-testid="btn-pdf-caratt">
+        <Button variant="outline" onClick={() => window.open(`${API}/suzuki/caratteristiche.pdf?v=${Date.now()}`, "_blank")} data-testid="btn-pdf-caratt">
           <FileText className="w-4 h-4 mr-2" /> PDF Caratteristiche
         </Button>
         <LogoPdfButton />

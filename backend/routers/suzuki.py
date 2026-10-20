@@ -26,6 +26,8 @@ from routers import suzuki_seed
 router = APIRouter(prefix="/suzuki", tags=["Suzuki"])
 
 # ---------------------------------------------------------------------------
+_NO_CACHE = {"Cache-Control": "no-store, no-cache, must-revalidate", "Pragma": "no-cache", "Expires": "0"}
+
 # LOGO INTESTAZIONE PDF (personalizzabile dall'utente)
 # ---------------------------------------------------------------------------
 STATIC_DIR = Path(__file__).resolve().parent.parent / "static"
@@ -756,7 +758,7 @@ async def _build_listino_pdf(concessionario: bool = False, sc1: float = 10.0, sc
     buf.seek(0)
     filename = f"listino_suzuki_{'concessionario' if concessionario else 'pubblico'}_2025-2026.pdf"
     return StreamingResponse(buf, media_type="application/pdf",
-                             headers={"Content-Disposition": f'inline; filename="{filename}"'})
+                             headers={"Content-Disposition": f'inline; filename="{filename}"', **_NO_CACHE})
 
 
 @router.get("/caratteristiche.pdf")
@@ -849,7 +851,7 @@ async def caratteristiche_pdf():
     doc.build(story)
     buf.seek(0)
     return StreamingResponse(buf, media_type="application/pdf",
-                             headers={"Content-Disposition": 'inline; filename="caratteristiche_suzuki_2025-2026.pdf"'})
+                             headers={"Content-Disposition": 'inline; filename="caratteristiche_suzuki_2025-2026.pdf"', **_NO_CACHE})
 
 
 # ---------------------------------------------------------------------------

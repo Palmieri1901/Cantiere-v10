@@ -883,3 +883,6 @@ Backend spezzato in moduli (`server.py` ora 112 righe, prima 2761):
 ## 2026-10-19 — Fix Scan DDT
 - U.M. lette dall'AI normalizzate (`normalizzaUm`: PZ/NR/N./CAD→pz, CONF/SC→cf, L→lt, M/ML→mt, M2→mq, RT→rotolo…); Select U.M. non riceve più valori fuori lista.
 - Colonna Contenuto ora facoltativa anche per cf/rotolo/latta: se vuota il prezzo resta per unità così com'è (backend non blocca più l'import).
+
+## 2026-10-19 — Fix PDF Suzuki non aggiornati
+- Causa: cache browser su URL fisso. Aggiunti header no-cache a listino/caratteristiche PDF e `?v=timestamp` nei link (ModelliTab, ListinoConcessionarioEditor).

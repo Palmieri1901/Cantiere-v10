@@ -131,7 +131,7 @@ export default function ListinoConcessionarioEditor({ open, onClose }) {
     try {
       await api.put("/suzuki/listino-conc-overrides", buildPayload());
       const params = new URLSearchParams({ sc1: String(defaultSc1), sc2: String(defaultSc2), _t: String(Date.now()) });
-      window.open(`${API}/suzuki/listino-concessionario.pdf?${params.toString()}`, "_blank");
+      window.open(`${API}/suzuki/listino-concessionario.pdf?${params.toString()}&v=${Date.now()}`, "_blank");
       toast.success("PDF aperto in nuova scheda");
     } catch (e) {
       toast.error(e.response?.data?.detail || "Errore salvataggio");
