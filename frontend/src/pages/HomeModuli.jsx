@@ -1,6 +1,8 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ModuleTile } from "@/components/ModuleTile";
 import { Button } from "@/components/ui/button";
+import { api } from "@/lib/api";
+import { toast } from "sonner";
 import { ArrowLeft, ArrowRight, Check, GripVertical, Move, RotateCcw } from "lucide-react";
 
 const KEY = "geb_home_ordine";
@@ -11,14 +13,22 @@ export const ordina = (tiles, ordine) => {
   return [...tiles].sort((a, b) => (pos.has(a.key) ? pos.get(a.key) : 999 + tiles.indexOf(a)) - (pos.has(b.key) ? pos.get(b.key) : 999 + tiles.indexOf(b)));
 };
 
-// Griglia dei riquadri Home con riordino (trascina o frecce); ordine salvato nel browser
-export function HomeModuli({ tiles }) {
+// Griglia dei riquadri Home con riordino (trascina o frecce); ordine salvato nel cantiere (condiviso PC/telefono) con copia locale
+export function HomeModuli({ tiles, ordineCantiere }) {
   const [ordine, setOrdine] = useState(leggi);
   const [edit, setEdit] = useState(false);
   const [dragKey, setDragKey] = useState(null);
   const lista = ordina(tiles, ordine);
 
-  const salva = (keys) => { setOrdine(keys); localStorage.setItem(KEY, JSON.stringify(keys)); };
+  useEffect(() => {
+    if (Array.isArray(ordineCantiere)) { setOrdine(ordineCantiere); localStorage.setItem(KEY, JSON.stringify(ordineCantiere)); }
+  }, [ordineCantiere]);
+
+  const salva = (keys) => {
+    setOrdine(keys);
+    localStorage.setItem(KEY, JSON.stringify(keys));
+    api.put("/cantiere", { home_ordine: keys }).catch(() => toast.error("Ordine salvato solo su questo dispositivo: sei offline?"));
+  };
   const sposta = (key, delta) => {
     const keys = lista.map((t) => t.key);
     const i = keys.indexOf(key), j = i + delta;
@@ -42,7 +52,7 @@ export function HomeModuli({ tiles }) {
           {edit ? <><Check className="w-4 h-4 mr-1" /> Fatto</> : <><Move className="w-4 h-4 mr-1" /> Sposta riquadri</>}
         </Button>
       </div>
-      {edit && <p className="text-xs text-muted-foreground mb-3" data-testid="home-ordine-hint">Trascina un riquadro sopra un altro oppure usa le frecce. L'ordine viene ricordato su questo dispositivo.</p>}
+      {edit && <p className="text-xs text-muted-foreground mb-3" data-testid="home-ordine-hint">Trascina un riquadro sopra un altro oppure usa le frecce. L'ordine viene salvato nel cantiere: lo ritrovi uguale su PC e telefono.</p>}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4" data-testid="home-moduli">
         {lista.map((t, i) => (
           <div key={t.key} className={`relative ${edit ? "cursor-grab" : ""} ${dragKey === t.key ? "opacity-40" : ""}`} draggable={edit}

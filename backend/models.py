@@ -288,6 +288,7 @@ class Cantiere(BaseModel):
     id: str = Field(default_factory=lambda: "default")
     nome: str = "Gestionale GEBnautica"
     slogan: str = "Cantiere nautico dal 1985"
+    home_ordine: List[str] = Field(default_factory=list)
     indirizzo: str = ""
     citta: str = ""
     cap: str = ""
@@ -394,6 +395,7 @@ class Cantiere(BaseModel):
 class CantiereUpdate(BaseModel):
     nome: Optional[str] = None
     slogan: Optional[str] = None
+    home_ordine: Optional[List[str]] = None
     indirizzo: Optional[str] = None
     citta: Optional[str] = None
     cap: Optional[str] = None

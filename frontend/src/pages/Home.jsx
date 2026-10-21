@@ -120,7 +120,7 @@ export default function Home() {
             </p>
           )}
 
-          <HomeModuli tiles={[
+          <HomeModuli ordineCantiere={c.home_ordine} tiles={[
             { key: "clienti", to: "/clienti", icon: Anchor, title: "Rimessaggio", desc: "Clienti, barche, posti e preventivi annuali", stat: r?.clienti, statLabel: `clienti ${r?.anno || ""}`, accent: true },
             { key: "magazzino", to: "/magazzino", icon: Package, title: "Magazzino", desc: "Articoli, fornitori, carichi e scarichi", stat: r?.articoli, statLabel: r?.sotto_scorta > 0 ? `articoli · ${r.sotto_scorta} sotto scorta` : "articoli" },
             { key: "dipendenti", to: "/dipendenti", icon: Smartphone, title: "Lavori dal cantiere", desc: "Report dei dipendenti da approvare", stat: r?.pending, statLabel: "da approvare", badge: r?.pending },

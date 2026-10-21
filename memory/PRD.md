@@ -902,3 +902,6 @@ Backend spezzato in moduli (`server.py` ora 112 righe, prima 2761):
 
 ## 2026-10-21 — Riquadri Home spostabili
 - `pages/HomeModuli.jsx`: pulsante 'Sposta riquadri' → modalità riordino con drag&drop e frecce; ordine salvato in localStorage `geb_home_ordine`; 'Ordine iniziale' per ripristinare.
+
+## 2026-10-21 — Ordine riquadri Home condiviso
+- `Cantiere.home_ordine: List[str]` (PUT /api/cantiere); HomeModuli salva su backend + localStorage e sincronizza dall'API al caricamento.
