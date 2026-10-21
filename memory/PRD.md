@@ -905,3 +905,6 @@ Backend spezzato in moduli (`server.py` ora 112 righe, prima 2761):
 
 ## 2026-10-21 — Ordine riquadri Home condiviso
 - `Cantiere.home_ordine: List[str]` (PUT /api/cantiere); HomeModuli salva su backend + localStorage e sincronizza dall'API al caricamento.
+
+## 2026-10-21 — Riquadri Home stessa misura
+- ModuleTile: h-full, min-h, titolo 1 riga, descrizione 2 righe (line-clamp), fascia statistica sempre presente (etichetta 'Apri'/statLabel se senza numero).

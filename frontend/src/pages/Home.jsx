@@ -127,7 +127,7 @@ export default function Home() {
             { key: "esterni", to: "/esterni", icon: HardHat, title: "Lavorazioni esterne", desc: "Clienti fuori rimessaggio e conti PDF", stat: r?.esterni, statLabel: "clienti esterni" },
             { key: "officina", to: "/officina", icon: Wrench, title: "Assistente officina", desc: "Codici errore, diagnosi e dati tecnici dalle schede", stat: r?.officina_schede, statLabel: `schede · ${r?.officina_casi || 0} casi` },
             { key: "lavagna", to: "/lavagna", icon: ClipboardList, title: "Lavagna", desc: "Messaggi condivisi: articoli mancanti, commissioni, memo", stat: r?.lavagna, statLabel: "messaggi aperti", badge: r?.lavagna },
-            { key: "laser", to: "/laser", icon: Crosshair, title: "LaserLogo", desc: "Da foto del logo al vettoriale SVG/DXF per la taglierina laser" },
+            { key: "laser", to: "/laser", icon: Crosshair, title: "LaserLogo", desc: "Da foto del logo al vettoriale SVG/DXF per la taglierina laser", statLabel: "foto → SVG / DXF" },
             { key: "tubolari", to: "/tubolari", icon: Ship, title: "Tubolari", desc: "Preventivi rifacimento tubolari", stat: r?.tubolari, statLabel: "preventivi" },
             { key: "suzuki", to: "/suzuki", icon: Sailboat, title: "Fuoribordo Suzuki", desc: "Catalogo motori e preventivi", stat: r?.suzuki, statLabel: "modelli" },
             { key: "gommoni", to: "/gommoni", icon: LifeBuoy, title: "Gommoni GEB", desc: "Modelli, accessori e preventivi", stat: r?.gommoni, statLabel: "modelli" },

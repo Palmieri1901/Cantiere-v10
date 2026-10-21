@@ -55,7 +55,7 @@ export function HomeModuli({ tiles, ordineCantiere }) {
       {edit && <p className="text-xs text-muted-foreground mb-3" data-testid="home-ordine-hint">Trascina un riquadro sopra un altro oppure usa le frecce. L'ordine viene salvato nel cantiere: lo ritrovi uguale su PC e telefono.</p>}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4" data-testid="home-moduli">
         {lista.map((t, i) => (
-          <div key={t.key} className={`relative ${edit ? "cursor-grab" : ""} ${dragKey === t.key ? "opacity-40" : ""}`} draggable={edit}
+          <div key={t.key} className={`relative h-full ${edit ? "cursor-grab" : ""} ${dragKey === t.key ? "opacity-40" : ""}`} draggable={edit}
             onDragStart={() => setDragKey(t.key)} onDragOver={(e) => edit && e.preventDefault()} onDrop={() => drop(t.key)} onDragEnd={() => setDragKey(null)}
             data-testid={`home-tile-${t.key}`}>
             {edit && (
@@ -65,7 +65,7 @@ export function HomeModuli({ tiles, ordineCantiere }) {
                 <button type="button" onClick={() => sposta(t.key, 1)} disabled={i === lista.length - 1} className="h-7 w-7 grid place-items-center rounded-full bg-foreground text-background shadow disabled:opacity-30" title="Sposta avanti" data-testid={`home-tile-next-${t.key}`}><ArrowRight className="w-3.5 h-3.5" /></button>
               </div>
             )}
-            <div className={edit ? "pointer-events-none ring-2 ring-dashed ring-primary/40 rounded-xl" : ""}>
+            <div className={`h-full ${edit ? "pointer-events-none ring-2 ring-dashed ring-primary/40 rounded-xl" : ""}`}>
               <ModuleTile {...t} testId={`cta-${t.key}`} />
             </div>
           </div>
