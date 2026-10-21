@@ -4,7 +4,7 @@ import { api, API } from "@/lib/api";
 import { salvaBackupInCartella } from "@/lib/backupFolder";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Sailboat, MapPin, Phone, Mail, Clock, ArrowRight, Anchor, Building2, Globe, Database, Download, Upload, AlertTriangle, Settings, Package, Ship, LifeBuoy, Truck, Smartphone, HardHat, Landmark, CalendarDays, Wrench, ClipboardList } from "lucide-react";
+import { Sailboat, MapPin, Phone, Mail, Clock, ArrowRight, Anchor, Building2, Globe, Database, Download, Upload, AlertTriangle, Settings, Package, Ship, LifeBuoy, Truck, Smartphone, HardHat, Landmark, CalendarDays, Wrench, ClipboardList, Crosshair } from "lucide-react";
 import { ModuleTile } from "@/components/ModuleTile";
 import HallGestionale from "@/components/hall/HallGestionale";
 import { toast } from "sonner";
@@ -127,6 +127,7 @@ export default function Home() {
             <ModuleTile to="/esterni" icon={HardHat} title="Lavorazioni esterne" desc="Clienti fuori rimessaggio e conti PDF" stat={r?.esterni} statLabel="clienti esterni" testId="cta-esterni" />
             <ModuleTile to="/officina" icon={Wrench} title="Assistente officina" desc="Codici errore, diagnosi e dati tecnici dalle schede" stat={r?.officina_schede} statLabel={`schede · ${r?.officina_casi || 0} casi`} testId="cta-officina" />
             <ModuleTile to="/lavagna" icon={ClipboardList} title="Lavagna" desc="Messaggi condivisi: articoli mancanti, commissioni, memo" stat={r?.lavagna} statLabel="messaggi aperti" badge={r?.lavagna} testId="cta-lavagna" />
+            <ModuleTile to="/laser" icon={Crosshair} title="LaserLogo" desc="Da foto del logo al vettoriale SVG/DXF per la taglierina laser" testId="cta-laser" />
             <ModuleTile to="/tubolari" icon={Ship} title="Tubolari" desc="Preventivi rifacimento tubolari" stat={r?.tubolari} statLabel="preventivi" testId="cta-tubolari" />
             <ModuleTile to="/suzuki" icon={Sailboat} title="Fuoribordo Suzuki" desc="Catalogo motori e preventivi" stat={r?.suzuki} statLabel="modelli" testId="cta-suzuki" />
             <ModuleTile to="/gommoni" icon={LifeBuoy} title="Gommoni GEB" desc="Modelli, accessori e preventivi" stat={r?.gommoni} statLabel="modelli" testId="cta-gommoni" />

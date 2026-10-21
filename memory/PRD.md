@@ -893,3 +893,9 @@ Backend spezzato in moduli (`server.py` ora 112 righe, prima 2761):
 
 ## 2026-10-20 — Badge nuovi messaggi Lavagna (PWA)
 - AppDipendente controlla `/mobile/lavagna` al login e ogni 60s; conta i messaggi non fatti con created_at > `localStorage.geb_lavagna_vista`; badge rosso sul tab e sulla voce Home; aprendo la Lavagna la data visita si aggiorna.
+
+## 2026-10-21 — Sezione LaserLogo (porting app Lovable fornita dall'utente)
+- Nuova pagina `/laser` (menu Officina + tile Home): da foto/PDF del logo a vettoriale SVG/DXF per taglio laser. 100% client-side.
+- Lib `src/lib/laser/` (vectorize: d3-contour+simplify-js, contourEdit, files: PDF via pdfjs worker in /public, IndexedDB foto); UI `pages/laser/LaserLogo.jsx` + `LaserPannelli.jsx`.
+- Funzioni: soglia/blur/semplifica/min area/inverti, zoom/pan d3-zoom, trascina/aggiungi/elimina punti, contorno manuale, delimita area, ruota, smussa/raddrizza, undo/redo, larghezza mm, export SVG/DXF.
+- Dipendenze aggiunte: d3-contour, d3-selection, d3-zoom, simplify-js.
