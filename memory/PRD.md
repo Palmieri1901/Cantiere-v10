@@ -908,3 +908,7 @@ Backend spezzato in moduli (`server.py` ora 112 righe, prima 2761):
 
 ## 2026-10-21 — Riquadri Home stessa misura
 - ModuleTile: h-full, min-h, titolo 1 riga, descrizione 2 righe (line-clamp), fascia statistica sempre presente (etichetta 'Apri'/statLabel se senza numero).
+
+## 2026-10-21 — Fix descrizioni lunghe fuori margine + modifica lavori/preventivi
+- Righe lavori (LavoriSection, ClienteDettaglio, Esterni, Archivio report, Pending, Preventivi esterni): testo con `[overflow-wrap:anywhere]` + line-clamp, contenitore min-w-0/overflow-hidden → i pulsanti Modifica/Elimina non escono più dal dialog.
+- Preventivi esterni: pulsante 'Modifica' esplicito anche dopo la conversione in lavoro. Archivio report: 'Modifica lavoro' apre il lavoro approvato già in modifica (LavoriSection prop `editLavoroId`).

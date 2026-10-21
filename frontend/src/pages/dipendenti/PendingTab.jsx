@@ -54,7 +54,7 @@ export default function PendingTab({ onChange }) {
                     )}
                     {p.tipo_barca && <span className="text-muted-foreground font-normal text-sm"> · {p.tipo_barca}</span>}
                   </div>
-                  <div className="text-sm mt-1.5"><span className="font-medium">{p.tipo}</span>{p.descrizione && <span className="text-muted-foreground"> — {p.descrizione}</span>}</div>
+                  <div className="text-sm mt-1.5 [overflow-wrap:anywhere]"><span className="font-medium">{p.tipo}</span>{p.descrizione && <span className="text-muted-foreground"> — {p.descrizione}</span>}</div>
                   <div className="mt-3 flex flex-wrap gap-2">
                     <Chip icon={User}>{p.dipendente_nome}</Chip>
                     <Chip icon={Clock}>{p.ore} h</Chip>

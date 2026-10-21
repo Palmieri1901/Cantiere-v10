@@ -6,7 +6,9 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Trash2, Clock, User, Archive } from "lucide-react";
+import { Trash2, Clock, User, Archive, Pencil } from "lucide-react";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import LavoriSection from "@/pages/LavoriSection";
 
 const STATO = {
   in_attesa: { label: "In attesa", cls: "text-amber-700 border-amber-300" },
@@ -19,6 +21,7 @@ export default function ArchivioTab({ onChange }) {
   const [dip, setDip] = useState("tutti");
   const [stato, setStato] = useState("tutti");
   const [sel, setSel] = useState([]);
+  const [modifica, setModifica] = useState(null); // report approvato di cui modificare il lavoro
 
   const load = () => api.get("/lavori-pending?stato=tutti").then((r) => { setItems(r.data); setSel([]); onChange?.(); });
   useEffect(() => { load(); }, []);
@@ -70,17 +73,29 @@ export default function ArchivioTab({ onChange }) {
                   <div className="text-[10px] text-muted-foreground">ricevuto {new Date(p.created_at).toLocaleDateString("it-IT")}</div>
                   <Badge variant="outline" className={`text-[9px] mt-1 ${s.cls}`}>{s.label}</Badge>
                 </div>
-                <div className="flex-1 min-w-0">
+                <div className="flex-1 min-w-0 overflow-hidden">
                   <div className="font-medium text-sm flex items-center gap-1.5"><User className="w-3.5 h-3.5 text-primary" /> {p.dipendente_nome || "—"}<span className="text-muted-foreground font-normal"> · {p.cliente_nome || "cliente non associato"}</span></div>
-                  <div className="text-xs mt-0.5"><span className="font-medium">{p.tipo}</span>{p.descrizione && <span className="text-muted-foreground"> — {p.descrizione}</span>}</div>
-                  <div className="text-[11px] text-muted-foreground mt-1 inline-flex items-center gap-1"><Clock className="w-3 h-3" /> {p.ore} h{p.materiali ? ` · Mat.: ${p.materiali}` : ""}</div>
+                  <div className="text-xs mt-0.5 [overflow-wrap:anywhere] line-clamp-3"><span className="font-medium">{p.tipo}</span>{p.descrizione && <span className="text-muted-foreground"> — {p.descrizione}</span>}</div>
+                  <div className="text-[11px] text-muted-foreground mt-1 inline-flex items-center gap-1 [overflow-wrap:anywhere]"><Clock className="w-3 h-3 shrink-0" /> {p.ore} h{p.materiali ? ` · Mat.: ${p.materiali}` : ""}</div>
                 </div>
+                {p.stato === "approvato" && p.lavoro_id && p.cliente_id && (
+                  <Button size="sm" variant="outline" className="shrink-0" onClick={() => setModifica(p)} title="Modifica il lavoro approvato nella scheda cliente" data-testid={`btn-modifica-lavoro-${p.id}`}><Pencil className="w-3.5 h-3.5 mr-1" /> Modifica lavoro</Button>
+                )}
                 <Button size="icon" variant="ghost" className="h-8 w-8 shrink-0" onClick={() => elimina([p.id])} data-testid={`btn-elimina-${p.id}`}><Trash2 className="w-3.5 h-3.5 text-destructive" /></Button>
               </div>
             );
           })}
         </div>
       )}
+      <Dialog open={!!modifica} onOpenChange={(o) => !o && setModifica(null)}>
+        <DialogContent className="max-w-4xl w-[95vw] max-h-[92vh] overflow-y-auto" data-testid="archivio-modifica-dialog">
+          <DialogHeader>
+            <DialogTitle className="font-display text-xl">Lavori di {modifica?.cliente_nome}</DialogTitle>
+            <DialogDescription>Il lavoro approvato si apre già in modifica: correggi ore, voci, articoli o descrizione e salva.</DialogDescription>
+          </DialogHeader>
+          {modifica && <LavoriSection clienteId={modifica.cliente_id} editLavoroId={modifica.lavoro_id} />}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

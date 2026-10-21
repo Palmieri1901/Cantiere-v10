@@ -41,7 +41,7 @@ export default function PreventiviEsternoTab({ esterno, anteprima, onLavoroCreat
             <div key={p.id} className="p-3 flex items-center gap-3 hover:bg-muted/40" data-testid={`prev-row-${p.id}`}>
               <div className="w-20 shrink-0"><div className="font-mono-num text-sm font-semibold">n. {p.numero}/{p.anno}</div><div className="text-[11px] text-muted-foreground">{p.data}</div></div>
               <div className="flex-1 min-w-0">
-                <div className="text-sm truncate">{p.oggetto || p.righe.map((r) => r.descrizione).filter(Boolean).slice(0, 3).join(", ") || "—"}</div>
+                <div className="text-sm [overflow-wrap:anywhere] line-clamp-2" title={p.oggetto}>{p.oggetto || p.righe.map((r) => r.descrizione).filter(Boolean).slice(0, 3).join(", ") || "—"}</div>
                 <div className="text-[11px] text-muted-foreground">{p.righe.length} righe · {p.righe.filter((r) => r.tipo === "articolo").length} ricambi{p.lavoro_id ? " · lavoro creato" : ""}</div>
               </div>
               <Badge variant="outline" className={`text-[10px] ${STATO[p.stato] || ""}`}>{p.stato}</Badge>
@@ -49,7 +49,7 @@ export default function PreventiviEsternoTab({ esterno, anteprima, onLavoroCreat
               <Button size="sm" variant="outline" onClick={() => anteprima(`/esterni/preventivi/${p.id}/pdf`, `Preventivo_${p.numero}_${p.anno}.pdf`)} data-testid={`btn-prev-pdf-${p.id}`}><FileText className="w-3.5 h-3.5 mr-1" /> PDF</Button>
               <InviaFatturazioneButton tipo="preventivo_esterno" id={p.id} nome={`Preventivo n. ${p.numero}`} />
               {!p.lavoro_id && <Button size="sm" variant="outline" onClick={() => converti(p)} title="Accetta e crea lavoro" data-testid={`btn-prev-converti-${p.id}`}><CheckCircle2 className="w-3.5 h-3.5 mr-1" /> Crea lavoro</Button>}
-              {!p.lavoro_id && <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setEdit(p)} data-testid={`btn-prev-edit-${p.id}`}><Pencil className="w-3.5 h-3.5" /></Button>}
+              <Button size="sm" variant="outline" onClick={() => setEdit(p)} title={p.lavoro_id ? "Modifica il preventivo (il lavoro già creato non cambia)" : "Modifica preventivo"} data-testid={`btn-prev-edit-${p.id}`}><Pencil className="w-3.5 h-3.5 mr-1" /> Modifica</Button>
               <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => del(p)} data-testid={`btn-prev-del-${p.id}`}><Trash2 className="w-3.5 h-3.5 text-destructive" /></Button>
             </div>
           ))}

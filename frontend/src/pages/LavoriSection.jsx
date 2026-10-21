@@ -36,7 +36,7 @@ const emptyLavoro = (cliente_id) => ({
   ore: 0,
 });
 
-export default function LavoriSection({ clienteId }) {
+export default function LavoriSection({ clienteId, editLavoroId }) {
   const [lavori, setLavori] = useState([]);
   const [loading, setLoading] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -62,6 +62,12 @@ export default function LavoriSection({ clienteId }) {
   };
 
   useEffect(() => { load(); }, [clienteId]);
+  const [autoEditDone, setAutoEditDone] = useState(false);
+  useEffect(() => {
+    if (autoEditDone || !editLavoroId || !lavori.length) return;
+    const l = lavori.find((x) => x.id === editLavoroId);
+    if (l) { setAutoEditDone(true); openEdit(l); }
+  }, [lavori, editLavoroId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const openNew = async () => {
     setEditing(null);
@@ -229,15 +235,15 @@ export default function LavoriSection({ clienteId }) {
                 <div className="font-mono-num text-xs text-muted-foreground">{l.data}</div>
                 <StatusBadge stato={l.stato} />
               </div>
-              <div className="flex-1 min-w-0">
-                <div className="font-medium text-sm">{l.tipo}</div>
-                {l.descrizione && <div className="text-xs text-muted-foreground truncate">{l.descrizione}</div>}
+              <div className="flex-1 min-w-0 overflow-hidden">
+                <div className="font-medium text-sm [overflow-wrap:anywhere]">{l.tipo}</div>
+                {l.descrizione && <div className="text-xs text-muted-foreground [overflow-wrap:anywhere] line-clamp-2" title={l.descrizione}>{l.descrizione}</div>}
                 {(Number(l.ore) > 0 || l.dipendente) && (
                   <div className="text-[11px] text-muted-foreground mt-0.5" data-testid={`lavoro-ore-${l.id}`}>
                     {Number(l.ore) > 0 ? `${l.ore} h` : ""}{Number(l.ore) > 0 && l.dipendente ? " · " : ""}{l.dipendente ? `eseguito da ${l.dipendente}` : ""}
                   </div>
                 )}
-                {l.materiali && <div className="text-[11px] text-muted-foreground/80 italic mt-0.5">Mat.: {l.materiali}</div>}
+                {l.materiali && <div className="text-[11px] text-muted-foreground/80 italic mt-0.5 [overflow-wrap:anywhere] line-clamp-2">Mat.: {l.materiali}</div>}
                 <div className="mt-1.5 text-[11px] space-y-0.5" data-testid={`lavoro-voci-${l.id}`}>
                   {righeLavoro(l).map((r, i) => (
                     <div key={i} className="flex items-center gap-2 text-muted-foreground">

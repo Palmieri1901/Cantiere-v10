@@ -170,7 +170,7 @@ export default function ClienteDettaglio({ open, onOpenChange, cliente }) {
             <SectionTitle icon={Wrench}>Lavori eseguiti {c.anno}</SectionTitle>
             {lav_storico.map((l) => (
               <div key={l.id} className="py-1 text-sm" data-testid={`dettaglio-lavoro-${l.id}`}>
-                <div className="text-foreground truncate font-medium">
+                <div className="text-foreground [overflow-wrap:anywhere] line-clamp-2 font-medium">
                   <span className="font-mono-num text-xs text-muted-foreground mr-2">{l.data}</span>
                   {l.tipo}{l.descrizione ? ` — ${l.descrizione}` : ""}
                   {l.dipendente && <span className="text-xs text-muted-foreground font-normal"> · {l.dipendente}</span>}

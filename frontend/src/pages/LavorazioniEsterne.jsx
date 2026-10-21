@@ -118,9 +118,9 @@ export default function LavorazioniEsterne() {
         <div className="border border-border rounded-md divide-y divide-border">
           {visibili.map((e) => (
             <div key={e.id} className="p-3 flex items-center gap-3 flex-wrap hover:bg-muted/40 cursor-pointer" onClick={() => setOpen(e)} data-testid={`esterno-row-${e.id}`}>
-              <div className="flex-1 min-w-[180px]">
+              <div className="flex-1 min-w-[180px] overflow-hidden [overflow-wrap:anywhere]">
                 <div className="font-medium text-sm">{e.tipo_soggetto === "azienda" && e.ragione_sociale ? <>{e.ragione_sociale} <span className="text-muted-foreground font-normal">· {e.nome}</span></> : e.nome}{e.telefono && <span className="text-muted-foreground font-normal"> · {e.telefono}</span>}</div>
-                <div className="text-xs text-muted-foreground">{e.n} {e.n === 1 ? "lavoro" : "lavori"} · {e.ore} h{e.ultimo ? ` · ultimo ${e.ultimo}` : ""}{e.note ? ` · ${e.note}` : ""}</div>
+                <div className="text-xs text-muted-foreground line-clamp-2">{e.n} {e.n === 1 ? "lavoro" : "lavori"} · {e.ore} h{e.ultimo ? ` · ultimo ${e.ultimo}` : ""}{e.note ? ` · ${e.note}` : ""}</div>
               </div>
               <div className="font-mono-num text-sm font-semibold">{fmtEuro(e.totale)}</div>
               <Button size="sm" variant="outline" onClick={(ev) => { ev.stopPropagation(); setOpen(e); }} data-testid={`btn-preventivo-${e.id}`}><FileText className="w-3.5 h-3.5 mr-1" /> Preventivo</Button>
