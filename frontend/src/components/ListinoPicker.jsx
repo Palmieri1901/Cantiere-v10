@@ -30,8 +30,8 @@ export function vociListino(t) {
     { id: "sosta_temp", cat: "Rimessaggio", nome: "Sosta temporanea", unita: "giorni", domanda: "Numero giorni", prezzo: t.sosta_temporanea_giornaliera, calc: (g) => +(g * t.sosta_temporanea_giornaliera).toFixed(2), label: (g) => `Sosta temporanea ${fmtQ(g)} giorni` },
     { id: "alaggio", cat: "Alaggio e varo", nome: "Alaggio", unita: "", forfait: true, domanda: "Metri barca", prezzo: t.alaggio_oltre_5m_per_metro, nota: `fino a 5 m ${fmtEuro(t.alaggio_fino_5m)}, oltre 5 m ${fmtEuro(t.alaggio_oltre_5m_per_metro)} (forfait)`, calc: sogliaCalc(t.alaggio_fino_5m, t.alaggio_oltre_5m_per_metro), label: (m) => `Alaggio barca ${fmtQ(m)} m` },
     { id: "varo", cat: "Alaggio e varo", nome: "Varo", unita: "", forfait: true, domanda: "Metri barca", prezzo: t.varo_oltre_5m_per_metro, nota: `fino a 5 m ${fmtEuro(t.varo_fino_5m)}, oltre 5 m ${fmtEuro(t.varo_oltre_5m_per_metro)} (forfait)`, calc: sogliaCalc(t.varo_fino_5m, t.varo_oltre_5m_per_metro), label: (m) => `Varo barca ${fmtQ(m)} m` },
-    perM("lavaggio_inizio", "Lavaggio inizio stagione", t.costo_lavaggio_inizio_stagione, "Lavaggi e manodopera"),
-    perM("lavaggio_fine", "Lavaggio fine stagione", t.costo_lavaggio_fine_stagione, "Lavaggi e manodopera"),
+    { ...perM("lavaggio_inizio", "Lavaggio inizio stagione", t.costo_lavaggio_inizio_stagione, "Lavaggi e manodopera"), sotto: "coperta e gavoni" },
+    { ...perM("lavaggio_fine", "Lavaggio fine stagione", t.costo_lavaggio_fine_stagione, "Lavaggi e manodopera"), sotto: "coperta, gavoni, scafo, piede motore" },
     { id: "manodopera", cat: "Lavaggi e manodopera", nome: "Manodopera", unita: "ore", domanda: "Ore di lavoro", prezzo: t.costo_orario_manodopera, calc: (h) => +(h * t.costo_orario_manodopera).toFixed(2), label: (h) => `Manodopera ${fmtQ(h)} h` },
     fisso("motore_2_15", "Manodopera fuoribordo 2-15 HP", t.motore_labor_2_15hp, "Manodopera motore"),
     fisso("motore_16_40", "Manodopera fuoribordo 16-40 HP", t.motore_labor_fino_40hp, "Manodopera motore"),
@@ -104,7 +104,7 @@ export function ListinoPicker({ onAdd, metriDefault, label = "Dal listino", size
                       <div className="label-mini px-3 py-1.5 bg-muted/60 sticky top-0" data-testid={`listino-cat-${cat.replace(/\W+/g, "-").toLowerCase()}`}>{cat}</div>
                       {lista.map((v) => (
                         <button key={v.id} type="button" onClick={() => scegli(v)} className="w-full text-left px-3 py-2.5 text-sm flex items-center justify-between gap-3 hover:bg-muted/50 border-t border-border" data-testid={`listino-voce-${v.id}`}>
-                          <span className="font-medium">{v.nome}</span>
+                          <span className="font-medium">{v.nome}{v.sotto && <span className="block text-[11px] text-muted-foreground font-normal leading-tight">{v.sotto}</span>}</span>
                           <span className="font-mono-num text-xs text-muted-foreground shrink-0">{v.nota ? "a scaglioni" : `${fmtEuro(v.prezzo)}${v.unita ? ` / ${v.unita}` : ""}`}</span>
                         </button>
                       ))}

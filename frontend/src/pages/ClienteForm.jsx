@@ -472,8 +472,8 @@ export default function ClienteForm({ open, onOpenChange, cliente, onSaved, mode
               {!f.antivegetativa_attiva && (
                 <CostField label="Magg. scafo sporco" value={f.costo_scafo_sporco} onChange={(v) => update("costo_scafo_sporco", v)} disabled={!f.override_costi} testId="costo-scafo-sporco" />
               )}
-              <CostField label="Lavaggio inizio stagione" value={f.costo_lavaggio_inizio} onChange={(v) => update("costo_lavaggio_inizio", v)} disabled={!f.override_costi} testId="costo-lavaggio-inizio" />
-              <CostField label="Lavaggio fine stagione" value={f.costo_lavaggio_fine} onChange={(v) => update("costo_lavaggio_fine", v)} disabled={!f.override_costi} testId="costo-lavaggio-fine" />
+              <CostField label="Lavaggio inizio stagione" sotto="coperta e gavoni" value={f.costo_lavaggio_inizio} onChange={(v) => update("costo_lavaggio_inizio", v)} disabled={!f.override_costi} testId="costo-lavaggio-inizio" />
+              <CostField label="Lavaggio fine stagione" sotto="coperta, gavoni, scafo, piede motore" value={f.costo_lavaggio_fine} onChange={(v) => update("costo_lavaggio_fine", v)} disabled={!f.override_costi} testId="costo-lavaggio-fine" />
               <CostField label="Manutenzione motore" value={f.costo_manutenzione_motore} onChange={(v) => update("costo_manutenzione_motore", v)} disabled={!f.override_costi} testId="costo-manutenzione" />
               {isFuori && <CostField label="Copertura" value={f.costo_copertura} onChange={(v) => update("costo_copertura", v)} disabled={!f.override_costi} testId="costo-copertura" />}
               {f.alaggio_varo_attivo && (

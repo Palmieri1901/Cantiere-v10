@@ -17,12 +17,12 @@ const SOSTA_LABEL = {
   temporanea: "Temporanea",
 };
 
-function Row({ label, value, muted = false }) {
+function Row({ label, sotto, value, muted = false }) {
   const v = Number(value) || 0;
   if (v === 0 && !muted) return null;
   return (
     <div className="flex justify-between items-baseline py-1.5 text-sm">
-      <span className={muted ? "text-muted-foreground" : "text-foreground"}>{label}</span>
+      <span className={muted ? "text-muted-foreground" : "text-foreground"}>{label}{sotto && <span className="block text-[11px] text-muted-foreground leading-tight">{sotto}</span>}</span>
       <span className="font-mono-num font-medium">{fmtEuro(v)}</span>
     </div>
   );
@@ -111,8 +111,8 @@ export default function ClienteDettaglio({ open, onOpenChange, cliente }) {
         <Row label="Copertura" value={c.costo_copertura} />
         <Row label="Antivegetativa" value={c.costo_antivegetativa} />
         <Row label="Magg. scafo sporco" value={c.costo_scafo_sporco} />
-        <Row label="Lavaggio inizio stagione" value={c.costo_lavaggio_inizio} />
-        <Row label="Lavaggio fine stagione" value={c.costo_lavaggio_fine} />
+        <Row label="Lavaggio inizio stagione" sotto="coperta e gavoni" value={c.costo_lavaggio_inizio} />
+        <Row label="Lavaggio fine stagione" sotto="coperta, gavoni, scafo, piede motore" value={c.costo_lavaggio_fine} />
 
         {/* Alaggio & Varo */}
         {(c.alaggio_varo_attivo || Number(c.costo_alaggio) > 0 || Number(c.costo_varo) > 0) && (

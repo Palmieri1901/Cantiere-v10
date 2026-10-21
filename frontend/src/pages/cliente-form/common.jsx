@@ -51,10 +51,10 @@ export function Field({ label, children }) {
   );
 }
 
-export function CostField({ label, value, onChange, disabled, testId }) {
+export function CostField({ label, sotto, value, onChange, disabled, testId }) {
   return (
     <div className="space-y-1.5">
-      <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{label}</Label>
+      <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{label}{sotto && <span className="block normal-case tracking-normal font-normal text-[11px] leading-tight">{sotto}</span>}</Label>
       <div className="relative">
         <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">€</span>
         <Input

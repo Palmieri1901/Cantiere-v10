@@ -7,6 +7,8 @@ import re
 import base64 as _b64
 from datetime import date
 from reportlab.lib.pagesizes import A4
+
+SOTTOTITOLI_VOCI = {"costo_lavaggio_inizio": "coperta e gavoni", "costo_lavaggio_fine": "coperta, gavoni, scafo, piede motore"}
 from reportlab.lib import colors
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import mm
@@ -123,8 +125,8 @@ def _build_storico_pdf(docs: list, cantiere_doc: dict) -> bytes:
         ("Varo", "costo_varo"),
         ("Antivegetativa", "costo_antivegetativa"),
         ("Magg. scafo sporco", "costo_scafo_sporco"),
-        ("Lavaggio inizio stagione", "costo_lavaggio_inizio"),
-        ("Lavaggio fine stagione", "costo_lavaggio_fine"),
+        ("Lavaggio inizio stagione (coperta e gavoni)", "costo_lavaggio_inizio"),
+        ("Lavaggio fine stagione (coperta, gavoni, scafo, piede motore)", "costo_lavaggio_fine"),
         ("Manutenzione motore", "costo_manutenzione_motore"),
     ]
     totale_generale = 0.0
@@ -342,7 +344,8 @@ def _build_preventivo_pdf(doc: dict, lavori_docs: list, cantiere_doc: dict, t_cu
     def add(label_txt, key):
         v = float(doc.get(key) or 0)
         if v > 0:
-            voci.append([label_txt, _euro(v)])
+            sotto = SOTTOTITOLI_VOCI.get(key)
+            voci.append([Paragraph(f"{label_txt}<br/><font size=7 color='#5B6478'>{sotto}</font>", body) if sotto else label_txt, _euro(v)])
     add("Sosta", "costo_sosta")
     add("Movimentazione", "costo_movimentazione")
     add("Taccaggio", "costo_taccaggio")
