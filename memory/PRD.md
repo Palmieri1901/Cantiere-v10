@@ -899,3 +899,6 @@ Backend spezzato in moduli (`server.py` ora 112 righe, prima 2761):
 - Lib `src/lib/laser/` (vectorize: d3-contour+simplify-js, contourEdit, files: PDF via pdfjs worker in /public, IndexedDB foto); UI `pages/laser/LaserLogo.jsx` + `LaserPannelli.jsx`.
 - Funzioni: soglia/blur/semplifica/min area/inverti, zoom/pan d3-zoom, trascina/aggiungi/elimina punti, contorno manuale, delimita area, ruota, smussa/raddrizza, undo/redo, larghezza mm, export SVG/DXF.
 - Dipendenze aggiunte: d3-contour, d3-selection, d3-zoom, simplify-js.
+
+## 2026-10-21 — Riquadri Home spostabili
+- `pages/HomeModuli.jsx`: pulsante 'Sposta riquadri' → modalità riordino con drag&drop e frecce; ordine salvato in localStorage `geb_home_ordine`; 'Ordine iniziale' per ripristinare.

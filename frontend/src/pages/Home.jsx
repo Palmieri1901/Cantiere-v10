@@ -5,7 +5,7 @@ import { salvaBackupInCartella } from "@/lib/backupFolder";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Sailboat, MapPin, Phone, Mail, Clock, ArrowRight, Anchor, Building2, Globe, Database, Download, Upload, AlertTriangle, Settings, Package, Ship, LifeBuoy, Truck, Smartphone, HardHat, Landmark, CalendarDays, Wrench, ClipboardList, Crosshair } from "lucide-react";
-import { ModuleTile } from "@/components/ModuleTile";
+import { HomeModuli } from "@/pages/HomeModuli";
 import HallGestionale from "@/components/hall/HallGestionale";
 import { toast } from "sonner";
 import {
@@ -120,22 +120,22 @@ export default function Home() {
             </p>
           )}
 
-          <div className="mt-12 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4" data-testid="home-moduli">
-            <ModuleTile to="/clienti" icon={Anchor} title="Rimessaggio" desc="Clienti, barche, posti e preventivi annuali" stat={r?.clienti} statLabel={`clienti ${r?.anno || ""}`} accent testId="cta-clienti" />
-            <ModuleTile to="/magazzino" icon={Package} title="Magazzino" desc="Articoli, fornitori, carichi e scarichi" stat={r?.articoli} statLabel={r?.sotto_scorta > 0 ? `articoli · ${r.sotto_scorta} sotto scorta` : "articoli"} testId="cta-magazzino" />
-            <ModuleTile to="/dipendenti" icon={Smartphone} title="Lavori dal cantiere" desc="Report dei dipendenti da approvare" stat={r?.pending} statLabel="da approvare" badge={r?.pending} testId="cta-dipendenti" />
-            <ModuleTile to="/esterni" icon={HardHat} title="Lavorazioni esterne" desc="Clienti fuori rimessaggio e conti PDF" stat={r?.esterni} statLabel="clienti esterni" testId="cta-esterni" />
-            <ModuleTile to="/officina" icon={Wrench} title="Assistente officina" desc="Codici errore, diagnosi e dati tecnici dalle schede" stat={r?.officina_schede} statLabel={`schede · ${r?.officina_casi || 0} casi`} testId="cta-officina" />
-            <ModuleTile to="/lavagna" icon={ClipboardList} title="Lavagna" desc="Messaggi condivisi: articoli mancanti, commissioni, memo" stat={r?.lavagna} statLabel="messaggi aperti" badge={r?.lavagna} testId="cta-lavagna" />
-            <ModuleTile to="/laser" icon={Crosshair} title="LaserLogo" desc="Da foto del logo al vettoriale SVG/DXF per la taglierina laser" testId="cta-laser" />
-            <ModuleTile to="/tubolari" icon={Ship} title="Tubolari" desc="Preventivi rifacimento tubolari" stat={r?.tubolari} statLabel="preventivi" testId="cta-tubolari" />
-            <ModuleTile to="/suzuki" icon={Sailboat} title="Fuoribordo Suzuki" desc="Catalogo motori e preventivi" stat={r?.suzuki} statLabel="modelli" testId="cta-suzuki" />
-            <ModuleTile to="/gommoni" icon={LifeBuoy} title="Gommoni GEB" desc="Modelli, accessori e preventivi" stat={r?.gommoni} statLabel="modelli" testId="cta-gommoni" />
-            <ModuleTile to="/ddt" icon={Truck} title="DDT & Destinazione" desc="Documenti di trasporto e rubrica" stat={r?.ddt} statLabel={`DDT ${r?.anno || ""}`} testId="cta-ddt" />
-            <ModuleTile to="/capitaneria" icon={Landmark} title="Comunicazione Capitaneria" desc="Alaggio/varo: Marina di Campo e Marciana Marina" stat={r?.capitaneria} statLabel="comunicazioni" testId="cta-capitaneria" />
-            <ModuleTile to="/mezzi" icon={Truck} title="Consumi e ricavi mezzi" desc="Camion e mezzi: carburante, riparazioni, pedaggi, incassi" stat={r?.mezzi_movimenti} statLabel={`movimenti ${r?.anno || ""}`} testId="cta-mezzi" />
-            <ModuleTile to="/calendario" icon={CalendarDays} title="Calendario" desc="Appuntamenti, alaggi, vari e scadenze mese per mese" stat={r?.calendario_mese} statLabel="appuntamenti questo mese" testId="cta-calendario" />
-          </div>
+          <HomeModuli tiles={[
+            { key: "clienti", to: "/clienti", icon: Anchor, title: "Rimessaggio", desc: "Clienti, barche, posti e preventivi annuali", stat: r?.clienti, statLabel: `clienti ${r?.anno || ""}`, accent: true },
+            { key: "magazzino", to: "/magazzino", icon: Package, title: "Magazzino", desc: "Articoli, fornitori, carichi e scarichi", stat: r?.articoli, statLabel: r?.sotto_scorta > 0 ? `articoli · ${r.sotto_scorta} sotto scorta` : "articoli" },
+            { key: "dipendenti", to: "/dipendenti", icon: Smartphone, title: "Lavori dal cantiere", desc: "Report dei dipendenti da approvare", stat: r?.pending, statLabel: "da approvare", badge: r?.pending },
+            { key: "esterni", to: "/esterni", icon: HardHat, title: "Lavorazioni esterne", desc: "Clienti fuori rimessaggio e conti PDF", stat: r?.esterni, statLabel: "clienti esterni" },
+            { key: "officina", to: "/officina", icon: Wrench, title: "Assistente officina", desc: "Codici errore, diagnosi e dati tecnici dalle schede", stat: r?.officina_schede, statLabel: `schede · ${r?.officina_casi || 0} casi` },
+            { key: "lavagna", to: "/lavagna", icon: ClipboardList, title: "Lavagna", desc: "Messaggi condivisi: articoli mancanti, commissioni, memo", stat: r?.lavagna, statLabel: "messaggi aperti", badge: r?.lavagna },
+            { key: "laser", to: "/laser", icon: Crosshair, title: "LaserLogo", desc: "Da foto del logo al vettoriale SVG/DXF per la taglierina laser" },
+            { key: "tubolari", to: "/tubolari", icon: Ship, title: "Tubolari", desc: "Preventivi rifacimento tubolari", stat: r?.tubolari, statLabel: "preventivi" },
+            { key: "suzuki", to: "/suzuki", icon: Sailboat, title: "Fuoribordo Suzuki", desc: "Catalogo motori e preventivi", stat: r?.suzuki, statLabel: "modelli" },
+            { key: "gommoni", to: "/gommoni", icon: LifeBuoy, title: "Gommoni GEB", desc: "Modelli, accessori e preventivi", stat: r?.gommoni, statLabel: "modelli" },
+            { key: "ddt", to: "/ddt", icon: Truck, title: "DDT & Destinazione", desc: "Documenti di trasporto e rubrica", stat: r?.ddt, statLabel: `DDT ${r?.anno || ""}` },
+            { key: "capitaneria", to: "/capitaneria", icon: Landmark, title: "Comunicazione Capitaneria", desc: "Alaggio/varo: Marina di Campo e Marciana Marina", stat: r?.capitaneria, statLabel: "comunicazioni" },
+            { key: "mezzi", to: "/mezzi", icon: Truck, title: "Consumi e ricavi mezzi", desc: "Camion e mezzi: carburante, riparazioni, pedaggi, incassi", stat: r?.mezzi_movimenti, statLabel: `movimenti ${r?.anno || ""}` },
+            { key: "calendario", to: "/calendario", icon: CalendarDays, title: "Calendario", desc: "Appuntamenti, alaggi, vari e scadenze mese per mese", stat: r?.calendario_mese, statLabel: "appuntamenti questo mese" },
+          ]} />
           <div className="mt-6">
             <Link to="/impostazioni" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors" data-testid="cta-impostazioni">
               <Settings className="w-4 h-4" /> Impostazione dati cantiere
