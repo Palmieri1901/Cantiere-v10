@@ -5,6 +5,7 @@ import base64
 import json
 import re
 from datetime import datetime, timezone
+from pydantic import BaseModel
 from typing import List, Optional
 from fastapi import APIRouter, HTTPException, Query
 from fastapi.responses import StreamingResponse
@@ -76,10 +77,9 @@ async def delete_fornitore(fid: str):
 
 
 @router.post("/fornitori/{fid}/applica-ricarico")
-async def applica_ricarico_fornitore(fid: str):
-    """Applica il ricarico % del fornitore a TUTTI i suoi articoli, ricalcolando
-    prezzo_listino = prezzo_acquisto × (1 + ricarico/100).
-    Salta gli articoli senza prezzo_acquisto valido."""
+async def applica_ricarico_fornitore(fid: str, forza: bool = False):
+    """Applica il ricarico % del fornitore a tutti i suoi articoli (prezzo_listino = acquisto × (1 + ricarico/100)).
+    Salta: articoli senza prezzo acquisto, articoli di categorie con ricarico specifico e (salvo forza=True) quelli con ricarico impostato a mano."""
     f = await db.fornitori.find_one({"id": fid}, {"_id": 0})
     if not f:
         raise HTTPException(404, "Fornitore non trovato")
@@ -87,20 +87,26 @@ async def applica_ricarico_fornitore(fid: str):
     if ricarico is None:
         raise HTTPException(400, "Nessun ricarico % impostato per questo fornitore")
     ricarico = float(ricarico)
+    cat_specifiche = {r["categoria"]: float(r["ricarico_percent"]) for r in await db.ricarichi_categoria.find({}, {"_id": 0}).to_list(500)}
 
-    docs = await db.articoli.find({"fornitore_id": fid}, {"_id": 0, "id": 1, "prezzo_acquisto": 1}).to_list(10000)
-    updated = 0
-    skipped = 0
+    docs = await db.articoli.find({"fornitore_id": fid}, {"_id": 0, "id": 1, "prezzo_acquisto": 1, "categoria": 1, "ricarico_manuale": 1}).to_list(10000)
+    updated = skipped = per_categoria = manuali = 0
     now = datetime.now(timezone.utc)
     for d in docs:
         pa = float(d.get("prezzo_acquisto") or 0)
         if pa <= 0:
             skipped += 1
             continue
-        nuovo_listino = round(pa * (1 + ricarico / 100), 2)
+        if d.get("ricarico_manuale") and not forza:
+            manuali += 1
+            continue
+        ric = ricarico
+        if (d.get("categoria") or "").strip() in cat_specifiche:
+            ric = cat_specifiche[(d.get("categoria") or "").strip()]
+            per_categoria += 1
         await db.articoli.update_one(
             {"id": d["id"]},
-            {"$set": {"prezzo_listino": nuovo_listino, "updated_at": now}},
+            {"$set": {"prezzo_listino": round(pa * (1 + ric / 100), 2), "updated_at": now}, "$unset": {"ricarico_manuale": ""}},
         )
         updated += 1
     return {
@@ -109,8 +115,41 @@ async def applica_ricarico_fornitore(fid: str):
         "ricarico_percent": ricarico,
         "articoli_aggiornati": updated,
         "articoli_saltati": skipped,
+        "articoli_categoria_specifica": per_categoria,
+        "articoli_manuali_saltati": manuali,
         "totale": len(docs),
     }
+
+
+class RicaricoArticoloIn(BaseModel):
+    ricarico_percent: Optional[float] = None
+    prezzo_listino: Optional[float] = None
+    manuale: bool = True
+
+
+@router.put("/articoli/{aid}/ricarico")
+async def imposta_ricarico_articolo(aid: str, p: RicaricoArticoloIn):
+    """Modifica rapida del ricarico (o del prezzo di listino) di un singolo articolo; con manuale=True il ricalcolo massivo lo salta."""
+    a = await db.articoli.find_one({"id": aid}, {"_id": 0, "prezzo_acquisto": 1})
+    if not a:
+        raise HTTPException(404, "Articolo non trovato")
+    pa = float(a.get("prezzo_acquisto") or 0)
+    if p.prezzo_listino is not None:
+        listino = round(float(p.prezzo_listino), 2)
+    elif p.ricarico_percent is not None:
+        if pa <= 0:
+            raise HTTPException(400, "Prezzo di acquisto mancante: imposta direttamente il prezzo di listino")
+        listino = round(pa * (1 + float(p.ricarico_percent) / 100), 2)
+    else:
+        raise HTTPException(400, "Indica ricarico % o prezzo di listino")
+    upd = {"$set": {"prezzo_listino": listino, "updated_at": datetime.now(timezone.utc)}}
+    if p.manuale:
+        upd["$set"]["ricarico_manuale"] = True
+    else:
+        upd["$unset"] = {"ricarico_manuale": ""}
+    await db.articoli.update_one({"id": aid}, upd)
+    ric = round((listino - pa) / pa * 100, 1) if pa > 0 else None
+    return {"ok": True, "prezzo_listino": listino, "ricarico_percent": ric, "ricarico_manuale": bool(p.manuale)}
 
 
 # ---------------------------------------------------------------------------
@@ -529,12 +568,15 @@ async def _default_markup_for(categoria: Optional[str]) -> Optional[float]:
 
 
 async def _default_markup_for_articolo(fornitore_id: Optional[str], categoria: Optional[str]) -> Optional[float]:
-    """Preferenza: ricarico del fornitore > ricarico default della categoria."""
+    """Preferenza: ricarico specifico della categoria > ricarico del fornitore."""
+    cat = await _default_markup_for(categoria)
+    if cat is not None:
+        return cat
     if fornitore_id:
         f = await db.fornitori.find_one({"id": fornitore_id}, {"_id": 0, "ricarico_default_percent": 1})
         if f and isinstance(f.get("ricarico_default_percent"), (int, float)):
             return float(f["ricarico_default_percent"])
-    return await _default_markup_for(categoria)
+    return None
 
 
 @router.get("/ricarichi-categoria", response_model=List[RicaricoCategoria])
@@ -644,17 +686,20 @@ async def rettifica_confezione(p: RettificaConfezioneIn):
 
 
 async def _applica_ricarico_categoria(cat: str, ricarico: float) -> dict:
-    docs = await db.articoli.find({"categoria": cat}, {"_id": 0, "id": 1, "prezzo_acquisto": 1}).to_list(20000)
-    updated = skipped = 0
+    docs = await db.articoli.find({"categoria": cat}, {"_id": 0, "id": 1, "prezzo_acquisto": 1, "ricarico_manuale": 1}).to_list(20000)
+    updated = skipped = manuali = 0
     now = datetime.now(timezone.utc)
     for d in docs:
         pa = float(d.get("prezzo_acquisto") or 0)
         if pa <= 0:
             skipped += 1
             continue
+        if d.get("ricarico_manuale"):
+            manuali += 1
+            continue
         await db.articoli.update_one({"id": d["id"]}, {"$set": {"prezzo_listino": round(pa * (1 + ricarico / 100), 2), "updated_at": now}})
         updated += 1
-    return {"categoria": cat, "ricarico_percent": ricarico, "articoli_aggiornati": updated, "articoli_saltati": skipped, "totale": len(docs)}
+    return {"categoria": cat, "ricarico_percent": ricarico, "articoli_aggiornati": updated, "articoli_saltati": skipped, "articoli_manuali_saltati": manuali, "totale": len(docs)}
 
 
 @router.post("/ricarichi-categoria/applica")

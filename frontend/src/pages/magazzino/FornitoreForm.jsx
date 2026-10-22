@@ -86,7 +86,7 @@ export default function FornitoreForm({ open, onOpenChange, value, onSaved }) {
               <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">%</span>
             </div>
             <div className="text-[11px] text-muted-foreground mt-1">
-              Applicato ai nuovi articoli di questo fornitore importati da DDT. Ha priorità sul ricarico di categoria.
+              Applicato ai nuovi articoli di questo fornitore importati da DDT e al ricalcolo del listino. Se una categoria ha un ricarico specifico, quello vince; gli articoli con ricarico impostato a mano non vengono toccati.
             </div>
           </FormField>
           <FormField label="Note" full><Textarea rows={2} value={form.note || ""} onChange={(e) => set("note", e.target.value)} /></FormField>

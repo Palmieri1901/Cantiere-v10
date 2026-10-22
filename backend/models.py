@@ -533,6 +533,7 @@ class Articolo(BaseModel):
     fornitore_id: Optional[str] = None
     prezzo_acquisto: float = 0.0
     prezzo_listino: float = 0.0
+    ricarico_manuale: Optional[bool] = False
     quantita: float = 0.0
     scorta_minima: float = 0.0
     unita_misura: Optional[str] = "pz"

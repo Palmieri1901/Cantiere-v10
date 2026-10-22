@@ -49,7 +49,7 @@ export default function FornitoriTab() {
     try {
       const r = await api.post(`/magazzino/fornitori/${applyMarkup.fornitore.id}/applica-ricarico`);
       const d = r.data || {};
-      toast.success(`Aggiornati ${d.articoli_aggiornati} articoli (${d.ricarico_percent}%)` + (d.articoli_saltati ? ` — ${d.articoli_saltati} saltati (senza prezzo acquisto)` : ""));
+      toast.success(`Aggiornati ${d.articoli_aggiornati} articoli (${d.ricarico_percent}%)` + (d.articoli_categoria_specifica ? ` — ${d.articoli_categoria_specifica} con ricarico della propria categoria` : "") + (d.articoli_manuali_saltati ? ` — ${d.articoli_manuali_saltati} bloccati a mano non toccati` : "") + (d.articoli_saltati ? ` — ${d.articoli_saltati} senza prezzo acquisto` : ""));
       setApplyMarkup(null);
     } catch (e) {
       toast.error(e.response?.data?.detail || "Errore aggiornamento prezzi");

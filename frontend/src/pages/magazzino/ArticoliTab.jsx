@@ -26,6 +26,7 @@ import ScanArticoloDialog from "./ScanArticoloDialog";
 import ScanDDTDialog from "./ScanDDTDialog";
 import RicarichiCategoriaDialog from "./RicarichiCategoriaDialog";
 import RettificaConfezioniDialog from "./RettificaConfezioniDialog";
+import { RicaricoCell } from "./RicaricoCell";
 import { isContenitore } from "@/lib/confezioni";
 import ComponiOrdineDialog from "./ComponiOrdineDialog";
 
@@ -184,7 +185,6 @@ export default function ArticoliTab() {
   const renderRow = (a) => {
     const pa = Number(a.prezzo_acquisto || 0);
     const pv = Number(a.prezzo_listino || 0);
-    const rk = pa > 0 && pv > 0 ? ((pv - pa) / pa) * 100 : null;
     return (
       <TableRow key={a.id} data-testid={`row-articolo-${a.id}`}>
         <TableCell className="font-mono text-xs">{a.codice || "—"}</TableCell>
@@ -201,12 +201,8 @@ export default function ArticoliTab() {
         <TableCell className="text-right font-mono-num text-muted-foreground">{fmtEuro(pa)}</TableCell>
         <TableCell className="text-right font-mono-num font-semibold">{fmtEuro(pv)}</TableCell>
         <TableCell className="text-right font-mono-num text-primary" data-testid={`cell-pv-iva-${a.id}`}>{fmtEuro(pv * 1.22)}</TableCell>
-        <TableCell className="text-right font-mono-num text-xs">
-          {rk !== null ? (
-            <span className={rk < 0 ? "text-destructive" : rk >= 20 ? "text-primary" : "text-muted-foreground"}>
-              {rk >= 0 ? "+" : ""}{rk.toFixed(0)}%
-            </span>
-          ) : <span className="text-muted-foreground">—</span>}
+        <TableCell className="text-right">
+          <RicaricoCell a={a} onSaved={load} />
         </TableCell>
         <TableCell className="text-right font-mono-num text-sm" data-testid={`cell-giacenza-${a.id}`}>
           <span className={Number(a.quantita) < 0 ? "text-destructive font-bold bg-destructive/10 px-1.5 rounded" : Number(a.quantita) === 0 ? "text-destructive font-semibold" : Number(a.quantita) <= Number(a.scorta_minima) ? "text-amber-600 font-semibold" : "font-semibold"} data-testid={`giacenza-${a.id}`}>

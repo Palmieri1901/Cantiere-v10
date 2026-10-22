@@ -918,3 +918,7 @@ Backend spezzato in moduli (`server.py` ora 112 righe, prima 2761):
 
 ## 2026-10-21 — Fix Scan DDT 'Gemini 503 high demand'
 - `ai_client._gemini_direct`: 3 tentativi con attesa crescente su 503/429/500 e fallback automatico su gemini-2.5-flash-lite → gemini-2.0-flash → gemini-2.5-pro; timeout 180s; messaggio chiaro se tutti saturi.
+
+## 2026-10-21 — Ricarichi magazzino: priorità categoria > fornitore, modifica singolo articolo
+- `_default_markup_for_articolo`: categoria specifica vince sul fornitore. `applica-ricarico` fornitore: usa il ricarico di categoria dove esiste, salta articoli `ricarico_manuale` (forza=True per includerli). Ricalcolo categoria salta i manuali.
+- Nuovo `PUT /api/magazzino/articoli/{id}/ricarico` {ricarico_percent|prezzo_listino, manuale}. UI: `RicaricoCell` (popover sulla % in tabella) con blocco/sblocco (lucchetto).
