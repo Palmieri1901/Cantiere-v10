@@ -931,3 +931,6 @@ Backend spezzato in moduli (`server.py` ora 112 righe, prima 2761):
 
 ## 2026-10-22 — PDF preventivo: dettaglio motore quadra col totale
 - `_build_motore_table`: se le righe ricambi (girante/olio/filtro/...) non raggiungono il totale ricambi salvato (tariffe cambiate o costo manuale) aggiunge 'Ricambi e materiali di consumo' / 'Altri ricambi / adeguamento' con la differenza. Con un solo motore il totale ricambi è ricavato da costo_manutenzione_motore − manodopera.
+
+## 2026-10-22 — Fix ricambi motore calcolati con spunte disattivate
+- Causa: `numero_candele or 4` / `numero_termostati or 1` trasformavano 0 in 4/1 (clienti.py create+update, preventivo.py). Ora 0 resta 0 → con tutte le spunte off ricambi = 0.
