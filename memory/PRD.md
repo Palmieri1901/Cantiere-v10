@@ -922,3 +922,6 @@ Backend spezzato in moduli (`server.py` ora 112 righe, prima 2761):
 ## 2026-10-21 — Ricarichi magazzino: priorità categoria > fornitore, modifica singolo articolo
 - `_default_markup_for_articolo`: categoria specifica vince sul fornitore. `applica-ricarico` fornitore: usa il ricarico di categoria dove esiste, salta articoli `ricarico_manuale` (forza=True per includerli). Ricalcolo categoria salta i manuali.
 - Nuovo `PUT /api/magazzino/articoli/{id}/ricarico` {ricarico_percent|prezzo_listino, manuale}. UI: `RicaricoCell` (popover sulla % in tabella) con blocco/sblocco (lucchetto).
+
+## 2026-10-22 — Mezzi: descrizione incassi
+- `_riepilogo` aggiunge `incassi_desc` per mese; TabellaAnno e PDF riepilogo mostrano le descrizioni in piccolo sotto l'importo Incassi.

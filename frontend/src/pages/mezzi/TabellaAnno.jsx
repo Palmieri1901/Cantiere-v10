@@ -22,7 +22,10 @@ export default function TabellaAnno({ r, meseSel, onMese }) {
           {r.mesi.map((m) => (
             <tr key={m.mese} onClick={() => onMese(meseSel === m.mese ? null : m.mese)} className={`border-t border-border cursor-pointer hover:bg-muted/30 ${meseSel === m.mese ? "bg-primary/5" : ""}`} data-testid={`mezzi-mese-${m.mese}`}>
               <td className="px-3 py-2 font-medium">{m.nome} <span className="text-[10px] text-muted-foreground">{m.n ? `(${m.n})` : ""}</span></td>
-              <td className="px-3 py-2 text-right font-mono-num text-emerald-700">{m.incasso ? fmtEuro(m.incasso) : "—"}</td>
+              <td className="px-3 py-2 text-right font-mono-num text-emerald-700 align-top">
+                {m.incasso ? fmtEuro(m.incasso) : "—"}
+                {m.incassi_desc?.length > 0 && <div className="text-[10px] leading-tight text-muted-foreground font-sans text-right max-w-[200px] ml-auto [overflow-wrap:anywhere]" data-testid={`mezzi-incassi-desc-${m.mese}`}>{m.incassi_desc.join(" · ")}</div>}
+              </td>
               {SPESE.map((c) => <td key={c} className="px-3 py-2 text-right font-mono-num">{m[c] ? fmtEuro(m[c]) : "—"}</td>)}
               <td className="px-3 py-2 text-right font-mono-num font-medium">{m.spese ? fmtEuro(m.spese) : "—"}</td>
               <td className={`px-3 py-2 text-right font-mono-num font-semibold ${cls(m.parziale)}`}>{m.n ? fmtEuro(m.parziale) : "—"}</td>

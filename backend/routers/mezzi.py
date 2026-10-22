@@ -1,6 +1,7 @@
 """Mezzi del cantiere (camion, muletto…): incassi e spese di gestione per mese/anno."""
 import io
 import uuid
+from html import escape
 from datetime import datetime, timezone
 from typing import Optional
 from fastapi import APIRouter, HTTPException
@@ -127,11 +128,13 @@ async def elimina_movimento(mid: str):
 
 async def _riepilogo(anno: int, mezzo_id: Optional[str]) -> dict:
     docs = await list_movimenti(anno, mezzo_id)
-    mesi = [{"mese": m + 1, "nome": MESI[m], **{c: 0.0 for c in CATEGORIE}, "spese": 0.0, "parziale": 0.0, "n": 0} for m in range(12)]
+    mesi = [{"mese": m + 1, "nome": MESI[m], **{c: 0.0 for c in CATEGORIE}, "spese": 0.0, "parziale": 0.0, "n": 0, "incassi_desc": []} for m in range(12)]
     for d in docs:
         m = int(d["data"][5:7]) - 1
         mesi[m][d["categoria"]] += float(d["importo"])
         mesi[m]["n"] += 1
+        if d["categoria"] == "incasso" and (d.get("descrizione") or "").strip():
+            mesi[m]["incassi_desc"].append(d["descrizione"].strip())
     for r in mesi:
         r["spese"] = round(sum(r[c] for c in SPESE), 2)
         r["parziale"] = round(r["incasso"] - r["spese"], 2)
@@ -170,12 +173,17 @@ async def riepilogo_pdf(anno: int, mezzo_id: Optional[str] = None):
     elems = [Paragraph(titolo, h), Paragraph(f"{cant.get('nome', '')} · generato il {datetime.now().strftime('%d/%m/%Y')}", small), Spacer(1, 4*mm)]
     header = ["Mese", "Incassi"] + [ETICHETTE[c] for c in SPESE] + ["Tot. spese", "Parziale"]
     rows = [header]
+    desc_st = ParagraphStyle("d", parent=st["Normal"], fontSize=6.5, leading=7.5, textColor=colors.HexColor("#5B6478"), alignment=2)
     for m in r["mesi"]:
-        rows.append([m["nome"], _euro(m["incasso"])] + [_euro(m[c]) for c in SPESE] + [_euro(m["spese"]), _euro(m["parziale"])])
+        inc = _euro(m["incasso"])
+        if m.get("incassi_desc"):
+            inc = Paragraph(f"<para align=right>{escape(inc)}<br/><font size=6.5 color='#5B6478'>{escape(' · '.join(m['incassi_desc']))}</font></para>", desc_st)
+        rows.append([m["nome"], inc] + [_euro(m[c]) for c in SPESE] + [_euro(m["spese"]), _euro(m["parziale"])])
     t = r["totale"]
     rows.append(["TOTALE ANNO", _euro(t["incasso"])] + [_euro(t[c]) for c in SPESE] + [_euro(t["spese"]), _euro(t["parziale"])])
-    tbl = Table(rows, repeatRows=1, colWidths=[24*mm] + [29*mm] * (len(header) - 1))
+    tbl = Table(rows, repeatRows=1, colWidths=[24*mm, 48*mm] + [27*mm] * (len(header) - 2))
     tbl.setStyle(TableStyle([
+        ("VALIGN", (0, 0), (-1, -1), "TOP"),
         ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#1F2A44")), ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
         ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"), ("FONTSIZE", (0, 0), (-1, -1), 8),
         ("ALIGN", (1, 0), (-1, -1), "RIGHT"), ("ROWBACKGROUNDS", (0, 1), (-1, -2), [colors.white, colors.HexColor("#F3F0E8")]),
