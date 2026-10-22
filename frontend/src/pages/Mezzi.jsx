@@ -91,13 +91,16 @@ export default function Mezzi() {
         ) : (
           <div className="rounded-md border border-border divide-y">
             {movs.map((m) => (
-              <div key={m.id} className="flex items-center gap-3 px-3 py-2 text-sm hover:bg-muted/30" data-testid={`mov-riga-${m.id}`}>
-                <div className="font-mono-num text-muted-foreground w-24 shrink-0">{fmt(m.data)}</div>
-                <Badge variant={m.categoria === "incasso" ? "default" : "secondary"} className={m.categoria === "incasso" ? "bg-emerald-600 hover:bg-emerald-600" : ""}>{label(m.categoria)}</Badge>
-                <div className="flex-1 min-w-0 truncate">{m.descrizione || <span className="text-muted-foreground">—</span>}{!mezzoId && <span className="text-muted-foreground"> · {nomeMezzo(m.mezzo_id)}</span>}</div>
-                <div className={`font-mono-num font-semibold ${m.categoria === "incasso" ? "text-emerald-700" : ""}`}>{m.categoria === "incasso" ? "+" : "−"} {fmtEuro(m.importo)}</div>
-                <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => setDlgMov({ open: true, movimento: m })} data-testid={`mov-edit-${m.id}`}><Pencil className="w-3.5 h-3.5" /></Button>
-                <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => eliminaMov(m)} data-testid={`mov-del-${m.id}`}><Trash2 className="w-3.5 h-3.5" /></Button>
+              <div key={m.id} className="px-3 py-2 text-sm hover:bg-muted/30" data-testid={`mov-riga-${m.id}`}>
+                <div className="flex items-center gap-3">
+                  <div className="font-mono-num text-muted-foreground w-24 shrink-0">{fmt(m.data)}</div>
+                  <Badge variant={m.categoria === "incasso" ? "default" : "secondary"} className={m.categoria === "incasso" ? "bg-emerald-600 hover:bg-emerald-600" : ""}>{label(m.categoria)}</Badge>
+                  <div className="flex-1 min-w-0 truncate hidden sm:block">{m.descrizione || <span className="text-muted-foreground">—</span>}{!mezzoId && <span className="text-muted-foreground"> · {nomeMezzo(m.mezzo_id)}</span>}</div>
+                  <div className={`ml-auto font-mono-num font-semibold whitespace-nowrap ${m.categoria === "incasso" ? "text-emerald-700" : ""}`}>{m.categoria === "incasso" ? "+" : "−"} {fmtEuro(m.importo)}</div>
+                  <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => setDlgMov({ open: true, movimento: m })} data-testid={`mov-edit-${m.id}`}><Pencil className="w-3.5 h-3.5" /></Button>
+                  <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => eliminaMov(m)} data-testid={`mov-del-${m.id}`}><Trash2 className="w-3.5 h-3.5" /></Button>
+                </div>
+                <div className="sm:hidden text-xs text-muted-foreground mt-1 pl-[6.75rem] [overflow-wrap:anywhere]" data-testid={`mov-desc-${m.id}`}>{m.descrizione || "—"}{!mezzoId && ` · ${nomeMezzo(m.mezzo_id)}`}</div>
               </div>
             ))}
           </div>

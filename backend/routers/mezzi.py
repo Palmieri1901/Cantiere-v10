@@ -1,7 +1,6 @@
 """Mezzi del cantiere (camion, muletto…): incassi e spese di gestione per mese/anno."""
 import io
 import uuid
-from html import escape
 from datetime import datetime, timezone
 from typing import Optional
 from fastapi import APIRouter, HTTPException
@@ -173,17 +172,12 @@ async def riepilogo_pdf(anno: int, mezzo_id: Optional[str] = None):
     elems = [Paragraph(titolo, h), Paragraph(f"{cant.get('nome', '')} · generato il {datetime.now().strftime('%d/%m/%Y')}", small), Spacer(1, 4*mm)]
     header = ["Mese", "Incassi"] + [ETICHETTE[c] for c in SPESE] + ["Tot. spese", "Parziale"]
     rows = [header]
-    desc_st = ParagraphStyle("d", parent=st["Normal"], fontSize=6.5, leading=7.5, textColor=colors.HexColor("#5B6478"), alignment=2)
     for m in r["mesi"]:
-        inc = _euro(m["incasso"])
-        if m.get("incassi_desc"):
-            inc = Paragraph(f"<para align=right>{escape(inc)}<br/><font size=6.5 color='#5B6478'>{escape(' · '.join(m['incassi_desc']))}</font></para>", desc_st)
-        rows.append([m["nome"], inc] + [_euro(m[c]) for c in SPESE] + [_euro(m["spese"]), _euro(m["parziale"])])
+        rows.append([m["nome"], _euro(m["incasso"])] + [_euro(m[c]) for c in SPESE] + [_euro(m["spese"]), _euro(m["parziale"])])
     t = r["totale"]
     rows.append(["TOTALE ANNO", _euro(t["incasso"])] + [_euro(t[c]) for c in SPESE] + [_euro(t["spese"]), _euro(t["parziale"])])
-    tbl = Table(rows, repeatRows=1, colWidths=[24*mm, 48*mm] + [27*mm] * (len(header) - 2))
+    tbl = Table(rows, repeatRows=1, colWidths=[24*mm] + [29*mm] * (len(header) - 1))
     tbl.setStyle(TableStyle([
-        ("VALIGN", (0, 0), (-1, -1), "TOP"),
         ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#1F2A44")), ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
         ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"), ("FONTSIZE", (0, 0), (-1, -1), 8),
         ("ALIGN", (1, 0), (-1, -1), "RIGHT"), ("ROWBACKGROUNDS", (0, 1), (-1, -2), [colors.white, colors.HexColor("#F3F0E8")]),

@@ -924,4 +924,4 @@ Backend spezzato in moduli (`server.py` ora 112 righe, prima 2761):
 - Nuovo `PUT /api/magazzino/articoli/{id}/ricarico` {ricarico_percent|prezzo_listino, manuale}. UI: `RicaricoCell` (popover sulla % in tabella) con blocco/sblocco (lucchetto).
 
 ## 2026-10-22 — Mezzi: descrizione incassi
-- `_riepilogo` aggiunge `incassi_desc` per mese; TabellaAnno e PDF riepilogo mostrano le descrizioni in piccolo sotto l'importo Incassi.
+- Correzione: la descrizione va sotto ogni singolo movimento nell'elenco (su mobile riga a due livelli, `mov-desc-{id}`), non sotto il totale mese. Tabella anno/PDF invariati; `incassi_desc` resta disponibile nell'API.
