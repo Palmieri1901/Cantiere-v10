@@ -417,24 +417,33 @@ def _build_preventivo_pdf(doc: dict, lavori_docs: list, cantiere_doc: dict, t_cu
         rows = [
             ["Manodopera motore", "", _euro(manod)],
         ]
+        ric_rows = 0.0
+        def add_ric(label_txt, qta, val):
+            nonlocal ric_rows
+            rows.append([label_txt, qta, _euro(val)])
+            ric_rows += float(val)
         if girante_on:
-            rows.append(["Girante", "1", _euro(t_current.costo_girante)])
+            add_ric("Girante", "1", t_current.costo_girante)
         if litri > 0:
-            rows.append(["Olio motore", f"{litri:g} L", _euro(litri * t_current.costo_olio_motore)])
+            add_ric("Olio motore", f"{litri:g} L", litri * t_current.costo_olio_motore)
         if flags.get("filtro_olio"):
-            rows.append(["Filtro olio", "1", _euro(t_current.costo_filtro_olio)])
+            add_ric("Filtro olio", "1", t_current.costo_filtro_olio)
         if nc > 0:
-            rows.append(["Candele", str(nc), _euro(nc * t_current.costo_candela)])
+            add_ric("Candele", str(nc), nc * t_current.costo_candela)
         if nt > 0:
-            rows.append(["Termostato", str(nt), _euro(nt * t_current.costo_termostato)])
+            add_ric("Termostato", str(nt), nt * t_current.costo_termostato)
         if flags.get("olio_piede") and litri_piede > 0:
-            rows.append(["Olio piede", f"{litri_piede:g} L", _euro(litri_piede * t_current.costo_olio_piede)])
+            add_ric("Olio piede", f"{litri_piede:g} L", litri_piede * t_current.costo_olio_piede)
         if flags.get("anodi_interni"):
-            rows.append(["Kit anodi interni", "1", _euro(t_current.costo_anodi_interni)])
+            add_ric("Kit anodi interni", "1", t_current.costo_anodi_interni)
         if flags.get("anodi_esterni"):
-            rows.append(["Kit anodi esterni", "1", _euro(t_current.costo_anodi_esterni)])
+            add_ric("Kit anodi esterni", "1", t_current.costo_anodi_esterni)
         if flags.get("ingrassaggio"):
-            rows.append(["Ingrassaggio", "1", _euro(t_current.costo_ingrassaggio)])
+            add_ric("Ingrassaggio", "1", t_current.costo_ingrassaggio)
+        # Allinea il dettaglio al totale ricambi salvato (tariffe cambiate o costo impostato a mano)
+        diff = round(float(ric_tot) - ric_rows, 2)
+        if abs(diff) >= 0.01:
+            rows.append(["Ricambi e materiali di consumo" if ric_rows == 0 else "Altri ricambi / adeguamento", "", _euro(diff)])
         subtotale = manod + ric_tot
         header_row = [f"{title_txt} — {int(potenza) if potenza else 0} HP", "", _euro(subtotale)]
         data = [header_row, ["VOCE", "Q.TÀ", "IMPORTO"]] + rows
@@ -473,7 +482,10 @@ def _build_preventivo_pdf(doc: dict, lavori_docs: list, cantiere_doc: dict, t_cu
         motore_1_label = "1° Motore" if has_motore_2 else "Motore"
         litri_piede_1 = float(doc.get("litri_olio_piede") or 1.0)
         flags_1 = {k: doc.get(f"{k}_attivo") is not False for k in ("filtro_olio", "olio_piede", "anodi_interni", "anodi_esterni", "ingrassaggio")}
-        elems.append(_build_motore_table(motore_1_label, potenza_1, litri, litri_piede_1, nc, nt, girante_attivo, manodopera, ricambi_tot, flags_1))
+        motore_tot_doc = float(doc.get("costo_manutenzione_motore") or 0)
+        # Con un solo motore il dettaglio deve quadrare con la voce 'Manutenzione motore' del preventivo (anche se impostata a mano)
+        ric_1 = round(motore_tot_doc - manodopera, 2) if (not has_motore_2 and motore_tot_doc > 0) else ricambi_tot
+        elems.append(_build_motore_table(motore_1_label, potenza_1, litri, litri_piede_1, nc, nt, girante_attivo, manodopera, ric_1, flags_1))
 
         if has_motore_2:
             elems.append(Spacer(1, 1*mm))

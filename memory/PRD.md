@@ -928,3 +928,6 @@ Backend spezzato in moduli (`server.py` ora 112 righe, prima 2761):
 
 ## 2026-10-22 — Mezzi: incasso pagato/insoluto
 - Campo `pagato` (default True) sui movimenti; `PUT /api/mezzi/movimenti/{id}/pagato`. Elenco: badge/importo verdi se pagato, rossi + 'insoluto' se no; pulsante toggle (check/alert) per riga incasso.
+
+## 2026-10-22 — PDF preventivo: dettaglio motore quadra col totale
+- `_build_motore_table`: se le righe ricambi (girante/olio/filtro/...) non raggiungono il totale ricambi salvato (tariffe cambiate o costo manuale) aggiunge 'Ricambi e materiali di consumo' / 'Altri ricambi / adeguamento' con la differenza. Con un solo motore il totale ricambi è ricavato da costo_manutenzione_motore − manodopera.
