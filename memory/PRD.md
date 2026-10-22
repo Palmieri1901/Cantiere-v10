@@ -915,3 +915,6 @@ Backend spezzato in moduli (`server.py` ora 112 righe, prima 2761):
 
 ## 2026-10-21 — Sottotitoli lavaggi
 - 'Lavaggio inizio stagione · coperta e gavoni' / 'Lavaggio fine stagione · coperta, gavoni, scafo, piede motore' in Tariffe, ListinoPicker, ClienteForm, ClienteDettaglio e PDF (preventivo annuale via `SOTTOTITOLI_VOCI`, storico anni).
+
+## 2026-10-21 — Fix Scan DDT 'Gemini 503 high demand'
+- `ai_client._gemini_direct`: 3 tentativi con attesa crescente su 503/429/500 e fallback automatico su gemini-2.5-flash-lite → gemini-2.0-flash → gemini-2.5-pro; timeout 180s; messaggio chiaro se tutti saturi.

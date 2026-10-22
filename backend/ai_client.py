@@ -4,6 +4,7 @@ Priorità: GEMINI_API_KEY (Google Gemini diretto, nessuna dipendenza esterna) �
 EMERGENT_LLM_KEY (solo se presente, retro-compatibilità con l'ambiente Emergent).
 """
 import os
+import asyncio
 from typing import List
 import httpx
 from fastapi import HTTPException
@@ -27,17 +28,37 @@ def _mime(b64: str) -> str:
 
 
 async def _gemini_direct(api_key: str, system: str, prompt: str, images: List[str]) -> str:
-    model = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash")
+    primario = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash")
+    # In caso di 503/429 (modello sovraccarico) riprova e poi passa a modelli alternativi
+    modelli = [primario] + [m for m in ("gemini-2.5-flash-lite", "gemini-2.0-flash", "gemini-2.5-pro") if m != primario]
     parts = [{"text": prompt}] + [{"inline_data": {"mime_type": _mime(i), "data": i}} for i in images]
     body = {
         "system_instruction": {"parts": [{"text": system}]},
         "contents": [{"role": "user", "parts": parts}],
         "generationConfig": {"temperature": 0.1},
     }
-    async with httpx.AsyncClient(timeout=120) as client:
-        r = await client.post(GEMINI_URL.format(model=model), params={"key": api_key}, json=body)
-    if r.status_code != 200:
-        raise HTTPException(502, f"Errore Gemini ({r.status_code}): {r.text[:200]}")
+    ultimo = None
+    async with httpx.AsyncClient(timeout=180) as client:
+        for model in modelli:
+            for tentativo in range(3):
+                try:
+                    r = await client.post(GEMINI_URL.format(model=model), params={"key": api_key}, json=body)
+                except httpx.HTTPError as e:
+                    ultimo = f"rete: {e}"
+                    await asyncio.sleep(1.5 * (tentativo + 1))
+                    continue
+                if r.status_code == 200:
+                    break
+                ultimo = f"{r.status_code}: {r.text[:200]}"
+                if r.status_code in (503, 429, 500):
+                    await asyncio.sleep(2 * (tentativo + 1))
+                    continue
+                raise HTTPException(502, f"Errore Gemini ({r.status_code}): {r.text[:200]}")
+            else:
+                continue  # modello esaurito i tentativi → prova il successivo
+            break
+        else:
+            raise HTTPException(503, f"Il servizio AI è momentaneamente sovraccarico su tutti i modelli disponibili. Riprova tra qualche minuto. (ultimo errore {ultimo})")
     data = r.json()
     try:
         return "".join(p.get("text", "") for p in data["candidates"][0]["content"]["parts"])
