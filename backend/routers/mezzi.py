@@ -37,6 +37,11 @@ class MovimentoIn(BaseModel):
     categoria: str
     importo: float
     descrizione: Optional[str] = ""
+    pagato: Optional[bool] = True
+
+
+class PagatoIn(BaseModel):
+    pagato: bool
 
 
 def _now():
@@ -112,6 +117,14 @@ async def crea_movimento(p: MovimentoIn):
 async def aggiorna_movimento(mid: str, p: MovimentoIn):
     _check(p)
     r = await db.mezzi_movimenti.update_one({"id": mid}, {"$set": p.model_dump()})
+    if r.matched_count == 0:
+        raise HTTPException(404, "Movimento non trovato")
+    return await db.mezzi_movimenti.find_one({"id": mid}, {"_id": 0})
+
+
+@router.put("/mezzi/movimenti/{mid}/pagato")
+async def toggle_pagato(mid: str, p: PagatoIn):
+    r = await db.mezzi_movimenti.update_one({"id": mid}, {"$set": {"pagato": p.pagato}})
     if r.matched_count == 0:
         raise HTTPException(404, "Movimento non trovato")
     return await db.mezzi_movimenti.find_one({"id": mid}, {"_id": 0})

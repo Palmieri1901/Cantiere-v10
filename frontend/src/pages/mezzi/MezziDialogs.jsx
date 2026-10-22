@@ -50,7 +50,7 @@ export function MovimentoDialog({ open, onClose, mezzi, movimento, mezzoDefault,
   const save = async () => {
     if (!f.mezzo_id) return toast.error("Scegli il mezzo");
     if (!(Number(f.importo) > 0)) return toast.error("Inserisci l'importo");
-    const body = { mezzo_id: f.mezzo_id, data: f.data, categoria: f.categoria, importo: Number(f.importo), descrizione: f.descrizione || "" };
+    const body = { mezzo_id: f.mezzo_id, data: f.data, categoria: f.categoria, importo: Number(f.importo), descrizione: f.descrizione || "", pagato: movimento?.pagato === false ? false : true };
     try {
       movimento ? await api.put(`/mezzi/movimenti/${movimento.id}`, body) : await api.post("/mezzi/movimenti", body);
       toast.success("Movimento salvato"); onSaved(); onClose();

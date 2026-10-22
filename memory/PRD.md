@@ -925,3 +925,6 @@ Backend spezzato in moduli (`server.py` ora 112 righe, prima 2761):
 
 ## 2026-10-22 — Mezzi: descrizione incassi
 - Correzione: la descrizione va sotto ogni singolo movimento nell'elenco (su mobile riga a due livelli, `mov-desc-{id}`), non sotto il totale mese. Tabella anno/PDF invariati; `incassi_desc` resta disponibile nell'API.
+
+## 2026-10-22 — Mezzi: incasso pagato/insoluto
+- Campo `pagato` (default True) sui movimenti; `PUT /api/mezzi/movimenti/{id}/pagato`. Elenco: badge/importo verdi se pagato, rossi + 'insoluto' se no; pulsante toggle (check/alert) per riga incasso.

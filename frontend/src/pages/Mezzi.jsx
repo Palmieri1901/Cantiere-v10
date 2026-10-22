@@ -7,7 +7,7 @@ import { confirmDialog } from "@/components/ConfirmDialog";
 import { PdfPreviewOverlay } from "@/components/PdfPreviewOverlay";
 import { openBlob } from "@/pages/ddt/common";
 import { toast } from "sonner";
-import { Truck, Plus, Pencil, Trash2, FileText } from "lucide-react";
+import { Truck, Plus, Pencil, Trash2, FileText, CheckCircle2, AlertCircle } from "lucide-react";
 import TabellaAnno from "@/pages/mezzi/TabellaAnno";
 import { MezzoDialog, MovimentoDialog, CATEGORIE } from "@/pages/mezzi/MezziDialogs";
 
@@ -37,6 +37,10 @@ export default function Mezzi() {
   useEffect(() => { loadMezzi(); }, []);
   useEffect(() => { loadDati(); }, [anno, mezzoId, mese]); // eslint-disable-line
 
+  const togglePagato = async (m) => {
+    try { await api.put(`/mezzi/movimenti/${m.id}/pagato`, { pagato: m.pagato === false }); loadDati(); }
+    catch { toast.error("Errore aggiornamento stato pagamento"); }
+  };
   const eliminaMov = async (m) => {
     if (!await confirmDialog(`Eliminare ${label(m.categoria).toLowerCase()} di ${fmtEuro(m.importo)} del ${fmt(m.data)}?`, { title: "Elimina movimento", okLabel: "Elimina" })) return;
     try { await api.delete(`/mezzi/movimenti/${m.id}`); toast.success("Eliminato"); loadDati(); } catch (e) { toast.error(e.response?.data?.detail || "Errore"); }
@@ -94,9 +98,10 @@ export default function Mezzi() {
               <div key={m.id} className="px-3 py-2 text-sm hover:bg-muted/30" data-testid={`mov-riga-${m.id}`}>
                 <div className="flex items-center gap-3">
                   <div className="font-mono-num text-muted-foreground w-24 shrink-0">{fmt(m.data)}</div>
-                  <Badge variant={m.categoria === "incasso" ? "default" : "secondary"} className={m.categoria === "incasso" ? "bg-emerald-600 hover:bg-emerald-600" : ""}>{label(m.categoria)}</Badge>
+                  <Badge variant={m.categoria === "incasso" ? "default" : "secondary"} className={m.categoria === "incasso" ? (m.pagato === false ? "bg-red-600 hover:bg-red-600" : "bg-emerald-600 hover:bg-emerald-600") : ""} data-testid={`mov-badge-${m.id}`}>{label(m.categoria)}{m.categoria === "incasso" && m.pagato === false ? " · insoluto" : ""}</Badge>
                   <div className="flex-1 min-w-0 truncate hidden sm:block">{m.descrizione || <span className="text-muted-foreground">—</span>}{!mezzoId && <span className="text-muted-foreground"> · {nomeMezzo(m.mezzo_id)}</span>}</div>
-                  <div className={`ml-auto font-mono-num font-semibold whitespace-nowrap ${m.categoria === "incasso" ? "text-emerald-700" : ""}`}>{m.categoria === "incasso" ? "+" : "−"} {fmtEuro(m.importo)}</div>
+                  <div className={`ml-auto font-mono-num font-semibold whitespace-nowrap ${m.categoria === "incasso" ? (m.pagato === false ? "text-red-600" : "text-emerald-700") : ""}`} data-testid={`mov-importo-${m.id}`}>{m.categoria === "incasso" ? "+" : "−"} {fmtEuro(m.importo)}</div>
+                  {m.categoria === "incasso" && <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => togglePagato(m)} title={m.pagato === false ? "Segna come pagato" : "Segna come insoluto"} data-testid={`mov-pagato-${m.id}`}>{m.pagato === false ? <AlertCircle className="w-4 h-4 text-red-600" /> : <CheckCircle2 className="w-4 h-4 text-emerald-600" />}</Button>}
                   <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => setDlgMov({ open: true, movimento: m })} data-testid={`mov-edit-${m.id}`}><Pencil className="w-3.5 h-3.5" /></Button>
                   <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => eliminaMov(m)} data-testid={`mov-del-${m.id}`}><Trash2 className="w-3.5 h-3.5" /></Button>
                 </div>
