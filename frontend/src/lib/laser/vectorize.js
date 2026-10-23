@@ -19,17 +19,48 @@ function gridFrom(img, opts) {
   const { width: w, height: h, data } = img;
   const W = w + 2, H = h + 2;
   const vals = new Float64Array(W * H);
+  const sat = opts.saturazione > 0 ? opts.saturazione / 100 : 0;
+  const box = opts.area; // {x,y,width,height} in pixel: fuori dall'area tutto spento
   for (let y = 0; y < h; y++) {
     for (let x = 0; x < w; x++) {
+      if (box && (x < box.x || x > box.x + box.width || y < box.y || y > box.y + box.height)) continue;
       const i = (y * w + x) * 4;
       const a = data[i + 3] / 255;
-      const lum = (0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2]) * a + 255 * (1 - a);
+      const R = data[i], G = data[i + 1], B = data[i + 2];
+      const lum = (0.299 * R + 0.587 * G + 0.114 * B) * a + 255 * (1 - a);
       let on = lum < opts.threshold ? 1 : 0;
+      if (sat && !on) {
+        const mx = Math.max(R, G, B), mn = Math.min(R, G, B);
+        if (mx > 0 && (mx - mn) / mx >= sat && a > 0.5) on = 1; // colore acceso (bandiera, loghi colorati)
+      }
       if (opts.invert) on = 1 - on;
       vals[(y + 1) * W + (x + 1)] = on;
     }
   }
   return { vals, W, H };
+}
+
+// Soglia automatica (metodo di Otsu) sulla luminosità dell'immagine
+export function sogliaAutomatica(canvas) {
+  const { width: w, height: h } = canvas;
+  const data = canvas.getContext("2d").getImageData(0, 0, w, h).data;
+  const hist = new Array(256).fill(0);
+  for (let i = 0; i < data.length; i += 4) hist[Math.round(0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2])]++;
+  const total = w * h;
+  let sum = 0;
+  for (let t = 0; t < 256; t++) sum += t * hist[t];
+  let sumB = 0, wB = 0, best = 128, max = 0;
+  for (let t = 0; t < 256; t++) {
+    wB += hist[t];
+    if (!wB) continue;
+    const wF = total - wB;
+    if (!wF) break;
+    sumB += t * hist[t];
+    const mB = sumB / wB, mF = (sum - sumB) / wF;
+    const v = wB * wF * (mB - mF) ** 2;
+    if (v > max) { max = v; best = t; }
+  }
+  return best;
 }
 
 function ringArea(r) {

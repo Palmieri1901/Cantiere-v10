@@ -63,11 +63,12 @@ export function Dimensione({ widthMm, setWidthMm, w, h, forme, punti }) {
   );
 }
 
-export function BarraArea({ areaMode, enclosedCount, onToggle, onDelete, onClear }) {
+export function BarraArea({ areaMode, enclosedCount, onToggle, onDelete, onClear, onRicavaArea, hasArea }) {
   return (
     <>
       <Button variant={areaMode ? "default" : "outline"} size="sm" onClick={onToggle} data-testid="laser-area-toggle">Delimita area</Button>
       {areaMode && <>
+        <Button size="sm" disabled={!hasArea} onClick={onRicavaArea} title="Ricava il contorno solo dentro l'area disegnata" data-testid="laser-area-ricava">Ricava nell'area</Button>
         <Button variant="destructive" size="sm" disabled={!enclosedCount} onClick={onDelete} title="Elimina solo le forme completamente interne" data-testid="laser-area-elimina"><Trash2 className="w-4 h-4 mr-1" /> Elimina ({enclosedCount})</Button>
         <Button variant="outline" size="sm" onClick={onClear} data-testid="laser-area-annulla">Annulla area</Button>
       </>}

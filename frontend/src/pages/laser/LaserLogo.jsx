@@ -5,7 +5,7 @@ import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Check as CheckIcon, Minus, P
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { fileToCanvases, deletePhoto, loadPhotos, savePhotos, urlToCanvas, download } from "@/lib/laser/files";
-import { trace, toDXF, toSVG } from "@/lib/laser/vectorize";
+import { trace, toDXF, toSVG, sogliaAutomatica } from "@/lib/laser/vectorize";
 import { appendContour, insertNearestPoint, boxBounds, isInsideBox, movePoint, rotateShapes, refineContours } from "@/lib/laser/contourEdit";
 import { Panel, Slider, Check, Foto, Dimensione, BarraArea } from "./LaserPannelli";
 
@@ -13,7 +13,7 @@ export default function LaserLogo() {
   const [items, setItems] = useState([]);
   const [active, setActive] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [opts, setOpts] = useState({ threshold: 128, invert: false, tolerance: 1.5, minArea: 30, blur: 1 });
+  const [opts, setOpts] = useState({ threshold: 128, invert: false, tolerance: 1.5, minArea: 30, blur: 1, saturazione: 0 });
   const [paths, setPaths] = useState([]);
   const [photoOpacity, setPhotoOpacity] = useState(0.6);
   const [showPhoto, setShowPhoto] = useState(true);
@@ -108,24 +108,34 @@ export default function LaserLogo() {
     setPaths(next); setHist({ u: past.current.length, r: future.current.length }); setSel(null); clearArea();
   }
 
-  function retrace() {
+  function retrace(soloArea = false) {
     clearDrawing();
     if (!item) return;
-    clearArea();
+    const box = soloArea && area ? boxBounds(area) : null;
+    if (!soloArea) clearArea();
     const switched = tracedId.current !== item.id;
     tracedId.current = item.id;
     if (switched) { past.current = []; future.current = []; setHist({ u: 0, r: 0 }); } else if (paths.length) snapshot(paths);
     try {
-      const result = trace(item.canvas, opts);
+      const nuovi = trace(item.canvas, { ...opts, area: box });
+      // Nell'area delimitata: sostituisce solo le forme interne, il resto resta
+      const result = box ? [...paths.filter((p) => !isInsideBox(p, area)), ...nuovi] : nuovi;
       setPaths(result);
-      setNotice(result.truncated ? "Foto molto dettagliata: mostro solo le forme più grandi. Alza «Ignora macchie piccole» o cambia la soglia per pulire il contorno." : null);
+      setNotice(nuovi.truncated ? "Foto molto dettagliata: mostro solo le forme più grandi. Alza «Ignora macchie piccole» o cambia la soglia per pulire il contorno." : (box && !nuovi.length ? "Nessun contorno trovato nell'area: prova ad abbassare/alzare la soglia o attiva «Rileva colori»." : null));
     } catch (error) {
       setPaths([]); console.error(error);
       setNotice("Non riesco a ricavare il contorno di questa foto. La foto resta disponibile: prova a cambiare la soglia.");
     }
     setSel(null);
+    if (box) clearArea();
   }
-  useEffect(retrace, [item]); // eslint-disable-line react-hooks/exhaustive-deps
+  function sogliaAuto() {
+    if (!item) return;
+    const t = sogliaAutomatica(item.canvas);
+    setOpts((o) => ({ ...o, threshold: t }));
+    setNotice(`Soglia automatica impostata a ${t}: premi «Ricava contorno».`);
+  }
+  useEffect(() => { retrace(); }, [item]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const pointCount = useMemo(() => paths.reduce((s, p) => s + p.length, 0), [paths]);
   const w = item?.canvas.width ?? 1, h = item?.canvas.height ?? 1;
@@ -238,12 +248,15 @@ export default function LaserLogo() {
           <Foto items={items} active={active} loading={loading} onFiles={onFiles} onPick={setActive} onRemove={removeItem} />
           <Panel title="Contorno" testId="laser-panel-contorno">
             <Slider label="Soglia" v={opts.threshold} min={1} max={254} on={(v) => setOpts({ ...opts, threshold: v })} testId="laser-soglia" />
+            <Button variant="outline" size="sm" disabled={!item} onClick={sogliaAuto} className="w-full" data-testid="laser-soglia-auto">Soglia automatica</Button>
+            <Slider label="Rileva colori (bandiere, loghi colorati)" v={opts.saturazione} min={0} max={100} step={5} on={(v) => setOpts({ ...opts, saturazione: v })} testId="laser-saturazione" />
+            <p className="text-[11px] text-muted-foreground -mt-1">0 = spento. Più alto = prende solo colori molto accesi; 30–50 va bene per rosso/verde su fondo bianco.</p>
             <Slider label="Ammorbidisci foto" v={opts.blur} min={0} max={6} step={0.5} on={(v) => setOpts({ ...opts, blur: v })} testId="laser-blur" />
             <Slider label="Semplifica (meno punti)" v={opts.tolerance} min={0.3} max={8} step={0.1} on={(v) => setOpts({ ...opts, tolerance: v })} testId="laser-tolleranza" />
             <Slider label="Ignora macchie piccole" v={opts.minArea} min={0} max={2000} step={10} on={(v) => setOpts({ ...opts, minArea: v })} testId="laser-min-area" />
             <Check label="Inverti (logo chiaro su fondo scuro)" checked={opts.invert} on={(v) => setOpts({ ...opts, invert: v })} testId="laser-inverti" />
-            <Button disabled={!item} onClick={retrace} className="w-full" data-testid="laser-ricava">Ricava contorno</Button>
-            <p className="text-xs text-muted-foreground">Dopo «Ricava contorno» puoi tornare ai punti di prima con «Annulla».</p>
+            <Button disabled={!item} onClick={() => retrace(false)} className="w-full" data-testid="laser-ricava">Ricava contorno</Button>
+            <p className="text-xs text-muted-foreground">Dopo «Ricava contorno» puoi tornare ai punti di prima con «Annulla». Scritte grigio chiaro su scafo bianco: alza la soglia (170–210) o usa «Soglia automatica»; con «Delimita area» puoi ricavare il contorno solo dentro l'area scelta.</p>
           </Panel>
           <Panel title="Sovrapposizione" testId="laser-panel-foto">
             <Check label="Mostra foto sotto" checked={showPhoto} on={setShowPhoto} testId="laser-mostra-foto" />
@@ -278,7 +291,7 @@ export default function LaserLogo() {
             {drawingMode && <Button variant="outline" className={ib} title="Annulla disegno" onClick={clearDrawing} data-testid="laser-annulla-disegno"><X className="w-4 h-4" /></Button>}
           </div>
           <div className="flex flex-wrap items-center gap-2 border-b border-border pb-2">
-            <BarraArea areaMode={areaMode} enclosedCount={enclosedCount} onDelete={deleteArea} onClear={clearArea}
+            <BarraArea areaMode={areaMode} enclosedCount={enclosedCount} onDelete={deleteArea} onClear={clearArea} hasArea={!!bounds && bounds.width > 2 && bounds.height > 2} onRicavaArea={() => retrace(true)}
               onToggle={() => { clearDrawing(); if (areaMode) { clearArea(); return; } areaModeRef.current = true; setAreaMode(true); setArea(null); setSel(null); setSelectedShapes([]); }} />
             <div className="ml-auto flex gap-1" title="Sposta punto selezionato">
               <Button variant="outline" className={ib} disabled={!sel || areaMode} onClick={() => nudge(-1, 0)} data-testid="laser-nudge-sx"><ArrowLeft className="w-4 h-4" /></Button>

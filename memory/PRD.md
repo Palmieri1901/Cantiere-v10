@@ -934,3 +934,6 @@ Backend spezzato in moduli (`server.py` ora 112 righe, prima 2761):
 
 ## 2026-10-22 — Fix ricambi motore calcolati con spunte disattivate
 - Causa: `numero_candele or 4` / `numero_termostati or 1` trasformavano 0 in 4/1 (clienti.py create+update, preventivo.py). Ora 0 resta 0 → con tutte le spunte off ricambi = 0.
+
+## 2026-10-23 — LaserLogo: scritte chiare e bandiere
+- `sogliaAutomatica` (Otsu) + pulsante; slider 'Rileva colori' (saturazione) per bandiere/loghi colorati; 'Ricava nell'area' traccia solo dentro l'area delimitata (opts.area) sostituendo solo le forme interne.
