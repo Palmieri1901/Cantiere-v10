@@ -937,3 +937,6 @@ Backend spezzato in moduli (`server.py` ora 112 righe, prima 2761):
 
 ## 2026-10-23 — LaserLogo: scritte chiare e bandiere
 - `sogliaAutomatica` (Otsu) + pulsante; slider 'Rileva colori' (saturazione) per bandiere/loghi colorati; 'Ricava nell'area' traccia solo dentro l'area delimitata (opts.area) sostituendo solo le forme interne.
+
+## 2026-10-23 — LaserLogo foto condivise
+- `routers/laser.py`: /api/laser/foto GET/POST/DELETE (collezione `laser_foto`, data URL JPEG, max 40, ~2 MB). files.js usa l'API al posto di IndexedDB → stesse foto da telefono e PC.

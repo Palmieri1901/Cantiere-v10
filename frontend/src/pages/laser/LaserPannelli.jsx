@@ -34,7 +34,7 @@ export function Foto({ items, active, loading, onFiles, onPick, onRemove }) {
       <label className="block cursor-pointer rounded-lg border-2 border-dashed border-border p-5 text-center transition-colors hover:border-primary" data-testid="laser-upload">
         <input type="file" multiple accept="image/*,application/pdf" className="hidden" onChange={(e) => onFiles(e.target.files)} data-testid="laser-file-input" />
         <div className="font-display font-semibold">{loading ? "Caricamento…" : "Carica foto o PDF"}</div>
-        <div className="mt-1 text-xs text-muted-foreground">JPEG, PNG, WEBP, PDF — anche più file</div>
+        <div className="mt-1 text-xs text-muted-foreground">JPEG, PNG, WEBP, PDF — anche più file. Le foto restano salvate e si vedono da telefono e PC.</div>
       </label>
       {items.length > 0 && (
         <div className="grid grid-cols-4 gap-2" data-testid="laser-foto-lista">

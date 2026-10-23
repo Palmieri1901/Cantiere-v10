@@ -79,7 +79,7 @@ export default function LaserLogo() {
       } catch (e) { toast.error(`Impossibile leggere ${f.name}`); console.error(e); }
     }
     setItems((p) => [...p, ...added]);
-    savePhotos(added.map(({ id, name, url }) => ({ id, name, url })));
+    savePhotos(added.map(({ id, name, url }) => ({ id, name, url }))).then(() => toast.success("Foto salvata: la trovi anche dagli altri dispositivi")).catch((e) => toast.error(e.response?.data?.detail || "Foto non salvata sul server (resta solo qui)"));
     if (added[0]) { setShowPhoto(true); setPhotoOpacity(0.6); setZoom(1); setActive(added[0].id); }
     setLoading(false);
   }
