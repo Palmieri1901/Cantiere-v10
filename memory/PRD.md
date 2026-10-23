@@ -940,3 +940,6 @@ Backend spezzato in moduli (`server.py` ora 112 righe, prima 2761):
 
 ## 2026-10-23 — LaserLogo foto condivise
 - `routers/laser.py`: /api/laser/foto GET/POST/DELETE (collezione `laser_foto`, data URL JPEG, max 40, ~2 MB). files.js usa l'API al posto di IndexedDB → stesse foto da telefono e PC.
+
+## 2026-10-23 — Fix perdita focus durante la digitazione
+- Causa: componenti definiti dentro il render (`Wrap` in IndirizzoFields, `Riga` in RettificaConfezioniDialog) → remount a ogni tasto. Spostati fuori dal componente. Regola: mai definire componenti dentro il corpo di un altro componente.
