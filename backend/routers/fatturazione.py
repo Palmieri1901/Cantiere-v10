@@ -39,7 +39,8 @@ async def _fic(method: str, path: str, token: str, **kw):
             err = j.get("error", {})
             msg = err.get("message") or r.text[:300]
             vr = err.get("validation_result") or j.get("extra", {}).get("validation_result") or {}
-            det = [f"{k}: {', '.join(v) if isinstance(v, list) else v}" for k, v in (vr.get("fields") or {}).items()]
+            vr = vr.get("fields") if isinstance(vr.get("fields"), dict) else vr
+            det = [f"{k}: {', '.join(v) if isinstance(v, list) else v}" for k, v in vr.items()]
             if det:
                 msg += " — " + "; ".join(det)[:600]
         except Exception:  # noqa: BLE001
@@ -136,7 +137,7 @@ async def _righe_cliente(c: dict) -> List[dict]:
     return r + _righe_lavori(lavori)
 
 
-async def _entita(tok: str, cid: int, soggetto: dict, nome: str) -> int:
+async def _entita(tok: str, cid: int, soggetto: dict, nome: str) -> dict:
     az = (soggetto.get("tipo_soggetto") or "privato") == "azienda" and soggetto.get("ragione_sociale")
     payload = {"type": "company" if az else "person", "name": (soggetto.get("ragione_sociale") if az else nome).strip()[:255]}
     if soggetto.get("partita_iva"):
@@ -174,8 +175,9 @@ async def _entita(tok: str, cid: int, soggetto: dict, nome: str) -> int:
     hit = next((x for x in found if (payload.get("vat_number") and x.get("vat_number") == payload["vat_number"]) or (x.get("name") or "").lower() == payload["name"].lower()), None)
     if hit:
         await _fic("PUT", f"/c/{cid}/entities/clients/{hit['id']}", tok, json={"data": payload})
-        return hit["id"]
-    return (await _fic("POST", f"/c/{cid}/entities/clients", tok, json={"data": payload})).get("data", {}).get("id")
+        return {**payload, "id": hit["id"]}
+    new_id = (await _fic("POST", f"/c/{cid}/entities/clients", tok, json={"data": payload})).get("data", {}).get("id")
+    return {**payload, "id": new_id}
 
 
 class InviaIn(BaseModel):
@@ -355,9 +357,10 @@ async def invia(p: InviaIn):
     if errf:
         raise HTTPException(422, "Dati del cliente non validi: " + "; ".join(errf))
     sogg = _split_nome(sogg)
-    entity_id = await _entita(tok, cid, sogg, nome)
+    entity = await _entita(tok, cid, sogg, nome)
+    entity_id = entity["id"]
     items = [{"name": r["name"], "description": r["description"], "qty": r["qty"], "net_price": r["net_price"], "vat": vat} for r in righe]
-    data = {"type": "proforma", "entity": {"id": entity_id}, "date": datetime.now().strftime("%Y-%m-%d"), "subject": oggetto[:255], "items_list": items}
+    data = {"type": "proforma", "entity": entity, "date": datetime.now().strftime("%Y-%m-%d"), "subject": oggetto[:255], "items_list": items}
     netto = round(sum(r["qty"] * r["net_price"] for r in righe), 2)
     data["payments_list"] = [{"amount": round(netto * 1.22, 2), "due_date": datetime.now().strftime("%Y-%m-%d"), "status": "not_paid"}]
     try:
