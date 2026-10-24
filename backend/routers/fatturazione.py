@@ -76,9 +76,14 @@ async def set_config(p: ConfigIn):
         if not comp:
             raise HTTPException(400, "Azienda non trovata tra quelle del token")
         upd["company_id"], upd["company_name"] = comp["id"], comp.get("name", "")
-        vats = (await _fic("GET", f"/c/{comp['id']}/info/vat_types", tok)).get("data", [])
-        v22 = next((v for v in vats if float(v.get("value") or -1) == 22), None)
-        upd["vat_id"] = v22["id"] if v22 else None
+        try:
+            vats = (await _fic("GET", f"/c/{comp['id']}/info/vat_types", tok)).get("data", [])
+            v22 = next((v for v in vats if float(v.get("value") or -1) == 22), None)
+            upd["vat_id"] = v22["id"] if v22 else None
+        except HTTPException as e:
+            if e.status_code not in (401, 403):
+                raise
+            upd["vat_id"] = None
     if not upd:
         raise HTTPException(400, "Nessun dato da salvare")
     await db.fatturazione_config.update_one({"id": "default"}, {"$set": upd}, upsert=True)
@@ -290,9 +295,8 @@ async def invia(p: InviaIn):
     c = await _cfg()
     if not c.get("token") or not c.get("company_id"):
         raise HTTPException(400, "Fatture in Cloud non configurato: vai in Impostazioni → Fatturazione")
-    if not c.get("vat_id"):
-        raise HTTPException(400, "Aliquota IVA 22% non trovata nell'azienda Fatture in Cloud")
     tok, cid = c["token"], c["company_id"]
+    vat = {"id": c["vat_id"]} if c.get("vat_id") else {"value": 22}
     if p.tipo == "cliente":
         doc = await db.clienti.find_one({"id": p.id}, {"_id": 0})
         if not doc:
@@ -330,7 +334,7 @@ async def invia(p: InviaIn):
         raise HTTPException(422, "Dati del cliente non validi: " + "; ".join(errf))
     sogg = _split_nome(sogg)
     entity_id = await _entita(tok, cid, sogg, nome)
-    items = [{"name": r["name"], "description": r["description"], "qty": r["qty"], "net_price": r["net_price"], "vat": {"id": c["vat_id"]}} for r in righe]
+    items = [{"name": r["name"], "description": r["description"], "qty": r["qty"], "net_price": r["net_price"], "vat": vat} for r in righe]
     data = {"type": "proforma", "entity": {"id": entity_id}, "date": datetime.now().strftime("%Y-%m-%d"), "subject": oggetto[:255], "items_list": items}
     try:
         res = (await _fic("POST", f"/c/{cid}/issued_documents", tok, json={"data": data})).get("data", {})
