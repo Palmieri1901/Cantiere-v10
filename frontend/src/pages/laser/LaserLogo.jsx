@@ -8,6 +8,7 @@ import { fileToCanvases, deletePhoto, loadPhotos, savePhotos, urlToCanvas, downl
 import { trace, toDXF, toSVG, sogliaAutomatica } from "@/lib/laser/vectorize";
 import { appendContour, insertNearestPoint, boxBounds, isInsideBox, movePoint, rotateShapes, refineContours } from "@/lib/laser/contourEdit";
 import { Panel, Slider, Check, Foto, Dimensione, BarraArea } from "./LaserPannelli";
+import { RaddrizzaDialog } from "./RaddrizzaDialog";
 
 export default function LaserLogo() {
   const [items, setItems] = useState([]);
@@ -38,6 +39,15 @@ export default function LaserLogo() {
   const [draft, setDraft] = useState([]);
   const drawingTap = useRef(null);
   const [notice, setNotice] = useState(null);
+  const [raddrizza, setRaddrizza] = useState(false);
+
+  function aggiungiCanvas(canvas, name) {
+    const nuovo = { id: crypto.randomUUID(), name, canvas, url: canvas.toDataURL("image/jpeg", 0.85) };
+    setItems((p) => [...p, nuovo]);
+    savePhotos([{ id: nuovo.id, name: nuovo.name, url: nuovo.url }]).catch(() => toast.error("Foto non salvata sul server (resta solo qui)"));
+    setActive(nuovo.id);
+    toast.success("Foto raddrizzata creata: ora «Ricava contorno»");
+  }
 
   const item = items.find((i) => i.id === active) ?? null;
 
@@ -246,6 +256,8 @@ export default function LaserLogo() {
       <div className="grid gap-4 lg:grid-cols-[300px_1fr]">
         <aside className="space-y-4">
           <Foto items={items} active={active} loading={loading} onFiles={onFiles} onPick={setActive} onRemove={removeItem} />
+          <Button variant="outline" className="w-full" disabled={!item} onClick={() => setRaddrizza(true)} data-testid="laser-raddrizza-apri">Raddrizza foto (prospettiva / tubolare)</Button>
+          {raddrizza && item && <RaddrizzaDialog key={item.id} item={item} open={raddrizza} onClose={() => setRaddrizza(false)} onResult={aggiungiCanvas} />}
           <Panel title="Contorno" testId="laser-panel-contorno">
             <Slider label="Soglia" v={opts.threshold} min={1} max={254} on={(v) => setOpts({ ...opts, threshold: v })} testId="laser-soglia" />
             <Button variant="outline" size="sm" disabled={!item} onClick={sogliaAuto} className="w-full" data-testid="laser-soglia-auto">Soglia automatica</Button>

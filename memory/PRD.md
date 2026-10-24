@@ -943,3 +943,6 @@ Backend spezzato in moduli (`server.py` ora 112 righe, prima 2761):
 
 ## 2026-10-23 — Fix perdita focus durante la digitazione
 - Causa: componenti definiti dentro il render (`Wrap` in IndirizzoFields, `Riga` in RettificaConfezioniDialog) → remount a ogni tasto. Spostati fuori dal componente. Regola: mai definire componenti dentro il corpo di un altro componente.
+
+## 2026-10-24 — LaserLogo: Raddrizza foto (prospettiva + tubolare)
+- `lib/laser/raddrizza.js`: omografia 4 angoli → rettangolo + srotolamento cilindrico (slider curvatura 0..1, y_flat = R·asin). `RaddrizzaDialog` con angoli trascinabili, anteprima e creazione nuova foto '(raddrizzata)' salvata sul server.
