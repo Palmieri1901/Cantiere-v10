@@ -358,6 +358,8 @@ async def invia(p: InviaIn):
     entity_id = await _entita(tok, cid, sogg, nome)
     items = [{"name": r["name"], "description": r["description"], "qty": r["qty"], "net_price": r["net_price"], "vat": vat} for r in righe]
     data = {"type": "proforma", "entity": {"id": entity_id}, "date": datetime.now().strftime("%Y-%m-%d"), "subject": oggetto[:255], "items_list": items}
+    netto = round(sum(r["qty"] * r["net_price"] for r in righe), 2)
+    data["payments_list"] = [{"amount": round(netto * 1.22, 2), "due_date": datetime.now().strftime("%Y-%m-%d"), "status": "not_paid"}]
     try:
         res = (await _fic("POST", f"/c/{cid}/issued_documents", tok, json={"data": data})).get("data", {})
     except HTTPException as e:
