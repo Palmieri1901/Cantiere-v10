@@ -155,8 +155,14 @@ async def _entita(tok: str, cid: int, soggetto: dict, nome: str) -> int:
     payload["country"] = str(soggetto.get("nazione") or "").strip() if is_estero(soggetto) else "Italia"
     if payload.get("ei_code") or payload.get("certified_email"):
         payload["e_invoice"] = True
-    q = payload.get("vat_number") or payload["name"]
-    found = (await _fic("GET", f"/c/{cid}/entities/clients", tok, params={"q": q, "per_page": 50})).get("data", [])
+    esc = lambda v: str(v).replace("'", "\\'")  # noqa: E731
+    q = f"vat_number = '{esc(payload['vat_number'])}'" if payload.get("vat_number") else f"name = '{esc(payload['name'])}'"
+    try:
+        found = (await _fic("GET", f"/c/{cid}/entities/clients", tok, params={"q": q, "per_page": 50})).get("data", [])
+    except HTTPException as e:
+        if e.status_code == 403:
+            raise HTTPException(403, "Il token Fatture in Cloud non ha il permesso 'Clienti' (lettura/scrittura): rigeneralo con i permessi Clienti e Proforma")
+        found = []
     hit = next((x for x in found if (payload.get("vat_number") and x.get("vat_number") == payload["vat_number"]) or (x.get("name") or "").lower() == payload["name"].lower()), None)
     if hit:
         await _fic("PUT", f"/c/{cid}/entities/clients/{hit['id']}", tok, json={"data": payload})
