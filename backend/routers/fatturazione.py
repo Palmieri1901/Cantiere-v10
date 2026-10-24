@@ -1,4 +1,5 @@
 """Integrazione Fatture in Cloud (API v2, token manuale): clienti + bozze fattura da conti/preventivi."""
+import logging
 import uuid
 import re
 from datetime import datetime, timezone
@@ -34,9 +35,16 @@ async def _fic(method: str, path: str, token: str, **kw):
         raise HTTPException(401, "Token Fatture in Cloud non valido o scaduto: aggiornalo nelle Impostazioni")
     if r.status_code >= 400:
         try:
-            msg = r.json().get("error", {}).get("message") or r.text[:300]
+            j = r.json()
+            err = j.get("error", {})
+            msg = err.get("message") or r.text[:300]
+            vr = err.get("validation_result") or j.get("extra", {}).get("validation_result") or {}
+            det = [f"{k}: {', '.join(v) if isinstance(v, list) else v}" for k, v in (vr.get("fields") or {}).items()]
+            if det:
+                msg += " — " + "; ".join(det)[:600]
         except Exception:  # noqa: BLE001
             msg = r.text[:300]
+        logging.getLogger("fatturazione").warning("FIC %s %s -> %s %s", method, path, r.status_code, r.text[:800])
         raise HTTPException(r.status_code, f"Fatture in Cloud: {msg}")
     return r.json() if r.content else {}
 
@@ -114,7 +122,7 @@ def _righe_lavori(lavori: list) -> List[dict]:
     for l in lavori:
         for titolo, qta, pu, imp, hdr in righe_lavoro(l):
             if hdr:
-                out.append({"name": f"{l.get('data', '')} · {titolo}"[:255], "description": "", "qty": 0, "net_price": 0, "_nota": True})
+                out.append({"name": f"{l.get('data', '')} · {titolo}"[:255], "description": "", "qty": 1, "net_price": 0, "_nota": True})
             elif imp:
                 q = float(str(qta).split()[0].replace(",", ".")) if qta else 1
                 out.append(_riga(f"  {titolo}{(' ' + qta) if qta else ''}", q or 1, (pu if pu else imp)))
@@ -302,7 +310,15 @@ async def invia(p: InviaIn):
     if not c.get("token") or not c.get("company_id"):
         raise HTTPException(400, "Fatture in Cloud non configurato: vai in Impostazioni → Fatturazione")
     tok, cid = c["token"], c["company_id"]
-    vat = {"id": c["vat_id"]} if c.get("vat_id") else {"value": 22}
+    vat_id = c.get("vat_id")
+    if not vat_id:
+        try:
+            vats = (await _fic("GET", f"/c/{cid}/info/vat_types", tok)).get("data", [])
+            v22 = next((v for v in vats if float(v.get("value") or -1) == 22), None)
+            vat_id = v22["id"] if v22 else None
+        except HTTPException:
+            vat_id = None
+    vat = {"id": vat_id} if vat_id is not None else {"id": 0, "value": 22, "description": "22%"}
     if p.tipo == "cliente":
         doc = await db.clienti.find_one({"id": p.id}, {"_id": 0})
         if not doc:
