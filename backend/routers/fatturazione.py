@@ -331,14 +331,18 @@ async def invia(p: InviaIn):
     sogg = _split_nome(sogg)
     entity_id = await _entita(tok, cid, sogg, nome)
     items = [{"name": r["name"], "description": r["description"], "qty": r["qty"], "net_price": r["net_price"], "vat": {"id": c["vat_id"]}} for r in righe]
-    data = {"type": "invoice", "entity": {"id": entity_id}, "date": datetime.now().strftime("%Y-%m-%d"), "subject": oggetto[:255], "items_list": items,
-            "e_invoice": bool(sogg.get("codice_sdi") or sogg.get("pec"))}
-    res = (await _fic("POST", f"/c/{cid}/issued_documents", tok, json={"data": data})).get("data", {})
+    data = {"type": "proforma", "entity": {"id": entity_id}, "date": datetime.now().strftime("%Y-%m-%d"), "subject": oggetto[:255], "items_list": items}
+    try:
+        res = (await _fic("POST", f"/c/{cid}/issued_documents", tok, json={"data": data})).get("data", {})
+    except HTTPException as e:
+        if e.status_code == 403:
+            raise HTTPException(403, "Il token Fatture in Cloud non ha il permesso 'Proforma' (lettura/scrittura): rigeneralo da Impostazioni → Applicazioni e integrazioni → Autenticazione manuale e salvalo nelle Impostazioni del gestionale")
+        raise
     invio = {"id": str(uuid.uuid4()), "tipo": p.tipo, "rif_id": p.id, "anno": p.anno, "fic_id": res.get("id"), "fic_entity_id": entity_id, "nome": nome.strip(),
              "totale": round(sum(r["qty"] * r["net_price"] for r in righe if not r.get("_nota")), 2), "righe": len(items), "ts": datetime.now(timezone.utc).isoformat()}
     await db.fatturazione_invii.insert_one(invio)
     invio.pop("_id", None)
-    return {**invio, "url": f"https://secure.fattureincloud.it/invoices-view-{res.get('id')}" if res.get("id") else ""}
+    return {**invio, "url": f"https://secure.fattureincloud.it/proformas-view-{res.get('id')}" if res.get("id") else ""}
 
 
 @router.get("/stato-documento")
@@ -349,7 +353,7 @@ async def stato_documento(tipo: str, rif_id: str, anno: Optional[int] = None):
     inv = await db.fatturazione_invii.find_one(q, {"_id": 0}, sort=[("ts", -1)])
     if not inv:
         return {"emessa": False}
-    return {**inv, "emessa": True, "url": f"https://secure.fattureincloud.it/invoices-view-{inv.get('fic_id')}" if inv.get("fic_id") else ""}
+    return {**inv, "emessa": True, "url": f"https://secure.fattureincloud.it/proformas-view-{inv.get('fic_id')}" if inv.get("fic_id") else ""}
 
 
 @router.get("/invii")

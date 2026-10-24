@@ -946,3 +946,6 @@ Backend spezzato in moduli (`server.py` ora 112 righe, prima 2761):
 
 ## 2026-10-24 — LaserLogo: Raddrizza foto (prospettiva + tubolare)
 - `lib/laser/raddrizza.js`: omografia 4 angoli → rettangolo + srotolamento cilindrico (slider curvatura 0..1, y_flat = R·asin). `RaddrizzaDialog` con angoli trascinabili, anteprima e creazione nuova foto '(raddrizzata)' salvata sul server.
+
+## 2026-10-24 — Fatture in Cloud: invio come PROFORMA
+- issued_documents type 'proforma' (non 'invoice'); URL proformas-view-{id}; testi UI/manuale aggiornati. La fattura definitiva viene trasformata dall'utente in Fatture in Cloud.

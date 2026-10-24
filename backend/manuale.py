@@ -138,14 +138,14 @@ SEZIONI = [
     ("12. Fatturazione con Fatture in Cloud", [
         "Il gestionale non emette fatture: le prepara come BOZZE su Fatture in Cloud, dove si controllano e si emettono.",
         ("#", "Collegamento (una sola volta)"),
-        ("1", "Su Fatture in Cloud: Impostazioni → Applicazioni e integrazioni → Autenticazione manuale → crea un token con permessi su Clienti e Fatture. Copialo."),
+        ("1", "Su Fatture in Cloud: Impostazioni → Applicazioni e integrazioni → Autenticazione manuale → crea un token con permessi su Clienti, Fatture e Proforma (lettura/scrittura). Copialo."),
         ("1", "Nel gestionale: Impostazioni → Fatturazione · Fatture in Cloud → incolla il token → Verifica e salva. Il token resta solo sul server, non viene mai mostrato."),
         ("1", "Scegli l'azienda (se ne hai più di una). L'aliquota IVA 22% viene rilevata automaticamente."),
         ("#", "Inviare un documento"),
         ("1", "Premi Invia a fatturazione sul dettaglio del cliente in Rimessaggio, sulla riga del cliente esterno (per l'anno scelto) o su un preventivo esterno."),
         ("1", "Controllo dati: il documento parte solo se il cliente è completo. Privato: nome, cognome, indirizzo, codice fiscale. Azienda: ragione sociale, indirizzo, P.IVA, codice SDI. Se manca qualcosa (o il contatto non è in Anagrafica generale) si apre la finestra per completare i dati, con la spunta \"Registra in Anagrafica generale\" già attiva."),
-        ("1", "Conferma: il cliente viene creato o aggiornato su Fatture in Cloud (P.IVA, CF, SDI, PEC) e la bozza viene creata con tutte le righe separate."),
-        ("1", "Accanto al tasto compare Bozza emessa · data con il link \"apri\"; il tasto diventa Reinvia (crea una nuova bozza)."),
+        ("1", "Conferma: il cliente viene creato o aggiornato su Fatture in Cloud (P.IVA, CF, SDI, PEC) e viene creata una fattura PROFORMA con tutte le righe separate; la fattura definitiva si genera poi da Fatture in Cloud (Trasforma in fattura)."),
+        ("1", "Accanto al tasto compare Proforma emessa · data con il link \"apri\"; il tasto diventa Reinvia (crea una nuova proforma)."),
     ]),
     ("13. Impostazioni", [
         ("-", "Cantiere: logo, denominazione, dati fiscali, indirizzo, contatti: compaiono in tutti i PDF."),

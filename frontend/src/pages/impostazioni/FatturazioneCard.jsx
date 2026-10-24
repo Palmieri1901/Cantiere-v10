@@ -34,7 +34,7 @@ export default function FatturazioneCard() {
   return (
     <Card className="p-5 space-y-3" data-testid="fatturazione-card">
       <div className="flex items-center gap-2 font-medium"><Receipt className="w-4 h-4 text-primary" /> Fatturazione · Fatture in Cloud</div>
-      <p className="text-sm text-muted-foreground">Con il tasto <b>"Invia a fatturazione"</b> su conti e preventivi, il cliente viene creato/aggiornato su Fatture in Cloud e il documento diventa una <b>bozza di fattura</b> con tutte le righe, da controllare ed emettere lì.</p>
+      <p className="text-sm text-muted-foreground">Con il tasto <b>"Invia a fatturazione"</b> su conti e preventivi, il cliente viene creato/aggiornato su Fatture in Cloud e il documento diventa una <b>fattura proforma</b> con tutte le righe, da controllare ed emettere lì.</p>
       <div className="text-sm flex items-center gap-2" data-testid="fatturazione-stato">
         {cfg.configurato ? <><CheckCircle2 className="w-4 h-4 text-emerald-600" /> Collegato ({cfg.token_mascherato}{cfg.utente ? ` · ${cfg.utente}` : ""})</> : <><AlertCircle className="w-4 h-4 text-amber-600" /> Non collegato: inserisci il token</>}
       </div>
@@ -42,7 +42,7 @@ export default function FatturazioneCard() {
         <div className="relative flex-1"><KeyRound className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" /><Input type="password" value={token} onChange={(e) => setToken(e.target.value)} placeholder={cfg.configurato ? "Nuovo token (per sostituire quello attuale)" : "Incolla il token di accesso manuale"} className="pl-9 font-mono-num" data-testid="input-fic-token" /></div>
         <Button onClick={salvaToken} disabled={busy || !token.trim()} data-testid="btn-salva-fic-token">{busy ? "Verifica…" : "Verifica e salva"}</Button>
       </div>
-      <p className="text-xs text-muted-foreground">Il token si crea su Fatture in Cloud → Impostazioni → <i>Applicazioni e integrazioni</i> → <i>Autenticazione manuale</i>, con permessi su Clienti e Fatture. Non viene mai mostrato né inviato al browser.</p>
+      <p className="text-xs text-muted-foreground">Il token si crea su Fatture in Cloud → Impostazioni → <i>Applicazioni e integrazioni</i> → <i>Autenticazione manuale</i>, con permessi su Clienti, Fatture e <b>Proforma</b> (lettura/scrittura). Non viene mai mostrato né inviato al browser.</p>
       {cfg.configurato && (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
           <div>
