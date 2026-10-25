@@ -949,3 +949,12 @@ Backend spezzato in moduli (`server.py` ora 112 righe, prima 2761):
 
 ## 2026-10-24 — Fatture in Cloud: invio come PROFORMA
 - issued_documents type 'proforma' (non 'invoice'); URL proformas-view-{id}; testi UI/manuale aggiornati. La fattura definitiva viene trasformata dall'utente in Fatture in Cloud.
+
+## 2026-10-24 — Fatture in Cloud: proforma (VERIFICATO dall'utente, invio reale riuscito)
+- "Invia a fatturazione" crea una **proforma** (`type: proforma`) e non più una bozza di fattura; link `proformas-view-{id}`; testi UI/manuale "Proforma emessa". Da FIC l'utente la trasforma in fattura.
+- Fix emersi nel test reale: ricerca cliente con sintassi query FIC (`name = '...'` / `vat_number = '...'`); `entity` completo (nome ecc.) nel documento; `payments_list` con scadenza unica pari al lordo; righe nota qty 1; IVA: vat_id recuperato all'invio, fallback `{id:0,value:22}` se il token non ha il permesso Impostazioni (salvataggio config non più bloccato dal 403 su vat_types); messaggio errore con dettaglio `validation_result` + log `FIC ...` in backend.
+- Permessi token richiesti: Clienti (r/w), Proforma (r/w); Impostazioni facoltativo.
+- Produzione: le modifiche richiedono Re-publish.
+
+## 2026-10-24 — LaserLogo: contrasto locale
+- Slider "Contrasto locale" (opts.locale, data-testid laser-locale): pixel acceso se più scuro dello sfondo circostante (blur ~3% dell'immagine) di almeno N livelli → rileva scritte grigio chiaro su fondo lucido (es. "747").
