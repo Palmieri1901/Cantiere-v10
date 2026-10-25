@@ -958,3 +958,7 @@ Backend spezzato in moduli (`server.py` ora 112 righe, prima 2761):
 
 ## 2026-10-24 — LaserLogo: contrasto locale
 - Slider "Contrasto locale" (opts.locale, data-testid laser-locale): pixel acceso se più scuro dello sfondo circostante (blur ~3% dell'immagine) di almeno N livelli → rileva scritte grigio chiaro su fondo lucido (es. "747").
+
+## 2026-10-25 — Importa clienti da Fatture in Cloud (TESTATO: 422 nuovi, 7 aggiornati)
+- POST /api/fatturazione/importa-clienti: pagina /entities/clients (100/pagina), mappa company→azienda/ragione sociale, person→cognome+nome (prima parola = cognome), P.IVA/CF/SDI/PEC/email/telefono/indirizzo/paese; upsert_anagrafica origine "fatture_in_cloud" (no duplicati per P.IVA/CF/cognome+nome; non sovrascrive con vuoti). Ritorna nuovi/aggiornati/saltati/errori.
+- UI: Anagrafica generale → tasto "Importa da Fatture in Cloud" (data-testid btn-importa-fic) con ConfirmDialog; badge origine "Fatture in Cloud".

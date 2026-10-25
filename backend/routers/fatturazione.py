@@ -395,3 +395,51 @@ async def invii(tipo: str = "", rif_id: str = ""):
     if rif_id:
         q["rif_id"] = rif_id
     return await db.fatturazione_invii.find(q, {"_id": 0}).sort("ts", -1).to_list(200)
+
+
+def _split_fic_nome(name: str) -> tuple[str, str]:
+    parts = (name or "").strip().split()
+    return (parts[0], " ".join(parts[1:])) if len(parts) > 1 else (name.strip(), "")
+
+
+@router.post("/importa-clienti")
+async def importa_clienti():
+    """Importa/aggiorna in Anagrafica generale tutti i clienti presenti su Fatture in Cloud."""
+    from routers.anagrafica import upsert_anagrafica
+    c = await _cfg()
+    if not c.get("token") or not c.get("company_id"):
+        raise HTTPException(400, "Fatture in Cloud non configurato: vai in Impostazioni → Fatturazione")
+    tok, cid = c["token"], c["company_id"]
+    nuovi = aggiornati = saltati = 0
+    errori = []
+    page = 1
+    while True:
+        try:
+            res = await _fic("GET", f"/c/{cid}/entities/clients", tok, params={"per_page": 100, "page": page})
+        except HTTPException as e:
+            if e.status_code == 403:
+                raise HTTPException(403, "Il token Fatture in Cloud non ha il permesso 'Clienti' (lettura)")
+            raise
+        for x in res.get("data", []):
+            az = x.get("type") == "company"
+            cognome, nome = ("", "") if az else _split_fic_nome(x.get("name", ""))
+            paese = (x.get("country") or "").strip()
+            d = {"tipo_soggetto": "azienda" if az else "privato", "ragione_sociale": x.get("name", "") if az else "",
+                 "cognome": cognome, "nome": nome, "partita_iva": x.get("vat_number") or "", "codice_fiscale": x.get("tax_code") or "",
+                 "codice_sdi": x.get("ei_code") or "", "pec": x.get("certified_email") or "", "email": x.get("email") or "",
+                 "telefono": x.get("phone") or "", "via": x.get("address_street") or "", "cap": x.get("address_postal_code") or "",
+                 "citta": x.get("address_city") or "", "provincia": x.get("address_province") or "",
+                 "nazione": "" if paese.lower() in ("", "italia", "italy", "it") else paese}
+            try:
+                r = await upsert_anagrafica(d, "fatture_in_cloud")
+                nuovi += r["creato"]
+                aggiornati += not r["creato"]
+            except HTTPException as e:
+                saltati += 1
+                if len(errori) < 10:
+                    errori.append(f"{x.get('name', '?')}: {e.detail}")
+        cur, last = res.get("current_page", page), res.get("last_page", page)
+        if cur >= last or not res.get("data"):
+            break
+        page += 1
+    return {"nuovi": nuovi, "aggiornati": aggiornati, "saltati": saltati, "errori": errori}

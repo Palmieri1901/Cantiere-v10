@@ -5,11 +5,11 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, Pencil, Trash2, BookUser, Building2, User, Download } from "lucide-react";
+import { Plus, Search, Pencil, Trash2, BookUser, Building2, User, Download, CloudDownload } from "lucide-react";
 import { confirmDialog } from "@/components/ConfirmDialog";
 import AnagraficaDialog from "@/pages/anagrafica/AnagraficaDialog";
 
-const ORIGINE = { rimessaggio: "Rimessaggio", esterni: "Esterni", manuale: "Inserita a mano" };
+const ORIGINE = { rimessaggio: "Rimessaggio", esterni: "Esterni", manuale: "Inserita a mano", fatture_in_cloud: "Fatture in Cloud", fatturazione: "Fatturazione" };
 
 export default function Anagrafica() {
   const [list, setList] = useState([]);
@@ -23,6 +23,16 @@ export default function Anagrafica() {
     try {
       const r = await api.post(`/anagrafica/importa-rimessaggio?anche_esterni=${scelta === true}`);
       toast.success(`Importazione completata: ${r.data.nuovi} nuovi, ${r.data.aggiornati} aggiornati${r.data.saltati ? `, ${r.data.saltati} saltati` : ""}`);
+      load();
+    } catch (e) { toast.error(e.response?.data?.detail || "Errore importazione"); } finally { setImporting(false); }
+  };
+  const importaFic = async () => {
+    if (!(await confirmDialog("Importare in anagrafica tutti i clienti presenti su Fatture in Cloud?\nI nominativi già presenti (stessa P.IVA, CF o cognome+nome) vengono aggiornati, non duplicati.", { title: "Importa da Fatture in Cloud", okLabel: "Importa", danger: false }))) return;
+    setImporting(true);
+    try {
+      const r = await api.post("/fatturazione/importa-clienti");
+      toast.success(`Fatture in Cloud: ${r.data.nuovi} nuovi, ${r.data.aggiornati} aggiornati${r.data.saltati ? `, ${r.data.saltati} saltati` : ""}`);
+      if (r.data.errori?.length) toast.warning(r.data.errori.join("\n"), { duration: 12000 });
       load();
     } catch (e) { toast.error(e.response?.data?.detail || "Errore importazione"); } finally { setImporting(false); }
   };
@@ -47,6 +57,7 @@ export default function Anagrafica() {
         </div>
         <div className="flex gap-2 flex-wrap">
           <Button variant="outline" onClick={importa} disabled={importing} data-testid="btn-importa-rimessaggio"><Download className="w-4 h-4 mr-1" /> {importing ? "Importazione…" : "Importa da Rimessaggio"}</Button>
+          <Button variant="outline" onClick={importaFic} disabled={importing} data-testid="btn-importa-fic"><CloudDownload className="w-4 h-4 mr-1" /> Importa da Fatture in Cloud</Button>
           <Button onClick={() => setEdit({})} className="bg-primary hover:bg-primary/90" data-testid="btn-nuova-anagrafica"><Plus className="w-4 h-4 mr-1" /> Nuova anagrafica</Button>
         </div>
       </div>
