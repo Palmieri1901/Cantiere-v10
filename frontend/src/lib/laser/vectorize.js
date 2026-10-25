@@ -4,18 +4,28 @@ import simplify from "simplify-js";
 export function imageToGrid(canvas, opts) {
   const ctx = canvas.getContext("2d");
   const w = canvas.width, h = canvas.height;
+  let src = ctx.getImageData(0, 0, w, h);
   if (opts.blur > 0) {
     const tmp = document.createElement("canvas");
     tmp.width = w; tmp.height = h;
     const t = tmp.getContext("2d");
     t.filter = `blur(${opts.blur}px)`;
     t.drawImage(canvas, 0, 0);
-    return gridFrom(t.getImageData(0, 0, w, h), opts);
+    src = t.getImageData(0, 0, w, h);
   }
-  return gridFrom(ctx.getImageData(0, 0, w, h), opts);
+  let bg = null;
+  if (opts.locale > 0) {
+    const tmp = document.createElement("canvas");
+    tmp.width = w; tmp.height = h;
+    const t = tmp.getContext("2d");
+    t.filter = `blur(${Math.max(8, Math.round(Math.max(w, h) * 0.03))}px)`;
+    t.drawImage(canvas, 0, 0);
+    bg = t.getImageData(0, 0, w, h).data;
+  }
+  return gridFrom(src, opts, bg);
 }
 
-function gridFrom(img, opts) {
+function gridFrom(img, opts, bg) {
   const { width: w, height: h, data } = img;
   const W = w + 2, H = h + 2;
   const vals = new Float64Array(W * H);
@@ -29,6 +39,10 @@ function gridFrom(img, opts) {
       const R = data[i], G = data[i + 1], B = data[i + 2];
       const lum = (0.299 * R + 0.587 * G + 0.114 * B) * a + 255 * (1 - a);
       let on = lum < opts.threshold ? 1 : 0;
+      if (bg && !on) {
+        const bl = 0.299 * bg[i] + 0.587 * bg[i + 1] + 0.114 * bg[i + 2];
+        if (bl - lum >= opts.locale) on = 1; // più scuro dello sfondo circostante (scritte chiare su fondo lucido)
+      }
       if (sat && !on) {
         const mx = Math.max(R, G, B), mn = Math.min(R, G, B);
         if (mx > 0 && (mx - mn) / mx >= sat && a > 0.5) on = 1; // colore acceso (bandiera, loghi colorati)

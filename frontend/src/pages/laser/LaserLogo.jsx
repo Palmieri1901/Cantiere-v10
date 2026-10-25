@@ -14,7 +14,7 @@ export default function LaserLogo() {
   const [items, setItems] = useState([]);
   const [active, setActive] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [opts, setOpts] = useState({ threshold: 128, invert: false, tolerance: 1.5, minArea: 30, blur: 1, saturazione: 0 });
+  const [opts, setOpts] = useState({ threshold: 128, invert: false, tolerance: 1.5, minArea: 30, blur: 1, saturazione: 0, locale: 0 });
   const [paths, setPaths] = useState([]);
   const [photoOpacity, setPhotoOpacity] = useState(0.6);
   const [showPhoto, setShowPhoto] = useState(true);
@@ -261,6 +261,8 @@ export default function LaserLogo() {
           <Panel title="Contorno" testId="laser-panel-contorno">
             <Slider label="Soglia" v={opts.threshold} min={1} max={254} on={(v) => setOpts({ ...opts, threshold: v })} testId="laser-soglia" />
             <Button variant="outline" size="sm" disabled={!item} onClick={sogliaAuto} className="w-full" data-testid="laser-soglia-auto">Soglia automatica</Button>
+            <Slider label="Contrasto locale (scritte chiare o riflessi)" v={opts.locale} min={0} max={80} step={5} on={(v) => setOpts({ ...opts, locale: v })} testId="laser-locale" />
+            <p className="text-[11px] text-muted-foreground -mt-1">0 = spento. Prende ciò che è più scuro dello sfondo intorno, anche se chiaro: utile per numeri grigi su fondo lucido (es. "747"). Prova 20–40.</p>
             <Slider label="Rileva colori (bandiere, loghi colorati)" v={opts.saturazione} min={0} max={100} step={5} on={(v) => setOpts({ ...opts, saturazione: v })} testId="laser-saturazione" />
             <p className="text-[11px] text-muted-foreground -mt-1">0 = spento. Più alto = prende solo colori molto accesi; 30–50 va bene per rosso/verde su fondo bianco.</p>
             <Slider label="Ammorbidisci foto" v={opts.blur} min={0} max={6} step={0.5} on={(v) => setOpts({ ...opts, blur: v })} testId="laser-blur" />
