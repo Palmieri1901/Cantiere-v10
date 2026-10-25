@@ -1,0 +1,9 @@
+crons:
+  - name: fic-importa-clienti
+    description: "Importa ogni notte i clienti da Fatture in Cloud nell'Anagrafica generale"
+    cron: "0 3 * * *"
+    timezone: "Europe/Rome"
+    # Cron endpoints must ack 2xx immediately; enqueue/background the actual work.
+    endpoint: "{{BASE_URL}}/api/cron/fic-importa-clienti"
+    method: POST
+    enabled: true

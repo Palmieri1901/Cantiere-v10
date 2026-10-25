@@ -962,3 +962,8 @@ Backend spezzato in moduli (`server.py` ora 112 righe, prima 2761):
 ## 2026-10-25 — Importa clienti da Fatture in Cloud (TESTATO: 422 nuovi, 7 aggiornati)
 - POST /api/fatturazione/importa-clienti: pagina /entities/clients (100/pagina), mappa company→azienda/ragione sociale, person→cognome+nome (prima parola = cognome), P.IVA/CF/SDI/PEC/email/telefono/indirizzo/paese; upsert_anagrafica origine "fatture_in_cloud" (no duplicati per P.IVA/CF/cognome+nome; non sovrascrive con vuoti). Ritorna nuovi/aggiornati/saltati/errori.
 - UI: Anagrafica generale → tasto "Importa da Fatture in Cloud" (data-testid btn-importa-fic) con ConfirmDialog; badge origine "Fatture in Cloud".
+
+## 2026-10-25 — LaserLogo: elimina punti nell'area + aggancio; cron import FIC
+- Delimita area → "Elimina N punti": rimuove i singoli punti dentro il rettangolo (anche di forme solo parzialmente incluse; forme con <3 punti spariscono); i punti interni si colorano di rosso. contourEdit: pointInBox/countPointsInBox/deletePointsInBox.
+- Contorno manuale: ogni tap si aggancia al punto esistente più vicino (raggio 3·r) di qualsiasi forma o del tracciato in corso (snapToPoint).
+- Cron notturno: `.emergent/crons.yml` fic-importa-clienti alle 3:00 Europe/Rome → POST /api/cron/fic-importa-clienti (Bearer WEBHOOK_CRON_SECRET in backend/.env, idempotenza X-Webhook-Id, lavoro in BackgroundTasks, esito in fatturazione_config.ultimo_import). Card Impostazioni mostra ultimo import. Testato: 401 senza segreto; con segreto → 429 aggiornati.

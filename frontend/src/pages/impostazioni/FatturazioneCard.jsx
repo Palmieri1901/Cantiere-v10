@@ -57,6 +57,12 @@ export default function FatturazioneCard() {
           </div>
         </div>
       )}
+      {cfg.configurato && cfg.company_id && (
+        <p className="text-xs text-muted-foreground" data-testid="fatturazione-ultimo-import">
+          Sincronizzazione automatica clienti ogni notte alle 3:00 (Fatture in Cloud → Anagrafica generale).
+          {cfg.ultimo_import ? (cfg.ultimo_import.errore ? ` Ultimo tentativo ${new Date(cfg.ultimo_import.ts).toLocaleString("it-IT")}: errore — ${cfg.ultimo_import.errore}` : ` Ultimo import ${new Date(cfg.ultimo_import.ts).toLocaleString("it-IT")}: ${cfg.ultimo_import.nuovi} nuovi, ${cfg.ultimo_import.aggiornati} aggiornati${cfg.ultimo_import.saltati ? `, ${cfg.ultimo_import.saltati} saltati` : ""}.`) : " Nessun import automatico ancora eseguito."}
+        </p>
+      )}
       {cfg.configurato && <Button variant="ghost" size="sm" className="text-destructive text-xs" onClick={scollega} data-testid="btn-scollega-fic">Scollega</Button>}
     </Card>
   );

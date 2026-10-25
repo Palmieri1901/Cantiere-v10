@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { fileToCanvases, deletePhoto, loadPhotos, savePhotos, urlToCanvas, download } from "@/lib/laser/files";
 import { trace, toDXF, toSVG, sogliaAutomatica } from "@/lib/laser/vectorize";
-import { appendContour, insertNearestPoint, boxBounds, isInsideBox, movePoint, rotateShapes, refineContours } from "@/lib/laser/contourEdit";
+import { appendContour, insertNearestPoint, boxBounds, isInsideBox, movePoint, rotateShapes, refineContours, countPointsInBox, deletePointsInBox, snapToPoint, pointInBox } from "@/lib/laser/contourEdit";
 import { Panel, Slider, Check, Foto, Dimensione, BarraArea } from "./LaserPannelli";
 import { RaddrizzaDialog } from "./RaddrizzaDialog";
 
@@ -200,7 +200,7 @@ export default function LaserLogo() {
   function deleteSel() { if (!sel) return; setSelectedShapes([]); commit((ps) => ps.map((p, k) => (k !== sel.p ? p : p.filter((_, i) => i !== sel.i))).filter((p) => p.length >= 3)); setSel(null); }
   function deleteShape() { if (!sel) return; setSelectedShapes([]); commit((ps) => ps.filter((_, k) => k !== sel.p)); setSel(null); }
 
-  const enclosedCount = area ? paths.filter((p) => isInsideBox(p, area)).length : 0;
+  const enclosedCount = area ? countPointsInBox(paths, area) : 0;
   const bounds = area ? boxBounds(area) : null;
   const rotationSelection = area ? paths.flatMap((p, i) => (isInsideBox(p, area) ? [i] : [])) : sel ? [sel.p] : selectedShapes;
   const refineSelection = refineScope === "all" ? paths.map((_, i) => i) : rotationSelection;
@@ -219,7 +219,7 @@ export default function LaserLogo() {
     commit((ps) => rotateShapes(ps, selected, direction * rotationDegrees));
     clearArea(); setSel(null); setSelectedShapes(selected);
   }
-  function deleteArea() { if (!area || !enclosedCount) return; commit((ps) => ps.filter((p) => !isInsideBox(p, area))); setSel(null); clearArea(); }
+  function deleteArea() { if (!area || !enclosedCount) return; commit((ps) => deletePointsInBox(ps, area)); setSel(null); clearArea(); }
   function nudge(dx, dy) { if (!sel || !paths[sel.p]?.[sel.i]) return; commit((ps) => movePoint(ps, sel, dx, dy)); }
 
   useEffect(() => {
@@ -359,7 +359,7 @@ export default function LaserLogo() {
                   if (tap?.id === e.pointerId && pointers.current.size === 1) {
                     const q = toLocal(e);
                     if (q && q.x >= 0 && q.y >= 0 && q.x <= w && q.y <= h) {
-                      if (drawingModeRef.current === "manual") setDraft((p) => [...p, q]);
+                      if (drawingModeRef.current === "manual") setDraft((p) => [...p, snapToPoint(paths, p, q, r * 3)]);
                       else if (drawingModeRef.current === "add" && tap.path !== null) { commit((ps) => insertNearestPoint(ps, tap.path, q)); setSel(null); setSelectedShapes([tap.path]); }
                     }
                   }
@@ -384,7 +384,7 @@ export default function LaserLogo() {
                         })}
                         {editable && p.map((q, i) => {
                           const on = sel?.p === pi && sel.i === i;
-                          return <circle key={"c" + i} cx={q.x} cy={q.y} r={on ? r * 1.4 : r} fill={on ? "hsl(var(--primary))" : "hsl(var(--background))"} stroke="hsl(var(--primary))" strokeWidth={r * 0.35} style={{ cursor: "grab" }}
+                          return <circle key={"c" + i} cx={q.x} cy={q.y} r={on ? r * 1.4 : r} fill={on ? "hsl(var(--primary))" : area && pointInBox(q, area) ? "hsl(var(--destructive))" : "hsl(var(--background))"} stroke="hsl(var(--primary))" strokeWidth={r * 0.35} style={{ cursor: "grab" }}
                             onPointerDown={(e) => {
                               e.stopPropagation(); setSelectedShapes([]);
                               e.target.setPointerCapture?.(e.pointerId);

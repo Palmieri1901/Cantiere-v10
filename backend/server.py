@@ -70,6 +70,7 @@ api_router.include_router(laser.router)
 
 app.include_router(api_router)
 app.include_router(auth_router)
+app.include_router(fatturazione.cron_router)
 app.include_router(mobile.router)
 app.include_router(assistente.mobile_router)
 app.include_router(officina.mobile_router)

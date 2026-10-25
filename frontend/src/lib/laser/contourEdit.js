@@ -32,6 +32,29 @@ export function isInsideBox(path, box) {
   return width > 0 && height > 0 && path.length > 0 && path.every((pt) => pt.x >= x && pt.x <= x + width && pt.y >= y && pt.y <= y + height);
 }
 
+export function pointInBox(pt, box) {
+  const { x, y, width, height } = boxBounds(box);
+  return pt.x >= x && pt.x <= x + width && pt.y >= y && pt.y <= y + height;
+}
+
+export function countPointsInBox(paths, box) {
+  return paths.reduce((n, p) => n + p.filter((pt) => pointInBox(pt, box)).length, 0);
+}
+
+// Elimina i punti dentro l'area; le forme rimaste con meno di 3 punti spariscono
+export function deletePointsInBox(paths, box) {
+  return paths.map((p) => p.filter((pt) => !pointInBox(pt, box))).filter((p) => p.length >= 3);
+}
+
+// Punto esistente più vicino entro `radius` (aggancio nel contorno manuale)
+export function snapToPoint(paths, draft, q, radius) {
+  let best = null, bd = radius * radius;
+  const test = (pt) => { const d = (pt.x - q.x) ** 2 + (pt.y - q.y) ** 2; if (d < bd) { bd = d; best = pt; } };
+  for (const p of paths) for (const pt of p) test(pt);
+  for (const pt of draft) test(pt);
+  return best ? { x: best.x, y: best.y } : q;
+}
+
 export function movePoint(paths, selected, dx, dy) {
   return paths.map((path, p) => (p !== selected.p ? path : path.map((pt, i) => (i !== selected.i ? pt : { x: pt.x + dx, y: pt.y + dy }))));
 }

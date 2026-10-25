@@ -1,12 +1,14 @@
 """Integrazione Fatture in Cloud (API v2, token manuale): clienti + bozze fattura da conti/preventivi."""
 import logging
+import os
+import secrets
 import uuid
 import re
 from datetime import datetime, timezone
 from typing import Optional, List
 
 import httpx
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, BackgroundTasks, HTTPException, Request
 from pydantic import BaseModel
 
 from database import db
@@ -63,7 +65,7 @@ def _mask(t: str) -> str:
 async def get_config():
     c = await _cfg()
     return {"configurato": bool(c.get("token")), "token_mascherato": _mask(c.get("token") or ""), "company_id": c.get("company_id"),
-            "company_name": c.get("company_name", ""), "vat_id": c.get("vat_id"), "utente": c.get("utente", "")}
+            "company_name": c.get("company_name", ""), "vat_id": c.get("vat_id"), "utente": c.get("utente", ""), "ultimo_import": c.get("ultimo_import")}
 
 
 @router.put("/config")
@@ -443,3 +445,38 @@ async def importa_clienti():
             break
         page += 1
     return {"nuovi": nuovi, "aggiornati": aggiornati, "saltati": saltati, "errori": errori}
+
+
+cron_router = APIRouter(prefix="/api/cron")
+_cron_runs: set[str] = set()
+
+
+async def _job_importa_clienti(run_id: str):
+    try:
+        res = await importa_clienti()
+        res["ts"] = datetime.now(timezone.utc).isoformat()
+        res["run_id"] = run_id
+        await db.fatturazione_config.update_one({"id": "default"}, {"$set": {"ultimo_import": res}}, upsert=True)
+    except Exception as e:  # noqa: BLE001
+        await db.fatturazione_config.update_one({"id": "default"}, {"$set": {"ultimo_import": {"errore": str(getattr(e, "detail", e)), "ts": datetime.now(timezone.utc).isoformat(), "run_id": run_id}}}, upsert=True)
+
+
+@cron_router.post("/fic-importa-clienti")
+async def cron_importa_clienti(request: Request, bg: BackgroundTasks):
+    # Cron endpoints must ack 2xx immediately; enqueue/background the actual work.
+    auth = request.headers.get("Authorization", "")
+    tok = auth[7:] if auth.startswith("Bearer ") else ""
+    if not tok or not secrets.compare_digest(tok, os.environ["WEBHOOK_CRON_SECRET"]):
+        raise HTTPException(401, "Non autorizzato")
+    try:
+        body = await request.json()
+    except Exception:  # noqa: BLE001
+        body = {}
+    if not isinstance(body, dict):
+        raise HTTPException(400, "Body non valido")
+    run_id = request.headers.get("X-Webhook-Id") or body.get("run_id") or str(uuid.uuid4())
+    if run_id in _cron_runs:
+        return {"ok": True, "duplicate": True}
+    _cron_runs.add(run_id)
+    bg.add_task(_job_importa_clienti, run_id)
+    return {"ok": True, "run_id": run_id}
