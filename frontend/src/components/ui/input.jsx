@@ -12,6 +12,8 @@ const Input = React.forwardRef(({ className, type, value, ...props }, ref) => {
   return (
     <input
       type={type}
+      lang="it"
+      spellCheck={type === undefined || type === "text" ? true : undefined}
       value={shown}
       onFocus={onFocus}
       className={cn(

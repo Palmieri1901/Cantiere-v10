@@ -1010,3 +1010,6 @@ Backend spezzato in moduli (`server.py` ora 112 righe, prima 2761):
 
 ## 2026-10-27 — Listino → conti esterni anche per righe vecchie
 - `listino_sync._inferisci_listino`: per righe senza listino_id ricava voce e misure dalla descrizione generata dal picker ("Movimentazione barca 5 m", "Manodopera 2 h", "Copertura 6 × 2,5 m", "Girante × 2", nomi fissi manodopera motore, Alaggio/Varo barca N m, Sosta temporanea N giorni). Il ricalcolo ora scorre tutti i lavori non pagati con articoli_liberi e i preventivi non convertiti (righe non "articolo"). Testato sul lavoro Gagliano: movimentazione 15→17 €/m → costo 85→95 e ritorno.
+
+## 2026-10-27 — Correttore ortografico in italiano
+- `index.html` lang="it" (era "en"); Input (type text) e Textarea con `lang="it"` e `spellCheck` → il correttore del browser/tastiera segnala e corregge in italiano. Nota: il dizionario usato dipende dal browser/sistema (deve avere l'italiano installato).
