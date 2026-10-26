@@ -236,6 +236,13 @@ async def update_articolo(aid: str, payload: ArticoloCreate):
     if not existing:
         raise HTTPException(404, "Articolo non trovato")
     data = {**existing, **payload.model_dump(exclude_unset=True)}
+    pa_old, pa_new = float(existing.get("prezzo_acquisto") or 0), float(data.get("prezzo_acquisto") or 0)
+    pv_old, pv_new = float(existing.get("prezzo_listino") or 0), float(data.get("prezzo_listino") or 0)
+    if pa_new > 0 and pa_new != pa_old and pv_new == pv_old:
+        # prezzo di acquisto cambiato ma vendita no: mantieni la percentuale di ricarico
+        ric = (pv_old - pa_old) / pa_old * 100 if pa_old > 0 and pv_old > 0 else await _default_markup_for_articolo(data.get("fornitore_id"), data.get("categoria"))
+        if ric is not None:
+            data["prezzo_listino"] = round(pa_new * (1 + ric / 100), 2)
     data["updated_at"] = datetime.now(timezone.utc)
     art = Articolo(**_to_dt(data))
     await db.articoli.update_one({"id": aid}, {"$set": art.model_dump()})
@@ -577,6 +584,11 @@ async def _default_markup_for_articolo(fornitore_id: Optional[str], categoria: O
         if f and isinstance(f.get("ricarico_default_percent"), (int, float)):
             return float(f["ricarico_default_percent"])
     return None
+
+
+@router.get("/ricarico-default")
+async def ricarico_default(fornitore_id: Optional[str] = None, categoria: Optional[str] = None):
+    return {"ricarico_percent": await _default_markup_for_articolo(fornitore_id or None, categoria or None)}
 
 
 @router.get("/ricarichi-categoria", response_model=List[RicaricoCategoria])

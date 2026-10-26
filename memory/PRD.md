@@ -982,3 +982,6 @@ Backend spezzato in moduli (`server.py` ora 112 righe, prima 2761):
 
 ## 2026-10-26 — Fix build produzione (aggiornamento Oracle fallito)
 - Causa: `ConflittiFicDialog.jsx` importava `api` come default export (`@/lib/api` esporta solo `{ api }`) → `yarn build` falliva nel Dockerfile. Corretto; `yarn build` ora "Compiled with warnings" (solo warning preesistenti). Regola: in frontend usare sempre `import { api } from "@/lib/api"`.
+
+## 2026-10-27 — Magazzino: vendita segue acquisto
+- ArticoloForm: cambiando Prezzo acquisto, Prezzo vendita si ricalcola con la % di ricarico corrente (pv/pa) o, se assente, con il default categoria>fornitore (GET /magazzino/ricarico-default). Backend PUT /articoli/{id}: se cambia solo prezzo_acquisto (vendita invariata) ricalcola listino mantenendo la %. Testato: 10→20 con listino 13 → 26; vendita manuale 30 rispettata.

@@ -21,6 +21,20 @@ export default function ArticoloForm({ open, onOpenChange, value, fornitori, onS
   }, [open, value]);
 
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
+  const [ricDefault, setRicDefault] = useState(null);
+  useEffect(() => {
+    if (!open) return;
+    api.get("/magazzino/ricarico-default", { params: { fornitore_id: form.fornitore_id || "", categoria: form.categoria || "" } })
+      .then((r) => setRicDefault(r.data.ricarico_percent)).catch(() => setRicDefault(null));
+  }, [open, form.fornitore_id, form.categoria]);
+  // cambia il prezzo di acquisto → la vendita segue la % di ricarico corrente (o quella di categoria/fornitore)
+  const setAcquisto = (val) => setForm((f) => {
+    const paOld = Number(f.prezzo_acquisto || 0), pv = Number(f.prezzo_listino || 0), paNew = Number(val || 0);
+    const ric = paOld > 0 && pv > 0 ? ((pv - paOld) / paOld) * 100 : (f._ricarico_atteso ?? ricDefault);
+    const next = { ...f, prezzo_acquisto: val };
+    if (paNew > 0 && ric !== null && ric !== undefined && !Number.isNaN(Number(ric))) next.prezzo_listino = +(paNew * (1 + Number(ric) / 100)).toFixed(2);
+    return next;
+  });
 
   const onImage = (e) => {
     const file = e.target.files?.[0];
@@ -141,7 +155,8 @@ export default function ArticoloForm({ open, onOpenChange, value, fornitori, onS
             </div>
           </FormField>
           <FormField label={`Prezzo acquisto € / ${form.unita_misura || "pz"}`}>
-            <Input type="number" step="0.01" value={form.prezzo_acquisto} onChange={(e) => set("prezzo_acquisto", e.target.value)} data-testid="input-prezzo-acquisto" />
+            <Input type="number" step="0.01" value={form.prezzo_acquisto} onChange={(e) => setAcquisto(e.target.value)} data-testid="input-prezzo-acquisto" />
+            {ricDefault !== null && ricDefault !== undefined && <div className="text-[11px] text-muted-foreground mt-1">Cambiando l'acquisto, la vendita si aggiorna con il ricarico corrente{Number(form.prezzo_acquisto) > 0 && Number(form.prezzo_listino) > 0 ? "" : ` (${ricDefault}% da categoria/fornitore)`}.</div>}
           </FormField>
           {conv && (
             <FormField label={conv.obbligatorio ? `${cap(conv.etichetta)} per ${form.unita_misura} *` : `${cap(conv.etichetta)} per confezione (facoltativo)`} full>
