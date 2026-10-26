@@ -10,6 +10,7 @@ from reportlab.lib.units import mm
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image
 
 from database import db, logger
+from listino_sync import aggiorna_conti_esterni
 from models import Tariffe, TariffeUpdate
 from helpers import get_tariffe_doc, serialize, calcola_costi, _euro
 
@@ -35,7 +36,19 @@ async def update_tariffe(payload: TariffeUpdate):
     new_data["updated_at"] = datetime.now(timezone.utc)
     t = Tariffe(**new_data)
     await db.tariffe.update_one({"id": "default"}, {"$set": serialize(t)}, upsert=True)
+    try:
+        sync = await aggiorna_conti_esterni(db, t.model_dump())
+        logger.info(f"Listino aggiornato → conti esterni: {sync}")
+    except Exception as e:  # noqa: BLE001
+        logger.warning(f"Aggiornamento conti esterni dal listino fallito: {e}")
     return t
+
+
+@router.post("/tariffe/aggiorna-conti-esterni")
+async def aggiorna_conti_esterni_ep():
+    """Riallinea alle tariffe correnti le righe 'dal listino' di lavori e preventivi esterni non pagati."""
+    t = await get_tariffe_doc()
+    return await aggiorna_conti_esterni(db, t.model_dump())
 
 
 @router.post("/tariffe/ricalcola")

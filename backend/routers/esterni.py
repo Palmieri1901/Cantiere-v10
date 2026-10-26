@@ -137,6 +137,9 @@ class RigaPrev(BaseModel):
     articolo_id: Optional[str] = None
     codice: Optional[str] = ""
     unita: Optional[str] = ""
+    listino_id: Optional[str] = None
+    listino_q: Optional[float] = None
+    listino_q2: Optional[float] = None
 
 
 class PreventivoEsternoIn(BaseModel):

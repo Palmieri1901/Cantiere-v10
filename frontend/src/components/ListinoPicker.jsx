@@ -80,7 +80,7 @@ export function ListinoPicker({ onAdd, metriDefault, label = "Dal listino", size
   const conferma = () => {
     const quantita = voce.forfait ? 1 : voce.mq ? +(qn * qn2).toFixed(2) : voce.domanda ? qn : 1;
     const totaleV = voce.calc(qn, qn2);
-    onAdd({ descrizione: voce.label(qn, qn2), quantita, prezzo_unitario: quantita > 0 ? +(totaleV / quantita).toFixed(4) : totaleV, totale: totaleV, listino_id: voce.id, unita: voce.mq ? "mq" : voce.unita === "ore" ? "h" : voce.unita === "giorni" ? "gg" : voce.unita || "" });
+    onAdd({ descrizione: voce.label(qn, qn2), quantita, prezzo_unitario: quantita > 0 ? +(totaleV / quantita).toFixed(4) : totaleV, totale: totaleV, listino_id: voce.id, listino_q: qn, listino_q2: qn2, unita: voce.mq ? "mq" : voce.unita === "ore" ? "h" : voce.unita === "giorni" ? "gg" : voce.unita || "" });
     setOpen(false); setVoce(null);
   };
   return (

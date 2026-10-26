@@ -991,3 +991,7 @@ Backend spezzato in moduli (`server.py` ora 112 righe, prima 2761):
 
 ## 2026-10-27 — Magazzino: ricarico solo da fornitore
 - Le categorie non incidono più sul prezzo: `_default_markup_for_articolo` usa solo `fornitori.ricarico_default_percent`; `applica_ricarico_fornitore` non salta più le categorie con ricarico specifico; tasto "Ricarichi categoria" rimosso dalla toolbar (endpoint/dialog lasciati inattivi). Articolo con ricarico manuale (lucchetto) resta rispettato. Testato: fornitore 40% + categoria 200% → listino 14 su acquisto 10.
+
+## 2026-10-27 — Listino → conti clienti esterni
+- Le righe aggiunte "Dal listino" ora salvano `listino_id`, `listino_q`, `listino_q2` (lavori.articoli_liberi e preventivi_esterni.righe). Al PUT /tariffe, `listino_sync.aggiorna_conti_esterni` ricalcola quantità/prezzo/totale di quelle righe (lavori non pagati, preventivi non convertiti) e il costo/imponibile; endpoint manuale POST /tariffe/aggiorna-conti-esterni. Righe inserite a mano non vengono toccate. Testato: manodopera 60→70 → lavoro 120→140, preventivo 180→210.
+- Nota: le righe create prima di questa modifica non hanno listino_id e non si aggiornano automaticamente.

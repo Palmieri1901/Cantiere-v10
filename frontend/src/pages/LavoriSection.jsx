@@ -393,7 +393,7 @@ export default function LavoriSection({ clienteId, editLavoroId }) {
                     <Package className="w-3 h-3" /> Altri articoli (non in magazzino)
                   </Label>
                   <div className="flex gap-1.5">
-                    <ListinoPicker onAdd={(v) => setArtLiberi((s) => [...s, { descrizione: v.descrizione, quantita: v.quantita, prezzo_unitario: v.prezzo_unitario, unita: v.unita }])} testId="btn-listino-lavoro" />
+                    <ListinoPicker onAdd={(v) => setArtLiberi((s) => [...s, { descrizione: v.descrizione, quantita: v.quantita, prezzo_unitario: v.prezzo_unitario, unita: v.unita, listino_id: v.listino_id, listino_q: v.listino_q, listino_q2: v.listino_q2 }])} testId="btn-listino-lavoro" />
                     <Button size="sm" variant="outline" onClick={addLibero} data-testid="btn-aggiungi-articolo"><Plus className="w-3.5 h-3.5 mr-1" /> Aggiungi articolo</Button>
                   </div>
                 </div>

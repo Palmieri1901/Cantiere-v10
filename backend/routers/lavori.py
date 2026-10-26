@@ -20,7 +20,8 @@ def _norm_liberi(items) -> list:
         pu = float(it.get("prezzo_unitario") or 0)
         if not descr and qt * pu == 0:
             continue
-        out.append({"descrizione": descr, "quantita": qt, "prezzo_unitario": pu, "totale": round(qt * pu, 2), "unita": str(it.get("unita") or "").strip()})
+        out.append({"descrizione": descr, "quantita": qt, "prezzo_unitario": pu, "totale": round(qt * pu, 2), "unita": str(it.get("unita") or "").strip(),
+                    **({"listino_id": it["listino_id"], "listino_q": float(it.get("listino_q") or 0), "listino_q2": float(it.get("listino_q2") or 0)} if it.get("listino_id") else {})})
     return out
 
 

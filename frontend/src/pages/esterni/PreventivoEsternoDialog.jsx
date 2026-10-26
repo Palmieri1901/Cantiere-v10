@@ -72,7 +72,7 @@ export default function PreventivoEsternoDialog({ esterno, preventivo, open, onC
           <div className="flex items-center justify-between flex-wrap gap-2">
             <L>Righe</L>
             <div className="flex gap-2 flex-wrap">
-              <ListinoPicker onAdd={(v) => addRiga({ tipo: "voce", descrizione: v.descrizione, quantita: v.quantita, prezzo_unitario: v.prezzo_unitario, unita: v.unita })} testId="btn-riga-listino" />
+              <ListinoPicker onAdd={(v) => addRiga({ tipo: "voce", descrizione: v.descrizione, quantita: v.quantita, prezzo_unitario: v.prezzo_unitario, unita: v.unita, listino_id: v.listino_id, listino_q: v.listino_q, listino_q2: v.listino_q2 })} testId="btn-riga-listino" />
               <Button size="sm" variant="outline" onClick={() => addRiga({ tipo: "manodopera", descrizione: "Manodopera", quantita: 1, prezzo_unitario: tariffa })} data-testid="btn-riga-manodopera"><Clock className="w-3.5 h-3.5 mr-1" /> Manodopera {tariffa ? `(${tariffa} €/h)` : ""}</Button>
               <Button size="sm" variant="outline" onClick={() => addRiga({ tipo: "articolo", articolo_id: null, codice: "", descrizione: "", quantita: 1, prezzo_unitario: 0 })} data-testid="btn-riga-ricambio-esterno"><Package className="w-3.5 h-3.5 mr-1" /> Ricambio non in magazzino</Button>
               <Button size="sm" variant="outline" onClick={() => addRiga({ tipo: "voce", descrizione: "", quantita: 1, prezzo_unitario: 0 })} data-testid="btn-riga-voce"><Tag className="w-3.5 h-3.5 mr-1" /> Voce libera</Button>
