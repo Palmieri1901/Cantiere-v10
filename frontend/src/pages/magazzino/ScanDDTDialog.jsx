@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
+import { ControlloTotale } from "./ControlloTotale";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -244,6 +245,7 @@ export default function ScanDDTDialog({ open, onOpenChange, fornitori, onDone, o
             </div>
           </div>
 
+          {rows.length > 0 && <ControlloTotale result={result} rows={rows} spese={spese} />}
           {rows.length > 0 && (
             <div className="mb-3 rounded-md border border-primary/30 bg-primary/5 p-3 space-y-2" data-testid="ddt-price-options">
               <div className="text-xs font-semibold uppercase tracking-wider text-primary flex items-center gap-1.5">

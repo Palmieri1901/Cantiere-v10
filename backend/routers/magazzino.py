@@ -458,6 +458,7 @@ async def scan_ddt(payload: ScanDDTRequest):
         "'media' se plausibile ma ambigua, 'bassa' se hai dovuto tirare a indovinare o è generica).\n\n"
         "Rispondi SOLO con un oggetto JSON:\n"
         '{"fornitore": "", "numero_ddt": "", "data": "", "iva_percent": 22, "prezzi_ivati": false,\n'
+        ' "totale_imponibile": 0, "totale_documento": 0,\n'
         ' "articoli": [\n'
         '   {"codice": "", "nome": "", "descrizione": "", "categoria": "Motore", "categoria_confidenza": "alta",\n'
         '    "unita_misura": "pz", "quantita": 0,\n'
@@ -479,7 +480,8 @@ async def scan_ddt(payload: ScanDDTRequest):
         "- l'importo delle spese è quello NETTO IVA esclusa (se leggi solo l'ivato, dividi per 1.22).\n"
         "- Non trattare sconti totali o abbuoni come spese.\n"
         "- Se non ci sono spese accessorie usa una lista vuota.\n"
-        "- Ignora totali generali del documento.\n"
+        "- Ignora totali generali del documento nelle righe, ma riportali nei campi 'totale_imponibile' (totale IVA esclusa, spese incluse) "
+        "e 'totale_documento' (totale finale IVA inclusa) se presenti nel riepilogo; altrimenti 0.\n"
         "Rispondi SOLO con il JSON, nessun testo aggiuntivo."
     )
     try:
@@ -545,6 +547,8 @@ async def scan_ddt(payload: ScanDDTRequest):
         "numero_ddt": str(data.get("numero_ddt", "") or ""),
         "data": str(data.get("data", "") or ""),
         "iva_percent": iva_percent,
+        "totale_imponibile": float(data.get("totale_imponibile") or 0),
+        "totale_documento": float(data.get("totale_documento") or 0),
         "articoli": articoli,
         "spese_accessorie": [
             {
