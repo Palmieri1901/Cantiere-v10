@@ -2,6 +2,7 @@
 Specchio di frontend/src/components/ListinoPicker.jsx (vociListino)."""
 from datetime import datetime, timezone
 import logging
+import re
 
 logger = logging.getLogger(__name__)
 
@@ -43,7 +44,42 @@ def totale_listino(t: dict, voce_id: str, q: float, q2: float):
     return None
 
 
+_NUM = r"(\d+(?:[.,]\d+)?)"
+_fnum = lambda s: float(str(s).replace(",", "."))  # noqa: E731
+_PATTERNS = [
+    (re.compile(rf"^(Copertura|Antivegetativa) {_NUM} × {_NUM} m", re.I), lambda m: ({"copertura": "copertura", "antivegetativa": "antivegetativa"}[m.group(1).lower()], _fnum(m.group(2)), _fnum(m.group(3)))),
+    (re.compile(rf"^(Movimentazione|Taccaggio|Maggiorazione scafo sporco|Lavaggio inizio stagione|Lavaggio fine stagione) barca {_NUM} m", re.I),
+     lambda m: ({"movimentazione": "movimentazione", "taccaggio": "taccaggio", "maggiorazione scafo sporco": "scafo_sporco", "lavaggio inizio stagione": "lavaggio_inizio", "lavaggio fine stagione": "lavaggio_fine"}[m.group(1).lower()], _fnum(m.group(2)), 0)),
+    (re.compile(rf"^Sosta temporanea {_NUM} giorni", re.I), lambda m: ("sosta_temp", _fnum(m.group(1)), 0)),
+    (re.compile(rf"^(Alaggio|Varo) barca {_NUM} m", re.I), lambda m: (m.group(1).lower(), _fnum(m.group(2)), 0)),
+    (re.compile(rf"^Manodopera {_NUM} h", re.I), lambda m: ("manodopera", _fnum(m.group(1)), 0)),
+    (re.compile(rf"^(Girante|Olio motore|Filtro olio|Candele|Termostato|Olio piede|Kit anodi interni|Kit anodi esterni|Ingrassaggio) × {_NUM}", re.I),
+     lambda m: ({"girante": "girante", "olio motore": "olio_motore", "filtro olio": "filtro_olio", "candele": "candela", "termostato": "termostato", "olio piede": "olio_piede",
+                 "kit anodi interni": "anodi_interni", "kit anodi esterni": "anodi_esterni", "ingrassaggio": "ingrassaggio"}[m.group(1).lower()], _fnum(m.group(2)), 0)),
+]
+_FISSI_NOMI = {"manodopera fuoribordo 2-15 hp": "motore_2_15", "manodopera fuoribordo 16-40 hp": "motore_16_40", "manodopera fuoribordo 41-150 hp": "motore_41_150",
+               "manodopera fuoribordo oltre 150 hp": "motore_oltre_150", "manodopera entrobordo": "motore_entrobordo"}
+
+
+def _inferisci_listino(r: dict) -> bool:
+    """Righe create prima del collegamento al listino: ricava voce e misura dalla descrizione generata dal picker."""
+    d = str(r.get("descrizione") or "").strip()
+    if not d:
+        return False
+    if d.lower() in _FISSI_NOMI:
+        r["listino_id"], r["listino_q"], r["listino_q2"] = _FISSI_NOMI[d.lower()], 1, 0
+        return True
+    for rx, fn in _PATTERNS:
+        m = rx.match(d)
+        if m:
+            r["listino_id"], r["listino_q"], r["listino_q2"] = fn(m)
+            return True
+    return False
+
+
 def _ricalcola_riga(t: dict, r: dict) -> bool:
+    if not r.get("listino_id") and not _inferisci_listino(r):
+        return False
     res = totale_listino(t, r.get("listino_id") or "", float(r.get("listino_q") or 0), float(r.get("listino_q2") or 0))
     if not res:
         return False
@@ -59,10 +95,10 @@ async def aggiorna_conti_esterni(db, t: dict) -> dict:
     """Aggiorna le righe dal listino di lavori (articoli_liberi) e preventivi esterni non ancora fatturati."""
     now = datetime.now(timezone.utc).isoformat()
     lavori_agg = prev_agg = 0
-    async for lav in db.lavori.find({"articoli_liberi.listino_id": {"$exists": True}, "pagato": {"$ne": True}}, {"_id": 0}):
+    async for lav in db.lavori.find({"pagato": {"$ne": True}, "articoli_liberi.0": {"$exists": True}}, {"_id": 0}):
         liberi = lav.get("articoli_liberi") or []
         delta_old = sum(float(x.get("totale") or 0) for x in liberi)
-        if not any(_ricalcola_riga(t, r) for r in liberi if r.get("listino_id")):
+        if not any([_ricalcola_riga(t, r) for r in liberi]):
             continue
         for r in liberi:
             r["totale"] = round(float(r.get("quantita") or 0) * float(r.get("prezzo_unitario") or 0), 2)
@@ -71,9 +107,9 @@ async def aggiorna_conti_esterni(db, t: dict) -> dict:
         await db.lavori.update_one({"id": lav["id"]}, {"$set": {"articoli_liberi": liberi, "costo": costo, "updated_at": now}})
         lavori_agg += 1
     from routers.esterni import _calc
-    async for p in db.preventivi_esterni.find({"righe.listino_id": {"$exists": True}, "lavoro_id": {"$in": [None, ""]}}, {"_id": 0}):
+    async for p in db.preventivi_esterni.find({"righe.0": {"$exists": True}, "lavoro_id": {"$in": [None, ""]}}, {"_id": 0}):
         righe = p.get("righe") or []
-        if not any(_ricalcola_riga(t, r) for r in righe if r.get("listino_id")):
+        if not any([_ricalcola_riga(t, r) for r in righe if r.get("tipo") != "articolo"]):
             continue
         p["righe"] = righe
         _calc(p)
