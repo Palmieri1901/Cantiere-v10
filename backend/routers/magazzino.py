@@ -435,10 +435,13 @@ async def scan_ddt(payload: ScanDDTRequest):
         "- 'U.M.' / 'UM' / 'Unità' = unità di misura (es. pz, lt, kg, mt, mq, rotolo, cf, cad, set). "
         "  Normalizza SEMPRE in minuscolo e usa una di queste sigle: pz, lt, kg, mt, mq, rotolo, cf, cad, set, paio. "
         "  Se non riesci a leggerla usa 'pz'.\n"
-        "- 'Prezzo unitario' / 'Prezzo listino' / 'PU' = prezzo unitario IVA COMPRESA (22%) riferito alla U.M.\n"
-        "- 'Sconto %' / 'Sc%' = sconto in percentuale\n"
-        "- 'Importo' / 'Totale' / 'Netto' = importo unitario NETTO scontato IVA ESCLUSA (prezzo di acquisto)\n"
-        "- Se 'Importo' è il totale riga, dividilo per la quantità.\n\n"
+        "- 'Prezzo unitario' / 'Prezzo listino' / 'PU' = prezzo unitario riferito alla U.M. Nelle fatture e nei DDT tra aziende "
+        "  (colonna '%IVA' separata o riepilogo IVA in fondo) il prezzo unitario è SEMPRE IVA ESCLUSA: riportalo in 'prezzo_unitario_netto' "
+        "  e metti 'prezzi_ivati': false. Solo se il documento dice esplicitamente 'IVA inclusa'/'ivato' (es. scontrino, listino al pubblico) "
+        "  metti 'prezzi_ivati': true.\n"
+        "- 'Sconto %' / 'Sc%' / 'Sconto o magg.' = sconto in percentuale (ignora il segno meno)\n"
+        "- 'Importo' / 'Totale' / 'Prezzo totale' = totale riga (quantità × prezzo scontato): usalo solo per controllo, NON dividerlo in 'prezzo_unitario_netto'\n"
+        "- 'importo_netto' = prezzo unitario IVA ESCLUSA dopo lo sconto (= prezzo_unitario_netto × (1 − sconto/100)). Se non c'è sconto coincide con prezzo_unitario_netto.\n\n"
         "CATEGORIZZAZIONE (obbligatoria, DEDUCILA dal nome/descrizione anche se non indicata in fattura). "
         "Usa ESATTAMENTE una di queste categorie:\n"
         "- 'Motore' → candele, filtri motore, olio motore, pompe acqua, giranti, anodi motore, cinghie, kit tagliando\n"
@@ -454,11 +457,11 @@ async def scan_ddt(payload: ScanDDTRequest):
         "Per la categoria fornisci ANCHE una **confidenza** ('alta' se sei molto sicuro dal nome/descrizione, "
         "'media' se plausibile ma ambigua, 'bassa' se hai dovuto tirare a indovinare o è generica).\n\n"
         "Rispondi SOLO con un oggetto JSON:\n"
-        '{"fornitore": "", "numero_ddt": "", "data": "", "iva_percent": 22,\n'
+        '{"fornitore": "", "numero_ddt": "", "data": "", "iva_percent": 22, "prezzi_ivati": false,\n'
         ' "articoli": [\n'
         '   {"codice": "", "nome": "", "descrizione": "", "categoria": "Motore", "categoria_confidenza": "alta",\n'
         '    "unita_misura": "pz", "quantita": 0,\n'
-        '    "prezzo_listino_ivato": 0, "sconto_percent": 0, "importo_netto": 0}\n'
+        '    "prezzo_unitario_netto": 0, "sconto_percent": 0, "importo_netto": 0}\n'
         " ],\n"
         ' "spese_accessorie": [\n'
         '   {"tipo": "trasporto", "descrizione": "Trasporto merce", "importo": 0}\n'
@@ -488,15 +491,22 @@ async def scan_ddt(payload: ScanDDTRequest):
     articoli_raw = data.get("articoli") or []
     articoli = []
     iva_percent = float(data.get("iva_percent") or 22)
+    prezzi_ivati = bool(data.get("prezzi_ivati", False))
     for a in articoli_raw if isinstance(articoli_raw, list) else []:
         if not isinstance(a, dict):
             continue
-        listino_iva = float(a.get("prezzo_listino_ivato", 0) or 0)
-        sconto = float(a.get("sconto_percent", 0) or 0)
+        iva_mul = 1 + iva_percent / 100
+        sconto = abs(float(a.get("sconto_percent", 0) or 0))
         netto = float(a.get("importo_netto", 0) or 0)
+        pu = float(a.get("prezzo_unitario_netto", 0) or 0)
+        listino_iva = float(a.get("prezzo_listino_ivato", 0) or 0)
+        if pu > 0:
+            # prezzo unitario letto dal documento: netto IVA esclusa (default) o ivato se il documento lo dichiara
+            listino_iva = round(pu * iva_mul, 4) if not prezzi_ivati else round(pu, 4)
+            base_netto = pu if not prezzi_ivati else pu / iva_mul
+            netto = round(base_netto * (1 - sconto / 100), 4)
 
         # Se manca qualche valore, ricava dagli altri (assumendo IVA 22%)
-        iva_mul = 1 + iva_percent / 100
         if netto == 0 and listino_iva > 0:
             listino_no_iva = listino_iva / iva_mul
             netto = round(listino_no_iva * (1 - sconto / 100), 4)

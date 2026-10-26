@@ -998,3 +998,6 @@ Backend spezzato in moduli (`server.py` ora 112 righe, prima 2761):
 
 ## 2026-10-27 — Spese: tipo COU
 - Aggiunto tipo spesa `cou` ("COU – Contributo olii usati") in TIPI_SPESA (frontend), modello e prompt Scan DDT (riconoscimento automatico del contributo CONOU). Testato POST spesa tipo cou.
+
+## 2026-10-27 — Scan DDT: prezzo unitario IVA esclusa
+- Prima il prompt assumeva "Prezzo unitario = IVA compresa" e scorporava il 22% → acquisto errato (es. 6,53 letto come 5,xx). Ora l'AI restituisce `prezzo_unitario_netto` + `prezzi_ivati` (false di default per fatture/DDT con colonna %IVA); backend: acquisto = pu×(1−sconto), listino ivato = pu×1,22; sconto preso in valore assoluto ("-1.00%"). Frontend invariato (campi prezzo_listino_ivato/importo_netto).
