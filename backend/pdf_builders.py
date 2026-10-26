@@ -683,7 +683,7 @@ def build_conto_esterno_pdf(est: dict, lavori: list, cantiere_doc: dict, anno=No
         ("LINEABOVE", (0, -1), (-1, -1), 1, TEAK), ("GRID", (0, 0), (-1, -2), 0.25, colors.HexColor("#D9D4C7")),
         ("TOPPADDING", (0, 0), (-1, -1), 4), ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
     ]))
-    elems += [tbl, Spacer(1, 6*mm), Paragraph("Importi IVA esclusa salvo diversa indicazione. Documento non valido ai fini fiscali.", small)]
+    elems += [tbl]
     pdf.build(elems)
     return buf.getvalue()
 

@@ -1020,3 +1020,6 @@ Backend spezzato in moduli (`server.py` ora 112 righe, prima 2761):
 
 ## 2026-10-27 — Preventivi esterni: righe riordinabili
 - Nuovo componente `components/RigheRiordinabili.jsx` (framer-motion Reorder): maniglia ⋮ a sinistra (drag con mouse) e pressione prolungata 350 ms su touch (vibrazione) per trascinare le righe su/giù. Usato in PreventivoEsternoDialog; chiavi `_k` locali rimosse al salvataggio.
+
+## 2026-10-27 — PDF conto esterni
+- Rimossa la dicitura finale "Importi IVA esclusa salvo diversa indicazione. Documento non valido ai fini fiscali." (pdf_builders.py). Verificato via estrazione testo del PDF.
