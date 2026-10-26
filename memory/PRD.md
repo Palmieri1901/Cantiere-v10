@@ -976,3 +976,6 @@ Backend spezzato in moduli (`server.py` ora 112 righe, prima 2761):
 - UI: ConflittiFicDialog (pages/anagrafica) con checkbox per nominativo, "Lascia come sono" / "Aggiorna N con Fatture in Cloud". Testato backend (conflitto email rilevato e applicato).
 - Nota Gagliano: su FIC mancano via e CAP → l'import non può portarli; all'invio proforma il gestionale aggiorna il cliente su FIC con i dati completi.
 - _trova_esistente: omonimi (stesso cognome+nome) con codice fiscale diverso non vengono più uniti → creati come voci distinte (caso "LAMI STEFANO" x2 su FIC).
+
+## 2026-10-26 — Fatture in Cloud: prezzi netti/lordi
+- Config `prezzi_lordi` (PUT /fatturazione/config {prezzi_lordi}); card Impostazioni con due tasti Netti/Lordi (btn-prezzi-netti / btn-prezzi-lordi) + avviso di allineare FIC. Invio: con lordi → items `gross_price`, `use_gross_prices: true`, payments = somma righe; con netti → `net_price`, payments = netto×1.22. Manuale aggiornato. Testato PUT/GET config.

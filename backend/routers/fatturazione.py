@@ -55,6 +55,7 @@ async def _fic(method: str, path: str, token: str, **kw):
 class ConfigIn(BaseModel):
     token: Optional[str] = None
     company_id: Optional[int] = None
+    prezzi_lordi: Optional[bool] = None
 
 
 def _mask(t: str) -> str:
@@ -65,13 +66,16 @@ def _mask(t: str) -> str:
 async def get_config():
     c = await _cfg()
     return {"configurato": bool(c.get("token")), "token_mascherato": _mask(c.get("token") or ""), "company_id": c.get("company_id"),
-            "company_name": c.get("company_name", ""), "vat_id": c.get("vat_id"), "utente": c.get("utente", ""), "ultimo_import": c.get("ultimo_import")}
+            "company_name": c.get("company_name", ""), "vat_id": c.get("vat_id"), "utente": c.get("utente", ""), "ultimo_import": c.get("ultimo_import"),
+            "prezzi_lordi": bool(c.get("prezzi_lordi"))}
 
 
 @router.put("/config")
 async def set_config(p: ConfigIn):
     c = await _cfg()
     upd = {}
+    if p.prezzi_lordi is not None:
+        upd["prezzi_lordi"] = p.prezzi_lordi
     if p.token is not None and p.token.strip():
         tok = p.token.strip().removeprefix("Bearer ").strip()
         info = await _fic("GET", "/user/info", tok)
@@ -361,10 +365,12 @@ async def invia(p: InviaIn):
     sogg = _split_nome(sogg)
     entity = await _entita(tok, cid, sogg, nome)
     entity_id = entity["id"]
-    items = [{"name": r["name"], "description": r["description"], "qty": r["qty"], "net_price": r["net_price"], "vat": vat} for r in righe]
-    data = {"type": "proforma", "entity": entity, "date": datetime.now().strftime("%Y-%m-%d"), "subject": oggetto[:255], "items_list": items}
-    netto = round(sum(r["qty"] * r["net_price"] for r in righe), 2)
-    data["payments_list"] = [{"amount": round(netto * 1.22, 2), "due_date": datetime.now().strftime("%Y-%m-%d"), "status": "not_paid"}]
+    lordi = bool(c.get("prezzi_lordi"))
+    prezzo_key = "gross_price" if lordi else "net_price"
+    items = [{"name": r["name"], "description": r["description"], "qty": r["qty"], prezzo_key: r["net_price"], "vat": vat} for r in righe]
+    data = {"type": "proforma", "entity": entity, "date": datetime.now().strftime("%Y-%m-%d"), "subject": oggetto[:255], "items_list": items, "use_gross_prices": lordi}
+    tot_righe = round(sum(r["qty"] * r["net_price"] for r in righe), 2)
+    data["payments_list"] = [{"amount": tot_righe if lordi else round(tot_righe * 1.22, 2), "due_date": datetime.now().strftime("%Y-%m-%d"), "status": "not_paid"}]
     try:
         res = (await _fic("POST", f"/c/{cid}/issued_documents", tok, json={"data": data})).get("data", {})
     except HTTPException as e:

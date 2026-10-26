@@ -26,6 +26,10 @@ export default function FatturazioneCard() {
     try { await api.put("/fatturazione/config", { company_id: Number(id) }); toast.success("Azienda collegata"); load(); }
     catch (e) { toast.error(e.response?.data?.detail || "Errore"); }
   };
+  const setPrezzi = async (lordi) => {
+    try { await api.put("/fatturazione/config", { prezzi_lordi: lordi }); toast.success(lordi ? "Prezzi lordi (IVA inclusa)" : "Prezzi netti (IVA esclusa)"); load(); }
+    catch (e) { toast.error(e.response?.data?.detail || "Errore"); }
+  };
   const scollega = async () => {
     if (!(await confirmDialog("Rimuovere il collegamento a Fatture in Cloud? Il token verrà cancellato.", { okLabel: "Scollega" }))) return;
     await api.delete("/fatturazione/config"); load();
@@ -53,8 +57,18 @@ export default function FatturazioneCard() {
             </select>
           </div>
           <div className="text-sm self-end" data-testid="fatturazione-iva">
-            {cfg.company_id ? (cfg.vat_id ? <span className="text-emerald-700">IVA 22% rilevata (id {cfg.vat_id}) · pronto</span> : <span className="text-amber-700">Aliquota 22% non trovata nell'azienda</span>) : <span className="text-muted-foreground">Scegli l'azienda per completare</span>}
+            {cfg.company_id ? (cfg.vat_id ? <span className="text-emerald-700">IVA 22% rilevata (id {cfg.vat_id}) · pronto</span> : <span className="text-emerald-700">Pronto · IVA 22% applicata alle righe</span>) : <span className="text-muted-foreground">Scegli l'azienda per completare</span>}
           </div>
+        </div>
+      )}
+      {cfg.configurato && cfg.company_id && (
+        <div className="border border-border/60 rounded-md p-3 bg-muted/10 space-y-2" data-testid="fatturazione-prezzi">
+          <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Prezzi inviati</div>
+          <div className="flex flex-wrap gap-2">
+            <Button size="sm" variant={cfg.prezzi_lordi ? "outline" : "default"} onClick={() => setPrezzi(false)} data-testid="btn-prezzi-netti">Netti (IVA esclusa)</Button>
+            <Button size="sm" variant={cfg.prezzi_lordi ? "default" : "outline"} onClick={() => setPrezzi(true)} data-testid="btn-prezzi-lordi">Lordi (IVA inclusa)</Button>
+          </div>
+          <p className="text-[11px] text-muted-foreground">Deve essere uguale all'impostazione di Fatture in Cloud (Impostazioni → Documenti → "Prezzi lordi/netti"). Con "Lordi" i prezzi del gestionale sono considerati IVA compresa e Fatture in Cloud scorpora l'IVA 22%.</p>
         </div>
       )}
       {cfg.configurato && cfg.company_id && (

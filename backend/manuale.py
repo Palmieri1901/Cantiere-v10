@@ -141,6 +141,7 @@ SEZIONI = [
         ("1", "Su Fatture in Cloud: Impostazioni → Applicazioni e integrazioni → Autenticazione manuale → crea un token con permessi su Clienti, Fatture e Proforma (lettura/scrittura). Copialo."),
         ("1", "Nel gestionale: Impostazioni → Fatturazione · Fatture in Cloud → incolla il token → Verifica e salva. Il token resta solo sul server, non viene mai mostrato."),
         ("1", "Scegli l'azienda (se ne hai più di una). L'aliquota IVA 22% viene rilevata automaticamente."),
+        ("1", "Prezzi inviati: scegli Netti (IVA esclusa) o Lordi (IVA inclusa). Deve coincidere con l'impostazione di Fatture in Cloud (Impostazioni → Documenti → prezzi lordi/netti): con Lordi, i prezzi del gestionale sono IVA compresa e Fatture in Cloud scorpora il 22%."),
         ("#", "Inviare un documento"),
         ("1", "Premi Invia a fatturazione sul dettaglio del cliente in Rimessaggio, sulla riga del cliente esterno (per l'anno scelto) o su un preventivo esterno."),
         ("1", "Controllo dati: il documento parte solo se il cliente è completo. Privato: nome, cognome, indirizzo, codice fiscale. Azienda: ragione sociale, indirizzo, P.IVA, codice SDI. Se manca qualcosa (o il contatto non è in Anagrafica generale) si apre la finestra per completare i dati, con la spunta \"Registra in Anagrafica generale\" già attiva."),
