@@ -979,3 +979,6 @@ Backend spezzato in moduli (`server.py` ora 112 righe, prima 2761):
 
 ## 2026-10-26 — Fatture in Cloud: prezzi netti/lordi
 - Config `prezzi_lordi` (PUT /fatturazione/config {prezzi_lordi}); card Impostazioni con due tasti Netti/Lordi (btn-prezzi-netti / btn-prezzi-lordi) + avviso di allineare FIC. Invio: con lordi → items `gross_price`, `use_gross_prices: true`, payments = somma righe; con netti → `net_price`, payments = netto×1.22. Manuale aggiornato. Testato PUT/GET config.
+
+## 2026-10-26 — Fix build produzione (aggiornamento Oracle fallito)
+- Causa: `ConflittiFicDialog.jsx` importava `api` come default export (`@/lib/api` esporta solo `{ api }`) → `yarn build` falliva nel Dockerfile. Corretto; `yarn build` ora "Compiled with warnings" (solo warning preesistenti). Regola: in frontend usare sempre `import { api } from "@/lib/api"`.

@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
-import api from "@/lib/api";
+import { api } from "@/lib/api";
 
 export function ConflittiFicDialog({ conflitti, onClose, onApplied }) {
   const [sel, setSel] = useState(() => new Set((conflitti || []).map((c) => c.anagrafica_id)));
