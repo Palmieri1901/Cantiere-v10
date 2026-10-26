@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Plus, Search, Pencil, Trash2, BookUser, Building2, User, Download, CloudDownload } from "lucide-react";
 import { confirmDialog } from "@/components/ConfirmDialog";
 import AnagraficaDialog from "@/pages/anagrafica/AnagraficaDialog";
+import { ConflittiFicDialog } from "@/pages/anagrafica/ConflittiFicDialog";
 
 const ORIGINE = { rimessaggio: "Rimessaggio", esterni: "Esterni", manuale: "Inserita a mano", fatture_in_cloud: "Fatture in Cloud", fatturazione: "Fatturazione" };
 
@@ -26,6 +27,7 @@ export default function Anagrafica() {
       load();
     } catch (e) { toast.error(e.response?.data?.detail || "Errore importazione"); } finally { setImporting(false); }
   };
+  const [conflitti, setConflitti] = useState(null);
   const importaFic = async () => {
     if (!(await confirmDialog("Importare in anagrafica tutti i clienti presenti su Fatture in Cloud?\nI nominativi già presenti (stessa P.IVA, CF o cognome+nome) vengono aggiornati, non duplicati.", { title: "Importa da Fatture in Cloud", okLabel: "Importa", danger: false }))) return;
     setImporting(true);
@@ -33,6 +35,7 @@ export default function Anagrafica() {
       const r = await api.post("/fatturazione/importa-clienti");
       toast.success(`Fatture in Cloud: ${r.data.nuovi} nuovi, ${r.data.aggiornati} aggiornati${r.data.saltati ? `, ${r.data.saltati} saltati` : ""}`);
       if (r.data.errori?.length) toast.warning(r.data.errori.join("\n"), { duration: 12000 });
+      if (r.data.conflitti?.length) setConflitti(r.data.conflitti);
       load();
     } catch (e) { toast.error(e.response?.data?.detail || "Errore importazione"); } finally { setImporting(false); }
   };
@@ -97,6 +100,7 @@ export default function Anagrafica() {
       </div>
 
       <AnagraficaDialog voce={edit} onClose={() => setEdit(null)} onSaved={load} />
+      {conflitti && <ConflittiFicDialog conflitti={conflitti} onClose={() => setConflitti(null)} onApplied={load} />}
     </div>
   );
 }

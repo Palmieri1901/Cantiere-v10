@@ -70,8 +70,11 @@ async def _trova_esistente(d: dict) -> Optional[dict]:
         if hit:
             return hit
     if d["cognome"]:
-        return await db.anagrafica.find_one({"cognome": re.compile(f"^{re.escape(d['cognome'])}$", re.I),
-                                              "nome": re.compile(f"^{re.escape(d['nome'])}$", re.I)}, {"_id": 0})
+        q = {"cognome": re.compile(f"^{re.escape(d['cognome'])}$", re.I), "nome": re.compile(f"^{re.escape(d['nome'])}$", re.I)}
+        # omonimi con codice fiscale diverso sono persone diverse
+        if d["codice_fiscale"]:
+            q["$or"] = [{"codice_fiscale": ""}, {"codice_fiscale": None}, {"codice_fiscale": {"$exists": False}}]
+        return await db.anagrafica.find_one(q, {"_id": 0})
     return None
 
 

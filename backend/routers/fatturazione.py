@@ -407,13 +407,13 @@ def _split_fic_nome(name: str) -> tuple[str, str]:
 @router.post("/importa-clienti")
 async def importa_clienti():
     """Importa/aggiorna in Anagrafica generale tutti i clienti presenti su Fatture in Cloud."""
-    from routers.anagrafica import upsert_anagrafica
+    from routers.anagrafica import upsert_anagrafica, _trova_esistente, _norm
     c = await _cfg()
     if not c.get("token") or not c.get("company_id"):
         raise HTTPException(400, "Fatture in Cloud non configurato: vai in Impostazioni → Fatturazione")
     tok, cid = c["token"], c["company_id"]
     nuovi = aggiornati = saltati = 0
-    errori = []
+    errori, conflitti = [], []
     page = 1
     while True:
         try:
@@ -433,6 +433,13 @@ async def importa_clienti():
                  "citta": x.get("address_city") or "", "provincia": x.get("address_province") or "",
                  "nazione": "" if paese.lower() in ("", "italia", "italy", "it") else paese}
             try:
+                esist = await _trova_esistente(_norm(d))
+                if esist:
+                    diff = [{"campo": k, "etichetta": CAMPI_CONFRONTO[k], "attuale": str(esist.get(k) or ""), "fic": str(d.get(k) or "")}
+                            for k in CAMPI_CONFRONTO if str(esist.get(k) or "").strip() and str(d.get(k) or "").strip()
+                            and str(esist.get(k)).strip().lower() != str(d.get(k)).strip().lower()]
+                    if diff:
+                        conflitti.append({"anagrafica_id": esist["id"], "nome": x.get("name", ""), "differenze": diff, "dati_fic": {k: d.get(k, "") for k in CAMPI_CONFRONTO}})
                 r = await upsert_anagrafica(d, "fatture_in_cloud")
                 nuovi += r["creato"]
                 aggiornati += not r["creato"]
@@ -444,7 +451,30 @@ async def importa_clienti():
         if cur >= last or not res.get("data"):
             break
         page += 1
-    return {"nuovi": nuovi, "aggiornati": aggiornati, "saltati": saltati, "errori": errori}
+    return {"nuovi": nuovi, "aggiornati": aggiornati, "saltati": saltati, "errori": errori, "conflitti": conflitti}
+
+
+class ConflittoIn(BaseModel):
+    anagrafica_id: str
+    dati_fic: dict
+
+
+@router.post("/importa-clienti/applica")
+async def applica_conflitti(voci: List[ConflittoIn]):
+    """Sovrascrive i campi scelti dall'utente con i valori di Fatture in Cloud."""
+    from routers.anagrafica import _norm
+    n = 0
+    for v in voci:
+        upd = _norm({k: v.dati_fic.get(k, "") for k in CAMPI_CONFRONTO if str(v.dati_fic.get(k) or "").strip()})
+        upd = {k: val for k, val in upd.items() if val}
+        upd["updated_at"] = datetime.now(timezone.utc).isoformat()
+        r = await db.anagrafica.update_one({"id": v.anagrafica_id}, {"$set": upd})
+        n += r.matched_count
+    return {"aggiornati": n}
+
+
+CAMPI_CONFRONTO = {"ragione_sociale": "Ragione sociale", "cognome": "Cognome", "nome": "Nome", "partita_iva": "Partita IVA", "codice_fiscale": "Codice fiscale",
+                   "codice_sdi": "Codice SDI", "pec": "PEC", "email": "Email", "telefono": "Telefono", "via": "Via", "cap": "CAP", "citta": "Città", "provincia": "Provincia", "nazione": "Nazione"}
 
 
 cron_router = APIRouter(prefix="/api/cron")

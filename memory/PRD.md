@@ -970,3 +970,9 @@ Backend spezzato in moduli (`server.py` ora 112 righe, prima 2761):
 
 ## 2026-10-25 — Modifica lavoro: articoli dal magazzino anche in modifica
 - LavoriSection: rimosso `!editing &&` sulla sezione "Articoli dal magazzino" (prima visibile solo su Nuovo lavoro). Il backend PUT /api/lavori/{id} già riallinea le giacenze per differenza. Testato: update con 2 pz → quantità 5→3, costo +ricambi; delete → 5.
+
+## 2026-10-26 — Import FIC: conflitti con scelta utente
+- importa-clienti ora ritorna `conflitti` (voce già presente per P.IVA/CF/nome con valori diversi e non vuoti su entrambi i lati; i vuoti FIC non sovrascrivono mai). POST /fatturazione/importa-clienti/applica [{anagrafica_id, dati_fic}] sovrascrive con i valori FIC scelti.
+- UI: ConflittiFicDialog (pages/anagrafica) con checkbox per nominativo, "Lascia come sono" / "Aggiorna N con Fatture in Cloud". Testato backend (conflitto email rilevato e applicato).
+- Nota Gagliano: su FIC mancano via e CAP → l'import non può portarli; all'invio proforma il gestionale aggiorna il cliente su FIC con i dati completi.
+- _trova_esistente: omonimi (stesso cognome+nome) con codice fiscale diverso non vengono più uniti → creati come voci distinte (caso "LAMI STEFANO" x2 su FIC).
