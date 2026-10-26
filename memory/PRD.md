@@ -1017,3 +1017,6 @@ Backend spezzato in moduli (`server.py` ora 112 righe, prima 2761):
 ## 2026-10-27 — Modifica lavoro: ricerca magazzino vuota
 - Causa: `openEdit` non caricava `articoliMag` (solo `openNew`) → in modifica la ricerca "Articoli dal magazzino" non trovava nulla. Fix: `loadMagazzino()` condiviso chiamato in entrambi.
 - Verificato in UI: in "Modifica lavoro" la ricerca magazzino trova gli articoli (es. "anodo" → Anodo alluminio Suzuki FB). openEdit mantiene anche listino_id delle righe libere.
+
+## 2026-10-27 — Preventivi esterni: righe riordinabili
+- Nuovo componente `components/RigheRiordinabili.jsx` (framer-motion Reorder): maniglia ⋮ a sinistra (drag con mouse) e pressione prolungata 350 ms su touch (vibrazione) per trascinare le righe su/giù. Usato in PreventivoEsternoDialog; chiavi `_k` locali rimosse al salvataggio.

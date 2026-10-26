@@ -8,6 +8,11 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { toast } from "sonner";
 import { Plus, Trash2, Package, Clock, Tag, Search } from "lucide-react";
 import { ListinoPicker } from "@/components/ListinoPicker";
+import { RigheRiordinabili } from "@/components/RigheRiordinabili";
+
+let _seq = 0;
+const nextKey = () => `r${Date.now().toString(36)}${(_seq++).toString(36)}`;
+const conChiavi = (righe) => (righe || []).map((r) => (r._k ? r : { ...r, _k: nextKey() }));
 
 const L = ({ children }) => <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{children}</Label>;
 const empty = () => ({ data: new Date().toISOString().slice(0, 10), oggetto: "", righe: [], sconto_pct: 0, iva_pct: 22, note: "", validita_giorni: 30 });
@@ -21,7 +26,7 @@ export default function PreventivoEsternoDialog({ esterno, preventivo, open, onC
 
   useEffect(() => {
     if (!open) return;
-    setF(preventivo ? { ...empty(), ...preventivo } : empty());
+    setF(preventivo ? { ...empty(), ...preventivo, righe: conChiavi(preventivo.righe) } : empty());
     setQ("");
     api.get("/magazzino/articoli").then((r) => setArticoli(r.data)).catch(() => {});
     api.get("/tariffe").then((r) => setTariffa(Number(r.data.costo_orario_manodopera) || 0)).catch(() => {});
@@ -29,7 +34,7 @@ export default function PreventivoEsternoDialog({ esterno, preventivo, open, onC
 
   const set = (k, v) => setF((s) => ({ ...s, [k]: v }));
   const setRiga = (i, k, v) => set("righe", f.righe.map((r, j) => j === i ? { ...r, [k]: v } : r));
-  const addRiga = (r) => set("righe", [...f.righe, r]);
+  const addRiga = (r) => set("righe", [...f.righe, { ...r, _k: nextKey() }]);
 
   const scorpora = (lordo) => +(Number(lordo || 0) / (1 + (Number(f.iva_pct) || 0) / 100)).toFixed(2);
 
@@ -47,7 +52,7 @@ export default function PreventivoEsternoDialog({ esterno, preventivo, open, onC
     if (f.righe.length === 0) return toast.error("Aggiungi almeno una riga");
     setSaving(true);
     try {
-      const body = { ...f, righe: f.righe.map((r) => ({ ...r, quantita: Number(r.quantita) || 0, prezzo_unitario: Number(r.prezzo_unitario) || 0 })), sconto_pct: Number(f.sconto_pct) || 0, iva_pct: Number(f.iva_pct) || 0, validita_giorni: Number(f.validita_giorni) || 30 };
+      const body = { ...f, righe: f.righe.map(({ _k, ...r }) => ({ ...r, quantita: Number(r.quantita) || 0, prezzo_unitario: Number(r.prezzo_unitario) || 0 })), sconto_pct: Number(f.sconto_pct) || 0, iva_pct: Number(f.iva_pct) || 0, validita_giorni: Number(f.validita_giorni) || 30 };
       const r = preventivo ? await api.put(`/esterni/preventivi/${preventivo.id}`, body) : await api.post(`/esterni/${esterno.id}/preventivi`, body);
       toast.success(preventivo ? "Preventivo aggiornato" : `Preventivo n. ${r.data.numero}/${r.data.anno} creato`);
       onSaved(r.data); onClose();
@@ -99,9 +104,8 @@ export default function PreventivoEsternoDialog({ esterno, preventivo, open, onC
           {f.righe.length === 0 ? (
             <div className="text-xs text-muted-foreground text-center py-6 border border-dashed rounded-md">Nessuna riga. Aggiungi manodopera, un ricambio dal magazzino o una voce libera.</div>
           ) : (
-            <div className="border rounded-md divide-y" data-testid="prev-righe">
-              {f.righe.map((r, i) => (
-                <div key={i} className="p-2 grid grid-cols-12 gap-2 items-center text-sm" data-testid={`prev-riga-${i}`}>
+            <RigheRiordinabili items={f.righe} keyOf={(r) => r._k} onReorder={(righe) => set("righe", righe)} testId="prev-righe" render={(r, i) => (
+                <div className="p-2 grid grid-cols-12 gap-2 items-center text-sm" data-testid={`prev-riga-${i}`}>
                   <div className="col-span-1 text-muted-foreground" title={r.tipo === "articolo" ? (r.articolo_id ? "Ricambio da magazzino" : "Ricambio non in magazzino") : r.tipo}>{r.tipo === "articolo" ? <Package className={`w-4 h-4 ${r.articolo_id ? "text-primary" : ""}`} /> : r.tipo === "manodopera" ? <Clock className="w-4 h-4" /> : <Tag className="w-4 h-4" />}</div>
                   <Input className="col-span-5 h-9" value={r.descrizione} onChange={(e) => setRiga(i, "descrizione", e.target.value)} placeholder={r.tipo === "articolo" && !r.articolo_id ? "Ricambio (non in magazzino)" : "Descrizione"} />
                   <Input type="number" step="0.5" min="0" className="col-span-2 h-9 font-mono-num text-right" value={r.quantita} onChange={(e) => setRiga(i, "quantita", e.target.value)} title={r.tipo === "manodopera" ? "Ore" : r.unita ? `Quantità (${r.unita})` : "Quantità"} />
@@ -109,9 +113,9 @@ export default function PreventivoEsternoDialog({ esterno, preventivo, open, onC
                   <div className="col-span-1 font-mono-num text-right text-xs">{fmtEuro((Number(r.quantita) || 0) * (Number(r.prezzo_unitario) || 0))}</div>
                   <button className="col-span-1 justify-self-end" onClick={() => set("righe", f.righe.filter((_, j) => j !== i))} data-testid={`prev-del-riga-${i}`}><Trash2 className="w-4 h-4 text-destructive" /></button>
                 </div>
-              ))}
-            </div>
+              )} />
           )}
+          {f.righe.length > 1 && <p className="text-[11px] text-muted-foreground">Tieni premuto su una riga (o sulla maniglia ⋮) e trascina su/giù per cambiare l'ordine.</p>}
         </div>
 
         <div className="grid sm:grid-cols-4 gap-3 items-end">
