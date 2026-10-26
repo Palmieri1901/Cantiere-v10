@@ -232,7 +232,7 @@ export default function ArticoliTab() {
             </Button>
           </div>
         </TableCell>
-        <TableCell className="text-right">
+        <TableCell className="text-right whitespace-nowrap sticky right-0 bg-background shadow-[-6px_0_8px_-6px_rgba(0,0,0,0.25)]">
           <Button variant="ghost" size="icon" onClick={() => { setEditing(a); setFormOpen(true); }} data-testid={`btn-edit-${a.id}`}>
             <Pencil className="w-3.5 h-3.5" />
           </Button>
@@ -353,8 +353,8 @@ export default function ArticoliTab() {
           </div>
         </div>
 
-        <div className="rounded-md border border-border overflow-hidden">
-          <Table>
+        <div className="rounded-md border border-border overflow-x-auto">
+          <Table className="min-w-[1100px]">
             <TableHeader>
               <TableRow className="bg-muted/40">
                 <TableHead>Codice</TableHead>
@@ -367,7 +367,7 @@ export default function ArticoliTab() {
                 <TableHead className="text-right">Ricarico</TableHead>
                 <TableHead className="text-right w-[80px]">Giacenza</TableHead>
                 <TableHead className="text-right w-[170px]" title="Digita la quantità: ↑ carica (entrata), ↓ scarica (uscita). Invio = scarico">Carica / Scarica</TableHead>
-                <TableHead className="text-right w-[100px]">Azioni</TableHead>
+                <TableHead className="text-right w-[100px] sticky right-0 bg-muted/40 backdrop-blur">Azioni</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>

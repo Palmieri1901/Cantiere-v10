@@ -985,3 +985,6 @@ Backend spezzato in moduli (`server.py` ora 112 righe, prima 2761):
 
 ## 2026-10-27 — Magazzino: vendita segue acquisto
 - ArticoloForm: cambiando Prezzo acquisto, Prezzo vendita si ricalcola con la % di ricarico corrente (pv/pa) o, se assente, con il default categoria>fornitore (GET /magazzino/ricarico-default). Backend PUT /articoli/{id}: se cambia solo prezzo_acquisto (vendita invariata) ricalcola listino mantenendo la %. Testato: 10→20 con listino 13 → 26; vendita manuale 30 rispettata.
+
+## 2026-10-27 — Magazzino: tasti Azioni sempre visibili
+- ArticoliTab: contenitore tabella `overflow-x-auto` (era overflow-hidden che tagliava le colonne), Table min-w 1100px, colonna Azioni sticky a destra (header + celle) con ombra. Verificato a 1366px: Modifica/Elimina cliccabili, resto scorrevole.
