@@ -69,6 +69,14 @@ export default function LavoriSection({ clienteId, editLavoroId }) {
     if (l) { setAutoEditDone(true); openEdit(l); }
   }, [lavori, editLavoroId]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  const loadMagazzino = async () => {
+    try {
+      const [r, t] = await Promise.all([api.get("/magazzino/articoli"), api.get("/tariffe")]);
+      setArticoliMag(r.data);
+      setTariffaOraria(Number(t.data.costo_orario_manodopera) || 0);
+    } catch { /* ignoro */ }
+  };
+
   const openNew = async () => {
     setEditing(null);
     setForm(emptyLavoro(clienteId));
@@ -76,11 +84,7 @@ export default function LavoriSection({ clienteId, editLavoroId }) {
     setArtLiberi([]);
     setCostoManuale(false);
     setDialogOpen(true);
-    try {
-      const [r, t] = await Promise.all([api.get("/magazzino/articoli"), api.get("/tariffe")]);
-      setArticoliMag(r.data);
-      setTariffaOraria(Number(t.data.costo_orario_manodopera) || 0);
-    } catch { /* ignoro */ }
+    loadMagazzino();
   };
 
   const onOreChange = (v) => {
@@ -89,8 +93,9 @@ export default function LavoriSection({ clienteId, editLavoroId }) {
 
   const openEdit = (l) => {
     setEditing(l);
+    loadMagazzino();
     setForm({ ...l, costo: +(Number(l.costo || 0) - (l.articoli_liberi || []).reduce((s, x) => s + Number(x.totale || 0), 0) - (l.articoli_magazzino || []).reduce((s, x) => s + Number(x.totale || 0), 0)).toFixed(2) });
-    setArtLiberi((l.articoli_liberi || []).map((x) => ({ descrizione: x.descrizione || "", quantita: x.quantita, prezzo_unitario: x.prezzo_unitario, unita: x.unita || "" })));
+    setArtLiberi((l.articoli_liberi || []).map((x) => ({ descrizione: x.descrizione || "", quantita: x.quantita, prezzo_unitario: x.prezzo_unitario, unita: x.unita || "", listino_id: x.listino_id, listino_q: x.listino_q, listino_q2: x.listino_q2 })));
     setCostoManuale(true);
     api.get("/tariffe").then((t) => setTariffaOraria(Number(t.data.costo_orario_manodopera) || 0)).catch(() => {});
     // Ripopola gli articoli già scaricati sul lavoro così l'utente può aggiungerne/toglierne
