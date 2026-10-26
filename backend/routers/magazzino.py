@@ -486,10 +486,14 @@ async def scan_ddt(payload: ScanDDTRequest):
     )
     try:
         raw = await _run_vision(prompt, image_b64)
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(502, f"Errore AI vision: {e}")
 
     data = _extract_json(raw) or {}
+    if not data:
+        raise HTTPException(502, "L'AI non ha restituito dati leggibili dal documento: riprova con una foto più nitida o con il PDF originale. " + (f"Risposta: {str(raw)[:160]}" if raw else "Risposta vuota."))
     articoli_raw = data.get("articoli") or []
     articoli = []
     iva_percent = float(data.get("iva_percent") or 22)

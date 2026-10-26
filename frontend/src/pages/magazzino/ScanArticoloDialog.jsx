@@ -34,7 +34,7 @@ export default function ScanArticoloDialog({ open, onOpenChange, fornitori, onDo
     if (!image) return;
     setScanning(true);
     try {
-      const { data } = await api.post("/magazzino/scan-articolo", { image_base64: image });
+      const { data } = await api.post("/magazzino/scan-articolo", { image_base64: image }, { timeout: 120000 });
       setResult(data);
       setForm({ ...EMPTY_ART, ...data, immagine_base64: image, quantita: 1 });
       toast.success("Dati estratti dalla foto");

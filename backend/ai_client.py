@@ -89,7 +89,7 @@ async def vision(system: str, prompt: str, images_b64: List[str]) -> str:
     emergent_key = os.environ.get("EMERGENT_LLM_KEY", "").strip()
     if emergent_key:
         return await _emergent(emergent_key, system, prompt, images)
-    raise HTTPException(500, "Nessuna chiave AI configurata: imposta GEMINI_API_KEY nel file .env")
+    raise HTTPException(500, "Nessuna chiave AI configurata sul server: imposta GEMINI_API_KEY (o EMERGENT_LLM_KEY) nel file .env del backend e riavvia")
 
 
 async def testo(system: str, prompt: str) -> str:

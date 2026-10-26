@@ -69,7 +69,7 @@ export default function ScanDDTDialog({ open, onOpenChange, fornitori, onDone, o
       const payload = isPdf
         ? { file_base64: fileB64, mime_type: fileMime }
         : { image_base64: fileB64 };
-      const { data } = await api.post("/magazzino/scan-ddt", payload);
+      const { data } = await api.post("/magazzino/scan-ddt", payload, { timeout: 240000 });
       setResult(data);
       if (data.fornitore && fornitoreId === "none") {
         const n = data.fornitore.toLowerCase().replace(/[^a-z0-9]/g, "");
@@ -93,7 +93,7 @@ export default function ScanDDTDialog({ open, onOpenChange, fornitori, onDone, o
       })));
       toast.success(`Trovati ${data.articoli?.length || 0} articoli e ${data.spese_accessorie?.length || 0} spese`);
     } catch (e) {
-      toast.error(e.response?.data?.detail || "Impossibile analizzare il DDT");
+      toast.error(e.response?.data?.detail || (e.code === "ECONNABORTED" ? "Tempo scaduto: il documento è grande, riprova o carica il PDF" : "Impossibile analizzare il DDT"), { duration: 12000 });
     } finally {
       setScanning(false);
     }
