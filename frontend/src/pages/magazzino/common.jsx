@@ -17,6 +17,7 @@ export const TIPI_SPESA = [
   { value: "imballo", label: "Imballo" },
   { value: "assicurazione", label: "Assicurazione" },
   { value: "carburante", label: "Carburante" },
+  { value: "cou", label: "COU – Contributo olii usati" },
   { value: "altro", label: "Altro" },
 ];
 

@@ -995,3 +995,6 @@ Backend spezzato in moduli (`server.py` ora 112 righe, prima 2761):
 ## 2026-10-27 — Listino → conti clienti esterni
 - Le righe aggiunte "Dal listino" ora salvano `listino_id`, `listino_q`, `listino_q2` (lavori.articoli_liberi e preventivi_esterni.righe). Al PUT /tariffe, `listino_sync.aggiorna_conti_esterni` ricalcola quantità/prezzo/totale di quelle righe (lavori non pagati, preventivi non convertiti) e il costo/imponibile; endpoint manuale POST /tariffe/aggiorna-conti-esterni. Righe inserite a mano non vengono toccate. Testato: manodopera 60→70 → lavoro 120→140, preventivo 180→210.
 - Nota: le righe create prima di questa modifica non hanno listino_id e non si aggiornano automaticamente.
+
+## 2026-10-27 — Spese: tipo COU
+- Aggiunto tipo spesa `cou` ("COU – Contributo olii usati") in TIPI_SPESA (frontend), modello e prompt Scan DDT (riconoscimento automatico del contributo CONOU). Testato POST spesa tipo cou.

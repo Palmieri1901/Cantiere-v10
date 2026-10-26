@@ -625,7 +625,7 @@ class RicaricoCategoriaCreate(BaseModel):
 class SpesaAccessoria(BaseModel):
     model_config = ConfigDict(extra="ignore")
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    tipo: str  # bancarie | trasporto | imballo | spedizione | assicurazione | carburante | altro
+    tipo: str  # bancarie | trasporto | imballo | spedizione | assicurazione | carburante | cou | altro
     descrizione: str = ""
     importo: float = 0.0
     data: str  # ISO YYYY-MM-DD
