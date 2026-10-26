@@ -87,7 +87,7 @@ async def applica_ricarico_fornitore(fid: str, forza: bool = False):
     if ricarico is None:
         raise HTTPException(400, "Nessun ricarico % impostato per questo fornitore")
     ricarico = float(ricarico)
-    cat_specifiche = {r["categoria"]: float(r["ricarico_percent"]) for r in await db.ricarichi_categoria.find({}, {"_id": 0}).to_list(500)}
+    cat_specifiche = {}  # le categorie non incidono più sul prezzo: conta solo il fornitore
 
     docs = await db.articoli.find({"fornitore_id": fid}, {"_id": 0, "id": 1, "prezzo_acquisto": 1, "categoria": 1, "ricarico_manuale": 1}).to_list(10000)
     updated = skipped = per_categoria = manuali = 0
@@ -575,10 +575,7 @@ async def _default_markup_for(categoria: Optional[str]) -> Optional[float]:
 
 
 async def _default_markup_for_articolo(fornitore_id: Optional[str], categoria: Optional[str]) -> Optional[float]:
-    """Preferenza: ricarico specifico della categoria > ricarico del fornitore."""
-    cat = await _default_markup_for(categoria)
-    if cat is not None:
-        return cat
+    """Solo il ricarico del fornitore determina il prezzo di vendita (le categorie non incidono)."""
     if fornitore_id:
         f = await db.fornitori.find_one({"id": fornitore_id}, {"_id": 0, "ricarico_default_percent": 1})
         if f and isinstance(f.get("ricarico_default_percent"), (int, float)):

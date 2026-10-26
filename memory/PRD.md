@@ -988,3 +988,6 @@ Backend spezzato in moduli (`server.py` ora 112 righe, prima 2761):
 
 ## 2026-10-27 — Magazzino: tasti Azioni sempre visibili
 - ArticoliTab: contenitore tabella `overflow-x-auto` (era overflow-hidden che tagliava le colonne), Table min-w 1100px, colonna Azioni sticky a destra (header + celle) con ombra. Verificato a 1366px: Modifica/Elimina cliccabili, resto scorrevole.
+
+## 2026-10-27 — Magazzino: ricarico solo da fornitore
+- Le categorie non incidono più sul prezzo: `_default_markup_for_articolo` usa solo `fornitori.ricarico_default_percent`; `applica_ricarico_fornitore` non salta più le categorie con ricarico specifico; tasto "Ricarichi categoria" rimosso dalla toolbar (endpoint/dialog lasciati inattivi). Articolo con ricarico manuale (lucchetto) resta rispettato. Testato: fornitore 40% + categoria 200% → listino 14 su acquisto 10.

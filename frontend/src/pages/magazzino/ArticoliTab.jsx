@@ -24,7 +24,7 @@ import ArticoloForm from "./ArticoloForm";
 import ScanBarcodeDialog from "./ScanBarcodeDialog";
 import ScanArticoloDialog from "./ScanArticoloDialog";
 import ScanDDTDialog from "./ScanDDTDialog";
-import RicarichiCategoriaDialog from "./RicarichiCategoriaDialog";
+import RicarichiCategoriaDialog from "./RicarichiCategoriaDialog"; // eslint-disable-line no-unused-vars
 import RettificaConfezioniDialog from "./RettificaConfezioniDialog";
 import { RicaricoCell } from "./RicaricoCell";
 import { isContenitore } from "@/lib/confezioni";
@@ -50,7 +50,7 @@ export default function ArticoliTab() {
   const [exportForn, setExportForn] = useState("all");
   const [exportCat, setExportCat] = useState("all");
   const [exportOpen, setExportOpen] = useState(false);
-  const [ricarichiOpen, setRicarichiOpen] = useState(false);
+  const [ricarichiOpen, setRicarichiOpen] = useState(false); // eslint-disable-line no-unused-vars
   const [rettificaOpen, setRettificaOpen] = useState(false);
   const nCf = articoli.filter((a) => isContenitore(a.unita_misura) && !a.pezzi_confezione).length;
   const [componiOpen, setComponiOpen] = useState(false);
@@ -322,9 +322,6 @@ export default function ArticoliTab() {
           <Button variant="outline" onClick={() => setDdtOpen(true)} data-testid="btn-scan-ddt">
             <ScanLine className="w-4 h-4 mr-1.5" /> Scan DDT (AI)
           </Button>
-          <Button variant="outline" onClick={() => setRicarichiOpen(true)} data-testid="btn-ricarichi-categoria">
-            <Percent className="w-4 h-4 mr-1.5" /> Ricarichi categoria
-          </Button>
           {nCf > 0 && (
             <Button variant="outline" className="border-amber-400 text-amber-800" onClick={() => setRettificaOpen(true)} data-testid="btn-rettifica-confezioni">
               <Boxes className="w-4 h-4 mr-1.5" /> Rettifica confezioni ({nCf})
@@ -437,12 +434,6 @@ export default function ArticoliTab() {
         onDone={() => { setDdtOpen(false); load(); }}
       />
 
-      <RicarichiCategoriaDialog
-        open={ricarichiOpen}
-        onOpenChange={setRicarichiOpen}
-        categorie={categorie}
-        onApplicato={load}
-      />
       <RettificaConfezioniDialog open={rettificaOpen} onOpenChange={setRettificaOpen} onDone={load} />
 
       <ComponiOrdineDialog

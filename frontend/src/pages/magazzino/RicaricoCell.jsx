@@ -21,7 +21,7 @@ export function RicaricoCell({ a, onSaved }) {
     setSaving(true);
     try {
       const r = await api.put(`/magazzino/articoli/${a.id}/ricarico`, body);
-      toast.success(body.manuale === false ? "Ricarico sbloccato: seguirà fornitore/categoria" : `Listino ${fmtEuro(r.data.prezzo_listino)} (${r.data.ricarico_percent ?? "—"}%)`);
+      toast.success(body.manuale === false ? "Ricarico sbloccato: seguirà fornitore" : `Listino ${fmtEuro(r.data.prezzo_listino)} (${r.data.ricarico_percent ?? "—"}%)`);
       setOpen(false); onSaved?.();
     } catch (e) { toast.error(e.response?.data?.detail || "Errore"); } finally { setSaving(false); }
   };
@@ -48,9 +48,9 @@ export function RicaricoCell({ a, onSaved }) {
         </label>
         <div className="flex items-center gap-2">
           <Button size="sm" className="flex-1" disabled={saving || (perc === "" && prezzo === "")} onClick={() => salva(prezzo !== "" ? { prezzo_listino: Number(prezzo), manuale: true } : { ricarico_percent: Number(perc), manuale: true })} data-testid={`ricarico-salva-${a.id}`}><Lock className="w-3.5 h-3.5 mr-1" /> Salva e blocca</Button>
-          {a.ricarico_manuale && <Button size="sm" variant="outline" disabled={saving} title="Torna a seguire il ricarico di fornitore/categoria" onClick={() => salva({ prezzo_listino: pv, manuale: false })} data-testid={`ricarico-sblocca-${a.id}`}><Unlock className="w-3.5 h-3.5" /></Button>}
+          {a.ricarico_manuale && <Button size="sm" variant="outline" disabled={saving} title="Torna a seguire il ricarico di fornitore" onClick={() => salva({ prezzo_listino: pv, manuale: false })} data-testid={`ricarico-sblocca-${a.id}`}><Unlock className="w-3.5 h-3.5" /></Button>}
         </div>
-        <p className="text-[10px] text-muted-foreground leading-snug">Bloccato = il ricalcolo massivo di fornitore/categoria non modifica questo articolo.</p>
+        <p className="text-[10px] text-muted-foreground leading-snug">Bloccato = il ricalcolo massivo di fornitore non modifica questo articolo.</p>
       </PopoverContent>
     </Popover>
   );
