@@ -967,3 +967,6 @@ Backend spezzato in moduli (`server.py` ora 112 righe, prima 2761):
 - Delimita area → "Elimina N punti": rimuove i singoli punti dentro il rettangolo (anche di forme solo parzialmente incluse; forme con <3 punti spariscono); i punti interni si colorano di rosso. contourEdit: pointInBox/countPointsInBox/deletePointsInBox.
 - Contorno manuale: ogni tap si aggancia al punto esistente più vicino (raggio 3·r) di qualsiasi forma o del tracciato in corso (snapToPoint).
 - Cron notturno: `.emergent/crons.yml` fic-importa-clienti alle 3:00 Europe/Rome → POST /api/cron/fic-importa-clienti (Bearer WEBHOOK_CRON_SECRET in backend/.env, idempotenza X-Webhook-Id, lavoro in BackgroundTasks, esito in fatturazione_config.ultimo_import). Card Impostazioni mostra ultimo import. Testato: 401 senza segreto; con segreto → 429 aggiornati.
+
+## 2026-10-25 — Modifica lavoro: articoli dal magazzino anche in modifica
+- LavoriSection: rimosso `!editing &&` sulla sezione "Articoli dal magazzino" (prima visibile solo su Nuovo lavoro). Il backend PUT /api/lavori/{id} già riallinea le giacenze per differenza. Testato: update con 2 pz → quantità 5→3, costo +ricambi; delete → 5.

@@ -331,13 +331,13 @@ export default function LavoriSection({ clienteId, editLavoroId }) {
               </div>
 
               {/* Articoli dal magazzino */}
-              {!editing && (
+              {(
                 <div className="border border-border/60 rounded-md p-3 bg-muted/10" data-testid="lavoro-articoli-magazzino">
                   <div className="flex items-center justify-between mb-2">
                     <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
                       <Package className="w-3 h-3" /> Articoli dal magazzino
                     </Label>
-                    <span className="text-[11px] text-muted-foreground">Salvando verranno scaricati dalla giacenza (anche in negativo)</span>
+                    <span className="text-[11px] text-muted-foreground">{editing ? "Salvando il magazzino viene riallineato (scarico/ricarico della differenza)" : "Salvando verranno scaricati dalla giacenza (anche in negativo)"}</span>
                   </div>
 
                   {artSelezionati.length === 0 ? (
