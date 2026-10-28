@@ -50,7 +50,7 @@ export default function InviaDocumentazioneDialog({ open, onClose, modelli, mode
       <DialogContent className="max-w-lg max-h-[92vh] overflow-y-auto" data-testid="dialog-invia-doc">
         <DialogHeader>
           <DialogTitle className="font-display flex items-center gap-2"><Send className="w-5 h-5 text-primary" /> Invia documentazione</DialogTitle>
-          <DialogDescription>Scheda tecnica, presentazione e omologazione del modello via email (allegati) o WhatsApp (link).</DialogDescription>
+          <DialogDescription>Scheda tecnica, listino prezzi pubblico, lista accessori, presentazione e omologazione del modello via email (allegati) o WhatsApp (link).</DialogDescription>
         </DialogHeader>
         <div className="space-y-3">
           <div className="space-y-1.5">
@@ -62,7 +62,7 @@ export default function InviaDocumentazioneDialog({ open, onClose, modelli, mode
             {info && (
               <div className="flex flex-wrap gap-1.5 pt-1" data-testid="invia-doc-links">
                 {info.links.map((l) => <a key={l.tipo} href={l.url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full border border-border hover:bg-muted"><FileText className="w-3 h-3" /> {l.label}</a>)}
-                {info.links.length === 1 && <span className="text-[11px] text-muted-foreground">Carica Presentazione/Omologazione dal catalogo per includerle.</span>}
+                {!info.links.some((l) => l.tipo === "presentazione") && <span className="text-[11px] text-muted-foreground">Carica Presentazione/Omologazione dal catalogo per includerle.</span>}
               </div>
             )}
           </div>

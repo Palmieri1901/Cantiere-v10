@@ -1034,3 +1034,6 @@ Backend spezzato in moduli (`server.py` ora 112 righe, prima 2761):
 
 ## 2026-10-28 — Gommoni: presentazione PDF o video
 - upload_doc accetta per `presentazione` anche video (MP4/MOV/WebM, max 120 MB); salva `presentazione_mime` (aggiunto al modello). Nuovo GET /gommoni/modelli/{id}/doc/{tipo}/file (formato originale); link pubblico share con estensione .mp4 per video; email allega solo i PDF (il video va come link). DocumentoButton: accept PDF+video, player video in dialog, etichetta "(video)". Testato upload/mime/link pubblico/rifiuto video su omologazione.
+
+## 2026-10-28 — Invio documentazione gommoni: + listino pubblico e accessori
+- SHARE_TIPI esteso: `listino` (listino pubblico completo) e `accessori` (PDF accessori della serie del modello, IVA inclusa; fallback tutte le serie). Generati al volo, inclusi come allegati email e link WhatsApp.

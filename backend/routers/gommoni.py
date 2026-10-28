@@ -866,7 +866,20 @@ from pydantic import BaseModel as _BM  # noqa: E402
 from fastapi import Request  # noqa: E402
 
 public_router = APIRouter()
-SHARE_TIPI = {"caratteristiche": "Scheda tecnica", "presentazione": "Presentazione", "omologazione": "Omologazione"}
+SHARE_TIPI = {"caratteristiche": "Scheda tecnica", "listino": "Listino prezzi pubblico", "accessori": "Lista accessori", "presentazione": "Presentazione", "omologazione": "Omologazione"}
+GENERATI = ("caratteristiche", "listino", "accessori")
+
+
+def _serie_modello(doc: dict) -> str:
+    nome = (doc.get("modello") or "").lower()
+    for s in ("Job", "Sirio", "Tsunami"):
+        if s.lower() in nome:
+            return s
+    return ""
+
+
+async def _resp_bytes(resp) -> bytes:
+    return b"".join([chunk async for chunk in resp.body_iterator]) if hasattr(resp.body_iterator, "__aiter__") else b"".join(resp.body_iterator)
 
 
 async def _share_token(doc: dict) -> str:
@@ -878,10 +891,21 @@ async def _share_token(doc: dict) -> str:
 
 
 async def _doc_bytes(doc: dict, tipo: str) -> tuple[bytes, str] | None:
+    slug = (doc.get("modello") or "gommone").replace(" ", "_")
     if tipo == "caratteristiche":
-        resp = await caratteristiche_pdf(doc["id"])
-        data = b"".join([chunk async for chunk in resp.body_iterator]) if hasattr(resp.body_iterator, "__aiter__") else b"".join(resp.body_iterator)
-        return data, f"scheda_tecnica_{doc.get('modello', 'gommone').replace(' ', '_')}.pdf", "application/pdf"
+        return await _resp_bytes(await caratteristiche_pdf(doc["id"])), f"scheda_tecnica_{slug}.pdf", "application/pdf"
+    if tipo == "listino":
+        return await _resp_bytes(await _build_listino_pdf(None)), "listino_pubblico_gommoni_GEB.pdf", "application/pdf"
+    if tipo == "accessori":
+        serie = _serie_modello(doc)
+        try:
+            resp = await accessori_pdf(serie, "incl")
+        except HTTPException:
+            try:
+                resp = await accessori_pdf("", "incl")
+            except HTTPException:
+                return None
+        return await _resp_bytes(resp), f"accessori_{(serie or 'GEB')}.pdf", "application/pdf"
     if not doc.get(f"{tipo}_file_id"):
         return None
     try:
@@ -913,7 +937,7 @@ async def documentazione_info(mid: str, request: Request):
     base = _base_url(request)
     links = []
     for t, lbl in SHARE_TIPI.items():
-        if t != "caratteristiche" and not doc.get(f"{t}_file_id"):
+        if t not in GENERATI and not doc.get(f"{t}_file_id"):
             continue
         video = (doc.get(f"{t}_mime") or "").startswith("video/")
         links.append({"tipo": t, "label": lbl + (" (video)" if video else ""), "video": video, "url": f"{base}/api/gommoni/share/{tok}/{t}.{'mp4' if video else 'pdf'}"})
@@ -928,7 +952,7 @@ async def invia_documentazione(mid: str, p: InviaDocIn, request: Request):
         raise HTTPException(404, "Modello non trovato")
     info = await documentazione_info(mid, request)
     nome = doc.get("modello", "Gommone GEB")
-    testo = (p.messaggio or "").strip() or f"Buongiorno, in allegato la documentazione del gommone GEB {nome}: scheda tecnica, presentazione e dati tecnici."
+    testo = (p.messaggio or "").strip() or f"Buongiorno, in allegato la documentazione del gommone {nome}: scheda tecnica, listino prezzi pubblico, lista accessori e presentazione."
     righe_link = "".join(f'<li><a href="{l["url"]}">{l["label"]}</a></li>' for l in info["links"])
     out = {"email_inviata": False, "whatsapp_url": None, "links": info["links"]}
     if (p.email or "").strip():
