@@ -106,17 +106,40 @@ async def upload_doc(mid: str, tipo: str, file: UploadFile = File(...)):
     if not doc:
         raise HTTPException(404, "Modello non trovato")
     data = await file.read()
-    if data[:4] != b"%PDF":
-        raise HTTPException(400, "Il file deve essere un PDF")
-    if len(data) > 30 * 1024 * 1024:
-        raise HTTPException(400, "File troppo grande (max 30 MB)")
+    is_pdf = data[:4] == b"%PDF"
+    ctype = (file.content_type or "").lower()
+    is_video = tipo == "presentazione" and (ctype.startswith("video/") or (file.filename or "").lower().endswith((".mp4", ".mov", ".m4v", ".webm")))
+    if not is_pdf and not is_video:
+        raise HTTPException(400, "Il file deve essere un PDF" + (" oppure un breve video (MP4/MOV/WebM)" if tipo == "presentazione" else ""))
+    limite = 120 if is_video else 30
+    if len(data) > limite * 1024 * 1024:
+        raise HTTPException(400, f"File troppo grande (max {limite} MB)")
     if doc.get(f"{tipo}_file_id"):
         await _delete_gridfs(doc[f"{tipo}_file_id"])
-    fid = await _bucket().upload_from_stream(file.filename or f"{tipo}.pdf", data, metadata={"modello_id": mid, "tipo": tipo})
+    mime = "application/pdf" if is_pdf else (ctype if ctype.startswith("video/") else "video/mp4")
+    nome = file.filename or (f"{tipo}.pdf" if is_pdf else f"{tipo}.mp4")
+    fid = await _bucket().upload_from_stream(nome, data, metadata={"modello_id": mid, "tipo": tipo, "mime": mime})
     await db.gommoni_modelli.update_one({"id": mid}, {"$set": {
-        f"{tipo}_file_id": str(fid), f"{tipo}_nome": file.filename or f"{tipo}.pdf",
+        f"{tipo}_file_id": str(fid), f"{tipo}_nome": nome, f"{tipo}_mime": mime,
         "updated_at": datetime.now(timezone.utc)}})
-    return {"ok": True, "file_id": str(fid), "nome": file.filename}
+    return {"ok": True, "file_id": str(fid), "nome": nome, "mime": mime}
+
+
+@router.get("/modelli/{mid}/doc/{tipo}/file")
+async def get_doc_file(mid: str, tipo: str):
+    """Documento nel suo formato originale (PDF o video)."""
+    _check_tipo(tipo)
+    doc = await db.gommoni_modelli.find_one({"id": mid}, {"_id": 0})
+    if not doc or not doc.get(f"{tipo}_file_id"):
+        raise HTTPException(404, f"{DOC_TIPI[tipo]} non caricata")
+    try:
+        stream = await _bucket().open_download_stream(ObjectId(doc[f"{tipo}_file_id"]))
+        data = await stream.read()
+    except Exception:
+        raise HTTPException(404, "File non trovato")
+    mime = doc.get(f"{tipo}_mime") or "application/pdf"
+    nome = (doc.get(f"{tipo}_nome") or f"{tipo}").replace('"', "")
+    return StreamingResponse(io.BytesIO(data), media_type=mime, headers={"Content-Disposition": f'inline; filename="{nome}"', "Accept-Ranges": "bytes"})
 
 
 @router.get("/modelli/{mid}/doc/{tipo}.pdf")
@@ -858,12 +881,12 @@ async def _doc_bytes(doc: dict, tipo: str) -> tuple[bytes, str] | None:
     if tipo == "caratteristiche":
         resp = await caratteristiche_pdf(doc["id"])
         data = b"".join([chunk async for chunk in resp.body_iterator]) if hasattr(resp.body_iterator, "__aiter__") else b"".join(resp.body_iterator)
-        return data, f"scheda_tecnica_{doc.get('modello', 'gommone').replace(' ', '_')}.pdf"
+        return data, f"scheda_tecnica_{doc.get('modello', 'gommone').replace(' ', '_')}.pdf", "application/pdf"
     if not doc.get(f"{tipo}_file_id"):
         return None
     try:
         stream = await _bucket().open_download_stream(ObjectId(doc[f"{tipo}_file_id"]))
-        return await stream.read(), (doc.get(f"{tipo}_nome") or f"{tipo}.pdf")
+        return await stream.read(), (doc.get(f"{tipo}_nome") or f"{tipo}.pdf"), (doc.get(f"{tipo}_mime") or "application/pdf")
     except Exception:
         return None
 
@@ -888,7 +911,12 @@ async def documentazione_info(mid: str, request: Request):
         raise HTTPException(404, "Modello non trovato")
     tok = await _share_token(doc)
     base = _base_url(request)
-    links = [{"tipo": t, "label": lbl, "url": f"{base}/api/gommoni/share/{tok}/{t}.pdf"} for t, lbl in SHARE_TIPI.items() if t == "caratteristiche" or doc.get(f"{t}_file_id")]
+    links = []
+    for t, lbl in SHARE_TIPI.items():
+        if t != "caratteristiche" and not doc.get(f"{t}_file_id"):
+            continue
+        video = (doc.get(f"{t}_mime") or "").startswith("video/")
+        links.append({"tipo": t, "label": lbl + (" (video)" if video else ""), "video": video, "url": f"{base}/api/gommoni/share/{tok}/{t}.{'mp4' if video else 'pdf'}"})
     return {"modello": doc.get("modello", ""), "links": links}
 
 
@@ -907,7 +935,7 @@ async def invia_documentazione(mid: str, p: InviaDocIn, request: Request):
         allegati = []
         for l in info["links"]:
             r = await _doc_bytes(doc, l["tipo"])
-            if r:
+            if r and not l.get("video"):
                 allegati.append({"filename": r[1], "bytes": r[0]})
         html = f"<p>{testo}</p><p>Documenti (anche scaricabili online):</p><ul>{righe_link}</ul><p>Cantiere GEB nautica</p>"
         if not all(l["url"].startswith("https://") for l in info["links"]):
@@ -929,8 +957,8 @@ async def invia_documentazione(mid: str, p: InviaDocIn, request: Request):
     return out
 
 
-@public_router.get("/api/gommoni/share/{token}/{tipo}.pdf")
-async def share_doc(token: str, tipo: str):
+@public_router.get("/api/gommoni/share/{token}/{tipo}.{ext}")
+async def share_doc(token: str, tipo: str, ext: str):
     if tipo not in SHARE_TIPI:
         raise HTTPException(404, "Documento non trovato")
     doc = await db.gommoni_modelli.find_one({"share_token": token}, {"_id": 0})
@@ -939,4 +967,4 @@ async def share_doc(token: str, tipo: str):
     r = await _doc_bytes(doc, tipo)
     if not r:
         raise HTTPException(404, "Documento non caricato")
-    return StreamingResponse(io.BytesIO(r[0]), media_type="application/pdf", headers={"Content-Disposition": f'inline; filename="{r[1]}"'})
+    return StreamingResponse(io.BytesIO(r[0]), media_type=r[2], headers={"Content-Disposition": f'inline; filename="{r[1]}"', "Accept-Ranges": "bytes"})

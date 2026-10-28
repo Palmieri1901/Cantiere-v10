@@ -993,6 +993,7 @@ class GommoneModello(BaseModel):
     omologazione_nome: Optional[str] = ""
     presentazione_file_id: Optional[str] = ""     # GridFS id del PDF di presentazione
     presentazione_nome: Optional[str] = ""
+    presentazione_mime: Optional[str] = ""
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
