@@ -11,7 +11,7 @@ import { gommonePayload } from "./common";
 const COLS = [
   ["modello", "Modello", "text"], ["lunghezza_m", "Lungh. m", "number"], ["larghezza_m", "Largh. m", "number"],
   ["diametro_tubolare_cm", "Ø cm", "number"], ["compartimenti", "Comp.", "number"], ["portata_persone", "Pers.", "number"], ["potenza_max_hp", "HP max", "number"],
-  ["peso_kg", "Peso kg", "number"], ["carena", "Carena", "text"], ["tessuto", "Tessuto", "text"], ["dotazioni", "Dotazioni", "text"], ["prezzo_pubblico", "Prezzo €", "number"],
+  ["peso_kg", "Peso kg", "number"], ["carena", "Carena", "text"], ["tessuto", "Tessuto", "text"], ["dotazioni", "Accessori optional", "text"], ["prezzo_pubblico", "Prezzo €", "number"],
 ];
 
 export default function ImportAIGommoniDialog({ open, onClose, onSaved }) {

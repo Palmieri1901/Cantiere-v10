@@ -9,7 +9,7 @@ export const CATEGORIE = [
 export const EMPTY_GOMMONE = {
   modello: "", lunghezza_m: 0, larghezza_m: 0, diametro_tubolare_cm: 0, compartimenti: 0,
   portata_persone: 0, potenza_max_hp: 0, peso_kg: 0, carena: "", tessuto: "", lunghezza_interna_cm: 0, categoria_ce: "", potenza_min_hp: 0, specchio: "", dotazioni: "",
-  note: "", prezzo_pubblico: 0, ordine: 0, accessori_serie: [],
+  note: "", prezzo_pubblico: 0, ordine: 0, accessori_serie: [], accessori_optional: [],
 };
 
 export const EMPTY_ACCESSORIO = { nome: "", descrizione: "", categoria: "", serie: "", specifiche: "", prezzo: 0, prezzi_per_modello: {}, di_serie: [] };

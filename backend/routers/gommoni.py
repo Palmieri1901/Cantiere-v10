@@ -244,6 +244,23 @@ async def save_sconti(payload: GommoneSconti):
 # ---------------------------------------------------------------------------
 # LISTA DOTAZIONI DI SERIE (catalogo voci selezionabili, separato dagli optional)
 # ---------------------------------------------------------------------------
+@router.get("/accessori-optional-voci")
+async def get_optional_voci():
+    doc = await db.gommoni_settings.find_one({"id": "accessori_optional_voci"}, {"_id": 0}) or {}
+    return {"voci": doc.get("voci", [])}
+
+
+@router.put("/accessori-optional-voci")
+async def save_optional_voci(payload: dict):
+    clean = []
+    for v in payload.get("voci") or []:
+        v = str(v).strip()
+        if v and v.lower() not in [c.lower() for c in clean]:
+            clean.append(v)
+    await db.gommoni_settings.update_one({"id": "accessori_optional_voci"}, {"$set": {"voci": clean, "updated_at": datetime.now(timezone.utc)}}, upsert=True)
+    return {"voci": clean}
+
+
 @router.get("/dotazioni-serie")
 async def get_dotazioni_serie():
     doc = await db.gommoni_settings.find_one({"id": "dotazioni_serie"}, {"_id": 0}) or {}
@@ -286,7 +303,7 @@ _IMPORT_PROMPT = (
     '  "categoria_ce": categoria di progettazione CE es. C, C/B (stringa)\n'
     '  "potenza_min_hp": potenza minima motore in HP (numero)\n'
     '  "specchio": gambo/specchio di poppa es. L, XL, XXL (stringa)\n'
-    '  "dotazioni": elenco COMPLETO delle dotazioni di serie e delle caratteristiche descrittive (stringa, separate da virgola)\n'
+    '  "dotazioni": elenco COMPLETO degli accessori optional e delle caratteristiche descrittive (stringa, separate da virgola)\n'
     '  "prezzo_pubblico": prezzo al pubblico in euro IVA inclusa (numero, 0 se assente)\n'
     '  "note": altre informazioni tecniche utili non rientranti nelle chiavi precedenti (stringa)\n'
     "Se un dato non è presente, usa stringa vuota o 0.\n"
@@ -609,9 +626,13 @@ async def caratteristiche_pdf(modello_id: str = ""):
         if nomi_serie:
             block.append(Spacer(1, 3))
             block.append(Paragraph(f"<b>Accessori di serie:</b> {', '.join(nomi_serie)}", st_txt))
-        if r.get("dotazioni"):
+        nomi_opt = [x for x in (r.get("accessori_optional") or []) if x]
+        if nomi_opt:
             block.append(Spacer(1, 3))
-            block.append(Paragraph(f"<b>Dotazioni di serie:</b> {r['dotazioni']}", st_txt))
+            block.append(Paragraph(f"<b>Accessori optional:</b> {', '.join(nomi_opt)}", st_txt))
+        elif r.get("dotazioni"):
+            block.append(Spacer(1, 3))
+            block.append(Paragraph(f"<b>Accessori optional:</b> {r['dotazioni']}", st_txt))
         if r.get("note"):
             block.append(Paragraph(f"<b>Note:</b> {r['note']}", st_txt))
         story.append(KeepTogether(block))
