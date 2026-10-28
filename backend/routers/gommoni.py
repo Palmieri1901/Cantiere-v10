@@ -91,7 +91,7 @@ async def _delete_gridfs(fid: str):
         pass
 
 
-DOC_TIPI = {"omologazione": "Omologazione", "presentazione": "Presentazione"}
+DOC_TIPI = {"omologazione": "Omologazione", "presentazione": "Real (video)", "catalogo": "Catalogo"}
 
 
 def _check_tipo(tipo: str):
@@ -108,9 +108,14 @@ async def upload_doc(mid: str, tipo: str, file: UploadFile = File(...)):
     data = await file.read()
     is_pdf = data[:4] == b"%PDF"
     ctype = (file.content_type or "").lower()
-    is_video = tipo == "presentazione" and (ctype.startswith("video/") or (file.filename or "").lower().endswith((".mp4", ".mov", ".m4v", ".webm")))
-    if not is_pdf and not is_video:
-        raise HTTPException(400, "Il file deve essere un PDF" + (" oppure un breve video (MP4/MOV/WebM)" if tipo == "presentazione" else ""))
+    is_video = ctype.startswith("video/") or (file.filename or "").lower().endswith((".mp4", ".mov", ".m4v", ".webm"))
+    if tipo == "presentazione":
+        if not is_video:
+            raise HTTPException(400, "Il Real deve essere un breve video (MP4/MOV/WebM)")
+    elif not is_pdf:
+        raise HTTPException(400, "Il file deve essere un PDF")
+    if is_pdf:
+        is_video = False
     limite = 120 if is_video else 30
     if len(data) > limite * 1024 * 1024:
         raise HTTPException(400, f"File troppo grande (max {limite} MB)")
@@ -866,7 +871,7 @@ from pydantic import BaseModel as _BM  # noqa: E402
 from fastapi import Request  # noqa: E402
 
 public_router = APIRouter()
-SHARE_TIPI = {"caratteristiche": "Scheda tecnica", "listino": "Listino prezzi pubblico", "accessori": "Lista accessori", "presentazione": "Presentazione", "omologazione": "Omologazione"}
+SHARE_TIPI = {"caratteristiche": "Scheda tecnica", "listino": "Listino prezzi pubblico", "accessori": "Lista accessori", "catalogo": "Catalogo", "presentazione": "Real (video)", "omologazione": "Omologazione"}
 GENERATI = ("caratteristiche", "listino", "accessori")
 
 
@@ -940,7 +945,7 @@ async def documentazione_info(mid: str, request: Request):
         if t not in GENERATI and not doc.get(f"{t}_file_id"):
             continue
         video = (doc.get(f"{t}_mime") or "").startswith("video/")
-        links.append({"tipo": t, "label": lbl + (" (video)" if video else ""), "video": video, "url": f"{base}/api/gommoni/share/{tok}/{t}.{'mp4' if video else 'pdf'}"})
+        links.append({"tipo": t, "label": lbl, "video": video, "url": f"{base}/api/gommoni/share/{tok}/{t}.{'mp4' if video else 'pdf'}"})
     return {"modello": doc.get("modello", ""), "links": links}
 
 
@@ -952,7 +957,7 @@ async def invia_documentazione(mid: str, p: InviaDocIn, request: Request):
         raise HTTPException(404, "Modello non trovato")
     info = await documentazione_info(mid, request)
     nome = doc.get("modello", "Gommone GEB")
-    testo = (p.messaggio or "").strip() or f"Buongiorno, in allegato la documentazione del gommone {nome}: scheda tecnica, listino prezzi pubblico, lista accessori e presentazione."
+    testo = (p.messaggio or "").strip() or f"Buongiorno, in allegato la documentazione del gommone {nome}: scheda tecnica, listino prezzi pubblico, lista accessori, catalogo e video di presentazione."
     righe_link = "".join(f'<li><a href="{l["url"]}">{l["label"]}</a></li>' for l in info["links"])
     out = {"email_inviata": False, "whatsapp_url": None, "links": info["links"]}
     if (p.email or "").strip():
@@ -992,3 +997,14 @@ async def share_doc(token: str, tipo: str, ext: str):
     if not r:
         raise HTTPException(404, "Documento non caricato")
     return StreamingResponse(io.BytesIO(r[0]), media_type=r[2], headers={"Content-Disposition": f'inline; filename="{r[1]}"', "Accept-Ranges": "bytes"})
+
+
+async def migra_presentazioni_pdf():
+    """Una tantum: i PDF caricati come 'presentazione' prima della separazione Real/Catalogo diventano 'catalogo'."""
+    cur = db.gommoni_modelli.find({"presentazione_file_id": {"$nin": ["", None]}, "presentazione_mime": {"$not": {"$regex": "^video/"}}}, {"_id": 0})
+    async for d in cur:
+        if d.get("catalogo_file_id"):
+            continue
+        await db.gommoni_modelli.update_one({"id": d["id"]}, {
+            "$set": {"catalogo_file_id": d["presentazione_file_id"], "catalogo_nome": d.get("presentazione_nome", ""), "catalogo_mime": "application/pdf"},
+            "$unset": {"presentazione_file_id": "", "presentazione_nome": "", "presentazione_mime": ""}})

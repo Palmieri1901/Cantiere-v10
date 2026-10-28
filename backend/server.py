@@ -100,6 +100,10 @@ app.add_middleware(
 async def _startup():
     await db.users.create_index("email", unique=True)
     await officina.ensure_indexes()
+    try:
+        await gommoni.migra_presentazioni_pdf()
+    except Exception as e:  # noqa: BLE001
+        logger.warning(f"Migrazione presentazioni gommoni: {e}")
     # TTL su token di reset password: MongoDB rimuove il documento allo scadere
     try:
         await db.password_reset_tokens.create_index("expires_at", expireAfterSeconds=0)

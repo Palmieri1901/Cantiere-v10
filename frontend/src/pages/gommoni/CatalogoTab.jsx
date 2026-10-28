@@ -76,7 +76,7 @@ export default function CatalogoTab() {
               <div className="font-mono-num font-semibold text-primary shrink-0">{fmt(m.prezzo_pubblico)}</div>
             </div>
             <div className="flex items-center justify-between gap-2 mt-2 flex-wrap">
-              <div className="flex flex-wrap gap-1"><DocumentoButton modello={m} tipo="presentazione" onChanged={load} /><DocumentoButton modello={m} tipo="omologazione" onChanged={load} /></div>
+              <div className="flex flex-wrap gap-1"><DocumentoButton modello={m} tipo="presentazione" onChanged={load} /><DocumentoButton modello={m} tipo="catalogo" onChanged={load} /><DocumentoButton modello={m} tipo="omologazione" onChanged={load} /></div>
               <div className="flex gap-1">
                 <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => window.open(`${API}/gommoni/caratteristiche.pdf?modello_id=${m.id}&_t=${Date.now()}`, "_blank")} data-testid={`m-scheda-gommone-${m.id}`}><FileText className="w-4 h-4" /></Button>
                 <Button variant="ghost" size="icon" className="h-8 w-8 text-emerald-700" title="Invia documentazione" onClick={() => setInviaDoc({ modelloId: m.id })} data-testid={`m-invia-doc-${m.id}`}><Send className="w-4 h-4" /></Button>
@@ -120,7 +120,7 @@ export default function CatalogoTab() {
                   <td className="px-4 py-2.5 text-right font-mono-num">{m.potenza_max_hp || "—"}</td>
                   <td className="px-4 py-2.5 text-xs text-muted-foreground">{m.tessuto || "—"}</td>
                   <td className="px-4 py-2.5 text-right font-mono-num font-semibold text-primary">{fmt(m.prezzo_pubblico)}</td>
-                  <td className="px-4 py-2.5"><div className="flex flex-col gap-1"><DocumentoButton modello={m} tipo="presentazione" onChanged={load} /><DocumentoButton modello={m} tipo="omologazione" onChanged={load} /></div></td>
+                  <td className="px-4 py-2.5"><div className="flex flex-col gap-1"><DocumentoButton modello={m} tipo="presentazione" onChanged={load} /><DocumentoButton modello={m} tipo="catalogo" onChanged={load} /><DocumentoButton modello={m} tipo="omologazione" onChanged={load} /></div></td>
                   <td className="px-4 py-2.5 text-right">
                     <div className="flex justify-end gap-1">
                       <Button variant="ghost" size="icon" className="h-8 w-8" title="Scheda tecnica PDF" onClick={() => window.open(`${API}/gommoni/caratteristiche.pdf?modello_id=${m.id}&_t=${Date.now()}`, "_blank")} data-testid={`btn-scheda-gommone-${m.id}`}><FileText className="w-3.5 h-3.5" /></Button>

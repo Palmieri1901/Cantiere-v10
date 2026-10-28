@@ -1037,3 +1037,6 @@ Backend spezzato in moduli (`server.py` ora 112 righe, prima 2761):
 
 ## 2026-10-28 — Invio documentazione gommoni: + listino pubblico e accessori
 - SHARE_TIPI esteso: `listino` (listino pubblico completo) e `accessori` (PDF accessori della serie del modello, IVA inclusa; fallback tutte le serie). Generati al volo, inclusi come allegati email e link WhatsApp.
+
+## 2026-10-28 — Gommoni: Real (video) + Catalogo (PDF)
+- DOC_TIPI: `presentazione` = "Real (video)" (solo video), nuovo `catalogo` (solo PDF), `omologazione` (PDF). Campi catalogo_* nel modello. Migrazione una tantum in anteprima: PDF di presentazione esistenti spostati su catalogo (in produzione rifare se servisse: script in questa sezione). DocumentoButton con 3 tasti; invio documentazione include Catalogo e Real.
