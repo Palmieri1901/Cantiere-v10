@@ -1043,3 +1043,6 @@ Backend spezzato in moduli (`server.py` ora 112 righe, prima 2761):
 
 ## 2026-10-28 — Gommoni: "Accessori optional" al posto di Dotazioni testo libero
 - Nuovo componente `gommoni/ListaAccessori.jsx` (tag + lista di scelta condivisa) usato per "Accessori di serie" (endpoint dotazioni-serie) e "Accessori optional" (nuovo endpoint GET/PUT /gommoni/accessori-optional-voci, settings id accessori_optional_voci). Campo modello `accessori_optional: List[str]`; il vecchio testo `dotazioni` viene proposto come voci al primo edit e nel PDF caratteristiche compare come "Accessori optional" (fallback al testo se la lista è vuota). Import AI etichetta aggiornata. Testato: voci dedup, salvataggio, PDF.
+
+## 2026-10-29 — Listini: mese/anno + avvertenza
+- `pdf_builders.listino_riferimento()` ("Giugno 2026") e `listino_nota_finale()` (grassetto 7.5pt: "Listino di riferimento: … · I prezzi sono soggetti a variazioni senza preavviso."). Applicati a: listino gommoni (pubblico/cantiere), accessori gommoni, listino Suzuki (pubblico/concessionario), listino magazzino, listino tariffe. Verificato via estrazione testo.

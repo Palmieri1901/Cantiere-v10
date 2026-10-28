@@ -11,6 +11,7 @@ from fastapi import APIRouter, HTTPException, Query
 from fastapi.responses import StreamingResponse
 
 from database import db
+from pdf_builders import listino_riferimento, listino_nota_finale
 from models import (
     Articolo, ArticoloCreate,
     Fornitore, FornitoreCreate,
@@ -989,7 +990,7 @@ async def listino_pdf(
 
     nome_cantiere = cantiere.get("nome") or "Gestionale GEBnautica"
     story.append(Paragraph(f"<b>{nome_cantiere}</b>", styles["Title"]))
-    subtitle = "Listino accessori nautici"
+    subtitle = f"Listino accessori nautici · {listino_riferimento()}"
     if fornitore:
         subtitle += f" — Fornitore: {fornitore.get('nome')}"
     if categoria:
@@ -1027,6 +1028,7 @@ async def listino_pdf(
     ]))
     story.append(table)
 
+    story.extend(listino_nota_finale())
     doc.build(story)
     buf.seek(0)
     fname = "listino_accessori.pdf"

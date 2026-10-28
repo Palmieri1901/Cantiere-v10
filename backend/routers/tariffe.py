@@ -10,6 +10,7 @@ from reportlab.lib.units import mm
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image
 
 from database import db, logger
+from pdf_builders import listino_riferimento, listino_nota_finale
 from listino_sync import aggiorna_conti_esterni
 from models import Tariffe, TariffeUpdate
 from helpers import get_tariffe_doc, serialize, calcola_costi, _euro
@@ -156,7 +157,7 @@ async def listino_prezzi_pdf():
     ] if x])
 
     logo_b64 = cantiere.get("logo_base64")
-    left_col = [Paragraph(f"<b>{nome_cantiere}</b>", h1)]
+    left_col = [Paragraph(f"<b>{nome_cantiere}</b>", h1), Paragraph(f"<font color='#5B6478' size=8>Listino prezzi · <b>{listino_riferimento()}</b></font>", body)]
     if cantiere.get("slogan"):
         left_col.append(Paragraph(f"<font color='#5B6478' size=8><i>{cantiere['slogan']}</i></font>", body))
     if contatti:
@@ -296,10 +297,11 @@ async def listino_prezzi_pdf():
 
     elems.append(Spacer(1, 2*mm))
     elems.append(Paragraph(
-        f"Prezzi al netto di IVA salvo diversa indicazione · Listino aggiornato al {date.today().strftime('%d/%m/%Y')} · "
+        f"Prezzi al netto di IVA salvo diversa indicazione · Listino di riferimento: {listino_riferimento()} · "
         f"Per preventivi personalizzati contattare {cantiere.get('telefono') or cantiere.get('email') or 'il cantiere'}.",
         tiny
     ))
+    elems.extend(listino_nota_finale())
 
     pdf.build(elems)
     buf.seek(0)

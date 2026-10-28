@@ -11,6 +11,7 @@ from bson import ObjectId
 from motor.motor_asyncio import AsyncIOMotorGridFSBucket
 
 from database import db
+from pdf_builders import listino_riferimento, listino_nota_finale
 from helpers import serialize
 from models import (
     GommoneModello, GommoneModelloCreate, GommoneBulkCreate,
@@ -419,10 +420,10 @@ async def _build_listino_pdf(categoria: Optional[str] = None):
     doc = SimpleDocTemplate(buf, pagesize=A4, leftMargin=12*mm, rightMargin=12*mm, topMargin=12*mm, bottomMargin=12*mm)
     story = []
     if cantiere:
-        title = f"GOMMONI GEB — Listino Cantiere · {CATEGORIE_SCONTO.get(categoria, categoria)} (sconto {sc:g}%)"
+        title = f"GOMMONI GEB — Listino Cantiere · {CATEGORIE_SCONTO.get(categoria, categoria)} (sconto {sc:g}%) · {listino_riferimento()}"
         sub = "GEB di Palmieri Sandro · <b>DOCUMENTO RISERVATO</b>"
     else:
-        title = "GOMMONI GEB — Listino Pubblico"
+        title = f"GOMMONI GEB — Listino Pubblico · {listino_riferimento()}"
         sub = "GEB di Palmieri Sandro · Costruzione gommoni a marchio proprio"
     _pdf_header(story, title, sub, ACCENT if cantiere else NAVY, styles)
 
@@ -474,6 +475,7 @@ async def _build_listino_pdf(categoria: Optional[str] = None):
                                ParagraphStyle("cat", parent=styles["Heading3"], fontSize=11, textColor=NAVY, spaceAfter=4)))
         _accessori_tables(story, acc, iva_m, styles, st_head, NAVY, LIGHT, BORDER, show_serie_title=True)
 
+    story.extend(listino_nota_finale())
     doc.build(story)
     buf.seek(0)
     fn = f"listino_gommoni_geb_{categoria or 'pubblico'}.pdf"
@@ -547,7 +549,7 @@ async def accessori_pdf(serie: str = "", iva: str = "escl"):
     buf = io.BytesIO()
     doc = SimpleDocTemplate(buf, pagesize=A4, leftMargin=12*mm, rightMargin=12*mm, topMargin=12*mm, bottomMargin=12*mm)
     story = []
-    titolo = f"Prezzi per accessori Gommoni serie {serie}" if serie else "Prezzi per accessori Gommoni GEB"
+    titolo = f"Prezzi per accessori Gommoni serie {serie} · {listino_riferimento()}" if serie else f"Prezzi per accessori Gommoni GEB · {listino_riferimento()}"
     _pdf_header(story, titolo, "GEB di Palmieri Sandro · Via degli Artigiani, 1 · 57034 Marina di Campo I. d'Elba (LI)", NAVY, styles)
     _accessori_tables(story, acc, iva_m, styles, st_head, NAVY, LIGHT, BORDER, show_serie_title=not serie, font_size=8.5)
     story.append(Spacer(1, 10))
@@ -556,6 +558,7 @@ async def accessori_pdf(serie: str = "", iva: str = "escl"):
                            ParagraphStyle("note", parent=styles["Normal"], fontSize=8, textColor=colors.grey, alignment=TA_CENTER)))
     story.append(Paragraph("P.I. 01246000499 · cell. 3472600872 · www.gebnautica.it · info@gebnautica.it",
                            ParagraphStyle("foot", parent=styles["Normal"], fontSize=7.5, textColor=colors.grey, alignment=TA_CENTER)))
+    story.extend(listino_nota_finale())
     doc.build(story)
     buf.seek(0)
     fn = f"accessori_geb_{(serie or 'tutte').lower()}_iva_{iva}.pdf"

@@ -14,6 +14,7 @@ from fastapi.responses import StreamingResponse, FileResponse
 from pydantic import BaseModel
 
 from database import db
+from pdf_builders import listino_riferimento, listino_nota_finale
 from helpers import serialize
 from models import (
     SuzukiModello, SuzukiModelloCreate, SuzukiModelloUpdate,
@@ -544,7 +545,7 @@ async def _build_listino_pdf(concessionario: bool = False, sc1: float = 10.0, sc
     logo = _logo_flowable(max_w_mm=42, max_h_mm=22)
     variante = "Concessionario" if concessionario else "Pubblico"
     title_color = ACCENT if concessionario else NAVY
-    header_title = Paragraph(f"<b>SUZUKI MARINE — Listino {variante} 2025-2026</b>",
+    header_title = Paragraph(f"<b>SUZUKI MARINE — Listino {variante} 2025-2026 · {listino_riferimento()}</b>",
                              ParagraphStyle("t", parent=styles["Heading1"], fontSize=14, textColor=title_color, spaceAfter=2))
     subtitle_text = ("GEB di Palmieri Sandro · <b>DOCUMENTO RISERVATO CONCESSIONARIO</b>"
                      if concessionario else "GEB di Palmieri Sandro · Concessionario Suzuki Marine")
@@ -754,6 +755,7 @@ async def _build_listino_pdf(concessionario: bool = False, sc1: float = 10.0, sc
     for f in await _legenda_flowables(avail_width_mm=186, compact=False):
         story.append(f)
 
+    story.extend(listino_nota_finale())
     doc.build(story)
     buf.seek(0)
     filename = f"listino_suzuki_{'concessionario' if concessionario else 'pubblico'}_2025-2026.pdf"

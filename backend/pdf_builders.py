@@ -5,7 +5,7 @@ Contengono unicamente logica di rendering ReportLab. Nessun accesso a MongoDB.
 import io
 import re
 import base64 as _b64
-from datetime import date
+from datetime import date, datetime
 from reportlab.lib.pagesizes import A4
 
 SOTTOTITOLI_VOCI = {"costo_lavaggio_inizio": "coperta e gavoni", "costo_lavaggio_fine": "coperta, gavoni, scafo, piede motore"}
@@ -825,3 +825,25 @@ def build_preventivo_esterno_pdf(p: dict, est: dict, cantiere_doc: dict) -> byte
               Spacer(1, 3*mm), Paragraph("Prezzi unitari IVA esclusa; IVA calcolata sul totale. Preventivo valido per il periodo indicato. I ricambi sono soggetti a disponibilità di magazzino.", small)]
     pdf.build(elems)
     return buf.getvalue()
+
+
+# ---------------------------------------------------------------------------
+# Riferimento temporale e avvertenza comune a tutti i listini
+# ---------------------------------------------------------------------------
+_MESI_IT = ["Gennaio", "Febbraio", "Marzo", "Aprile", "Maggio", "Giugno", "Luglio", "Agosto", "Settembre", "Ottobre", "Novembre", "Dicembre"]
+
+
+def listino_riferimento() -> str:
+    """'Giugno 2026': mese e anno di riferimento del listino."""
+    now = datetime.now()
+    return f"{_MESI_IT[now.month - 1]} {now.year}"
+
+
+def listino_nota_finale(align_center: bool = True):
+    """Nota in piccolo e grassetto da mettere in fondo a ogni listino."""
+    from reportlab.lib.enums import TA_CENTER, TA_LEFT
+    from reportlab.lib.styles import ParagraphStyle
+    from reportlab.platypus import Paragraph, Spacer
+    st = ParagraphStyle("listino_nota", fontName="Helvetica-Bold", fontSize=7.5, leading=10, textColor=colors.HexColor("#334155"),
+                        alignment=TA_CENTER if align_center else TA_LEFT)
+    return [Spacer(1, 8), Paragraph(f"Listino di riferimento: {listino_riferimento()} · I prezzi sono soggetti a variazioni senza preavviso.", st)]
