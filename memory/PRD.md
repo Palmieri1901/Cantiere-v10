@@ -1023,3 +1023,6 @@ Backend spezzato in moduli (`server.py` ora 112 righe, prima 2761):
 
 ## 2026-10-27 — PDF conto esterni
 - Rimossa la dicitura finale "Importi IVA esclusa salvo diversa indicazione. Documento non valido ai fini fiscali." (pdf_builders.py). Verificato via estrazione testo del PDF.
+
+## 2026-10-27 — Suzuki: allarme sotto-costo solo a video
+- Rimosso dal PDF del preventivo Suzuki il riquadro rosso "ATTENZIONE: PREZZO SOTTO COSTO"; l'avviso resta nel calcolo/UI (`sotto_costo` nel calc).

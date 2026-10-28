@@ -1369,34 +1369,7 @@ async def _build_pdf(p: SuzukiPreventivo) -> bytes:
     ]))
     story.append(tnetto)
 
-    # ALLARME SOTTO-COSTO (se il netto motore < costo di acquisto IVA incl.)
-    if calc.get("sotto_costo"):
-        WARN_BG = colors.HexColor("#FEF3F2")
-        WARN_BORDER = colors.HexColor("#B42318")
-        st_warn_title = ParagraphStyle("wt", parent=styles["Normal"], fontName="Helvetica-Bold",
-                                       fontSize=10, textColor=WARN_BORDER, leading=13)
-        st_warn_body = ParagraphStyle("wb", parent=styles["Normal"], fontSize=8.5,
-                                      textColor=colors.HexColor("#7A1913"), leading=11)
-        warn_msg = (
-            f"Il <b>NETTO MOTORE</b> ({_fmt_eur(calc['netto_motore'])}) è <b>inferiore</b> al prezzo del "
-            f"listino concessionario di questo modello. Verificare gli sconti applicati prima di confermare."
-        )
-        twarn = Table(
-            [[Paragraph("⚠  ATTENZIONE: PREZZO SOTTO COSTO", st_warn_title)],
-             [Paragraph(warn_msg, st_warn_body)]],
-            colWidths=[182*mm],
-        )
-        twarn.setStyle(TableStyle([
-            ("BACKGROUND", (0,0), (-1,-1), WARN_BG),
-            ("BOX", (0,0), (-1,-1), 1.2, WARN_BORDER),
-            ("VALIGN", (0,0), (-1,-1), "TOP"),
-            ("LEFTPADDING", (0,0), (-1,-1), 10),
-            ("RIGHTPADDING", (0,0), (-1,-1), 10),
-            ("TOPPADDING", (0,0), (-1,-1), 4),
-            ("BOTTOMPADDING", (0,0), (-1,-1), 5),
-        ]))
-        story.append(Spacer(1, 4))
-        story.append(twarn)
+    # L'allarme sotto-costo resta solo a video (anteprima/preventivo), mai nel PDF consegnato al cliente
 
     story.append(Spacer(1, 8))
 
