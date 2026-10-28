@@ -1026,3 +1026,8 @@ Backend spezzato in moduli (`server.py` ora 112 righe, prima 2761):
 
 ## 2026-10-27 — Suzuki: allarme sotto-costo solo a video
 - Rimosso dal PDF del preventivo Suzuki il riquadro rosso "ATTENZIONE: PREZZO SOTTO COSTO"; l'avviso resta nel calcolo/UI (`sotto_costo` nel calc).
+
+## 2026-10-28 — Invio PDF su WhatsApp (ovunque) + documentazione gommoni
+- Backend `routers/share.py`: POST /api/condividi/pdf (multipart, auth) salva il PDF in GridFS `share_pdf` con token e scadenza 30 gg → link pubblico GET /api/condividi/{token}.pdf (public_router, no auth). Testato: upload 200, link pubblico 200, token falso 404.
+- Frontend `lib/whatsappPdf.js` + `components/WhatsAppPdfButton.jsx`: su telefono Web Share API con file allegato (apre WhatsApp con il PDF), altrimenti link temporaneo + wa.me. Tasto aggiunto in PdfPreviewOverlay (copre conti, preventivi esterni/Suzuki/gommoni/tubolari/rimessaggio, DDT, contratti, capitaneria, mezzi, servizio) e accanto ai PDF diretti: listini/caratteristiche gommoni e Suzuki, listino tariffe.
+- Gommoni: "Invia documentazione" (CatalogoTab, tasto generale + icona per modello): dialog con scelta modello, cliente da anagrafica, email (allegati scheda tecnica + presentazione + omologazione via SMTP) e WhatsApp (wa.me con link pubblici /api/gommoni/share/{token}/{tipo}.pdf). Errori SMTP ora 400 con messaggio chiaro (in anteprima la password SMTP non è configurata → test email non eseguibile qui).

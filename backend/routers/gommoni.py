@@ -833,3 +833,110 @@ async def _build_preventivo_pdf(p: GommonePreventivo) -> bytes:
     story.append(footer)
     doc.build(story)
     return buf.getvalue()
+
+
+# ---------------------------------------------------------------------------
+# INVIO DOCUMENTAZIONE MODELLO (email con allegati + link WhatsApp)
+# ---------------------------------------------------------------------------
+import secrets as _secrets  # noqa: E402
+from pydantic import BaseModel as _BM  # noqa: E402
+from fastapi import Request  # noqa: E402
+
+public_router = APIRouter()
+SHARE_TIPI = {"caratteristiche": "Scheda tecnica", "presentazione": "Presentazione", "omologazione": "Omologazione"}
+
+
+async def _share_token(doc: dict) -> str:
+    if doc.get("share_token"):
+        return doc["share_token"]
+    tok = _secrets.token_urlsafe(18)
+    await db.gommoni_modelli.update_one({"id": doc["id"]}, {"$set": {"share_token": tok}})
+    return tok
+
+
+async def _doc_bytes(doc: dict, tipo: str) -> tuple[bytes, str] | None:
+    if tipo == "caratteristiche":
+        resp = await caratteristiche_pdf(doc["id"])
+        data = b"".join([chunk async for chunk in resp.body_iterator]) if hasattr(resp.body_iterator, "__aiter__") else b"".join(resp.body_iterator)
+        return data, f"scheda_tecnica_{doc.get('modello', 'gommone').replace(' ', '_')}.pdf"
+    if not doc.get(f"{tipo}_file_id"):
+        return None
+    try:
+        stream = await _bucket().open_download_stream(ObjectId(doc[f"{tipo}_file_id"]))
+        return await stream.read(), (doc.get(f"{tipo}_nome") or f"{tipo}.pdf")
+    except Exception:
+        return None
+
+
+def _base_url(request: Request) -> str:
+    env = os.environ.get("FRONTEND_URL", "").rstrip("/")
+    if env and "localhost" not in env:
+        return env
+    return str(request.base_url).rstrip("/")
+
+
+class InviaDocIn(_BM):
+    email: Optional[str] = ""
+    telefono: Optional[str] = ""
+    messaggio: Optional[str] = ""
+
+
+@router.get("/modelli/{mid}/documentazione")
+async def documentazione_info(mid: str, request: Request):
+    doc = await db.gommoni_modelli.find_one({"id": mid}, {"_id": 0})
+    if not doc:
+        raise HTTPException(404, "Modello non trovato")
+    tok = await _share_token(doc)
+    base = _base_url(request)
+    links = [{"tipo": t, "label": lbl, "url": f"{base}/api/gommoni/share/{tok}/{t}.pdf"} for t, lbl in SHARE_TIPI.items() if t == "caratteristiche" or doc.get(f"{t}_file_id")]
+    return {"modello": doc.get("modello", ""), "links": links}
+
+
+@router.post("/modelli/{mid}/invia-documentazione")
+async def invia_documentazione(mid: str, p: InviaDocIn, request: Request):
+    from email_service import send_email
+    doc = await db.gommoni_modelli.find_one({"id": mid}, {"_id": 0})
+    if not doc:
+        raise HTTPException(404, "Modello non trovato")
+    info = await documentazione_info(mid, request)
+    nome = doc.get("modello", "Gommone GEB")
+    testo = (p.messaggio or "").strip() or f"Buongiorno, in allegato la documentazione del gommone GEB {nome}: scheda tecnica, presentazione e dati tecnici."
+    righe_link = "".join(f'<li><a href="{l["url"]}">{l["label"]}</a></li>' for l in info["links"])
+    out = {"email_inviata": False, "whatsapp_url": None, "links": info["links"]}
+    if (p.email or "").strip():
+        allegati = []
+        for l in info["links"]:
+            r = await _doc_bytes(doc, l["tipo"])
+            if r:
+                allegati.append({"filename": r[1], "bytes": r[0]})
+        html = f"<p>{testo}</p><p>Documenti (anche scaricabili online):</p><ul>{righe_link}</ul><p>Cantiere GEB nautica</p>"
+        if not all(l["url"].startswith("https://") for l in info["links"]):
+            html = f"<p>{testo}</p><p>Documenti in allegato.</p><p>Cantiere GEB nautica</p>"
+        try:
+            await send_email(to=p.email.strip(), subject=f"Documentazione gommone GEB {nome}", html=html, attachments=allegati)
+            out["email_inviata"] = True
+        except Exception as e:  # noqa: BLE001
+            raise HTTPException(400, f"Invio email non riuscito: {getattr(e, 'detail', e)}")
+    if (p.telefono or "").strip():
+        import urllib.parse
+        num = "".join(ch for ch in p.telefono if ch.isdigit())
+        if num.startswith("00"):
+            num = num[2:]
+        elif len(num) == 10 and num.startswith("3"):
+            num = "39" + num
+        msg = testo + "\n\n" + "\n".join(f"{l['label']}: {l['url']}" for l in info["links"])
+        out["whatsapp_url"] = f"https://wa.me/{num}?text={urllib.parse.quote(msg)}"
+    return out
+
+
+@public_router.get("/api/gommoni/share/{token}/{tipo}.pdf")
+async def share_doc(token: str, tipo: str):
+    if tipo not in SHARE_TIPI:
+        raise HTTPException(404, "Documento non trovato")
+    doc = await db.gommoni_modelli.find_one({"share_token": token}, {"_id": 0})
+    if not doc:
+        raise HTTPException(404, "Link non valido")
+    r = await _doc_bytes(doc, tipo)
+    if not r:
+        raise HTTPException(404, "Documento non caricato")
+    return StreamingResponse(io.BytesIO(r[0]), media_type="application/pdf", headers={"Content-Disposition": f'inline; filename="{r[1]}"'})

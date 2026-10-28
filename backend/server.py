@@ -21,6 +21,7 @@ from routers import (
     tariffe, clienti, lavori, stats, export,
     cantiere, backup, preventivo, report, anni, contratti, magazzino, tubolari, suzuki, gommoni, ddt,
     dipendenti, mobile, esterni, servizio, capitaneria, mezzi, aggiornamenti, calendario, assistente, unisci, anagrafica, officina, officina_siti, fatturazione, webauthn_lock, lavagna, laser,
+    share,
 )
 
 
@@ -38,6 +39,7 @@ async def root():
 api_router.include_router(tariffe.router)
 api_router.include_router(clienti.router)
 api_router.include_router(anagrafica.router)
+api_router.include_router(share.router)
 api_router.include_router(officina.router)
 api_router.include_router(officina_siti.router)
 api_router.include_router(webauthn_lock.router)
@@ -78,6 +80,8 @@ app.include_router(capitaneria.mobile_router)
 app.include_router(lavagna.mobile_router)
 app.include_router(webauthn_lock.mobile_router)
 app.include_router(capitaneria.public_router)
+app.include_router(gommoni.public_router)
+app.include_router(share.public_router)
 
 app.add_middleware(
     CORSMiddleware,

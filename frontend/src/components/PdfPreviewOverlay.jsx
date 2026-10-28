@@ -5,6 +5,7 @@ import "react-pdf/dist/Page/TextLayer.css";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { FileText, X, Download, ChevronLeft, ChevronRight, ZoomIn, ZoomOut } from "lucide-react";
+import { WhatsAppPdfButton } from "@/components/WhatsAppPdfButton";
 
 // Worker locale (copiato in public/) — nessun download automatico del PDF,
 // rendering fatto in-browser via canvas.
@@ -51,7 +52,7 @@ export function PdfPreviewOverlay({ open, onClose, url, filename }) {
                 <FileText className="w-4 h-4 text-primary" /> Anteprima documento
               </DialogTitle>
               <DialogDescription className="text-xs mt-0.5">
-                Verifica il PDF prima di scaricarlo. Chiudi la finestra per tornare all'editor.
+                Verifica il PDF, poi scaricalo o invialo su WhatsApp. Chiudi la finestra per tornare all'editor.
               </DialogDescription>
             </div>
             <div className="flex items-center gap-2 flex-wrap">
@@ -108,6 +109,7 @@ export function PdfPreviewOverlay({ open, onClose, url, filename }) {
               <Button variant="outline" onClick={onClose} data-testid="btn-close-preview">
                 <X className="w-4 h-4 mr-1.5" /> Chiudi
               </Button>
+              <WhatsAppPdfButton url={url} filename={filename || "documento.pdf"} size="default" testId="btn-whatsapp-preview" />
               <Button onClick={download} className="bg-primary hover:bg-primary/90" data-testid="btn-download-preview">
                 <Download className="w-4 h-4 mr-1.5" /> Scarica PDF
               </Button>

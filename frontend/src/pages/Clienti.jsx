@@ -15,6 +15,7 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle
 } from "@/components/ui/alert-dialog";
 import { Plus, Search, Pencil, Trash2, FileSpreadsheet, FileDown, FileText, FileSignature, Eye, CheckCircle2, XCircle, AlertCircle, History, Merge, StickyNote } from "lucide-react";
+import { WhatsAppPdfButton } from "@/components/WhatsAppPdfButton";
 import { UnisciDialog } from "@/components/UnisciDialog";
 import { MemoDialog } from "@/components/MemoDialog";
 import { toast } from "sonner";
@@ -177,6 +178,7 @@ export default function Clienti() {
               <FileText className="w-4 h-4 mr-2" /> Listino prezzi PDF
             </a>
           </Button>
+          <WhatsAppPdfButton url="/tariffe/listino.pdf" filename="listino_prezzi_GEB.pdf" size="icon" testId="wa-listino-tariffe" />
           <Button variant="outline" asChild data-testid="btn-export-csv">
             <a href={`${API}/export/clienti.csv?anno=${year}`} download>
               <FileDown className="w-4 h-4 mr-2" /> CSV

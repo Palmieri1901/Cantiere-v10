@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Plus, Pencil, Trash2, FileText, Sparkles, Search, Download, Tag } from "lucide-react";
+import { WhatsAppPdfButton } from "@/components/WhatsAppPdfButton";
 import { EMPTY_MODEL, fmt } from "./common";
 import ModelloDialog from "./ModelloDialog";
 import OfferteDialog from "./OfferteDialog";
@@ -71,6 +72,7 @@ export default function ModelliTab() {
         <Button variant="outline" onClick={() => window.open(`${API}/suzuki/listino.pdf?v=${Date.now()}`, "_blank")} data-testid="btn-pdf-listino">
           <FileText className="w-4 h-4 mr-2" /> Listino pubblico
         </Button>
+        <WhatsAppPdfButton url="/suzuki/listino.pdf" filename="listino_Suzuki.pdf" size="icon" testId="wa-listino-suzuki" />
         <ListinoConcessionarioButton />
         <Button variant="outline" onClick={() => setOfferteOpen(true)} className="border-orange-500 text-orange-700 hover:bg-orange-50 hover:text-orange-800" data-testid="btn-offerte">
           <Tag className="w-4 h-4 mr-2" /> Motori in offerta
@@ -78,6 +80,7 @@ export default function ModelliTab() {
         <Button variant="outline" onClick={() => window.open(`${API}/suzuki/caratteristiche.pdf?v=${Date.now()}`, "_blank")} data-testid="btn-pdf-caratt">
           <FileText className="w-4 h-4 mr-2" /> PDF Caratteristiche
         </Button>
+        <WhatsAppPdfButton url="/suzuki/caratteristiche.pdf" filename="caratteristiche_Suzuki.pdf" size="icon" testId="wa-caratt-suzuki" />
         <LogoPdfButton />
         <Button variant="outline" onClick={() => setImportOpen(true)} data-testid="btn-import-ai">
           <Sparkles className="w-4 h-4 mr-2" /> Importa listino con AI
