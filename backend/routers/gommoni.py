@@ -982,17 +982,21 @@ async def invia_documentazione(mid: str, p: InviaDocIn, request: Request):
     info = await documentazione_info(mid, request)
     nome = doc.get("modello", "Gommone GEB")
     testo = (p.messaggio or "").strip() or f"Buongiorno, in allegato la documentazione del gommone {nome}: scheda tecnica, listino prezzi pubblico, lista accessori, catalogo e video di presentazione."
-    righe_link = "".join(f'<li><a href="{l["url"]}">{l["label"]}</a></li>' for l in info["links"])
-    out = {"email_inviata": False, "whatsapp_url": None, "links": info["links"]}
+    out = {"email_inviata": False, "whatsapp_url": None, "links": info["links"], "testo": testo}
     if (p.email or "").strip():
-        allegati = []
+        allegati, troppo_grandi = [], []
         for l in info["links"]:
             r = await _doc_bytes(doc, l["tipo"])
-            if r and not l.get("video"):
+            if not r:
+                continue
+            if len(r[0]) > 20 * 1024 * 1024:
+                troppo_grandi.append(l)
+            else:
                 allegati.append({"filename": r[1], "bytes": r[0]})
-        html = f"<p>{testo}</p><p>Documenti (anche scaricabili online):</p><ul>{righe_link}</ul><p>Cantiere GEB nautica</p>"
-        if not all(l["url"].startswith("https://") for l in info["links"]):
-            html = f"<p>{testo}</p><p>Documenti in allegato.</p><p>Cantiere GEB nautica</p>"
+        html = f"<p>{testo}</p><p>Documenti in allegato.</p>"
+        if troppo_grandi and all(l["url"].startswith("https://") for l in troppo_grandi):
+            html += "<p>File troppo grandi per l'allegato, scaricabili qui:</p><ul>" + "".join(f'<li><a href="{l["url"]}">{l["label"]}</a></li>' for l in troppo_grandi) + "</ul>"
+        html += "<p>Cantiere GEB nautica</p>"
         try:
             await send_email(to=p.email.strip(), subject=f"Documentazione gommone GEB {nome}", html=html, attachments=allegati)
             out["email_inviata"] = True

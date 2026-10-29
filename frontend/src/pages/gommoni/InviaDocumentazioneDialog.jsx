@@ -31,6 +31,17 @@ export default function InviaDocumentazioneDialog({ open, onClose, modelli, mode
     if (a.cellulare || a.telefono) setTelefono(a.cellulare || a.telefono);
   };
 
+  const condividiFile = async (links, testo) => {
+    if (!navigator.share || !navigator.canShare) return false;
+    const files = [];
+    for (const l of links) {
+      const blob = await fetch(l.url).then((r) => (r.ok ? r.blob() : null)).catch(() => null);
+      if (blob) files.push(new File([blob], l.url.split("/").pop(), { type: blob.type || (l.video ? "video/mp4" : "application/pdf") }));
+    }
+    if (!files.length || !navigator.canShare({ files })) return false;
+    try { await navigator.share({ files, text: testo }); return true; } catch (e) { return e?.name === "AbortError"; }
+  };
+
   const invia = async (canale) => {
     if (!mid) return;
     const body = { messaggio, email: canale !== "whatsapp" ? email : "", telefono: canale !== "email" ? telefono : "" };
@@ -39,8 +50,12 @@ export default function InviaDocumentazioneDialog({ open, onClose, modelli, mode
     setBusy(true);
     try {
       const r = await api.post(`/gommoni/modelli/${mid}/invia-documentazione`, body);
-      if (r.data.email_inviata) toast.success(`Email inviata a ${email}`);
-      if (r.data.whatsapp_url) window.open(r.data.whatsapp_url, "_blank");
+      if (r.data.email_inviata) toast.success(`Email inviata a ${email} con PDF e video in allegato`);
+      if (r.data.whatsapp_url) {
+        toast.info("Preparo i file da condividere…");
+        const ok = await condividiFile(r.data.links, r.data.testo);
+        if (!ok) { toast.warning("Condivisione file non disponibile su questo dispositivo: invio i link"); window.open(r.data.whatsapp_url, "_blank"); }
+      }
       if (canale === "email") onClose();
     } catch (e) { toast.error(e.response?.data?.detail || "Invio non riuscito"); } finally { setBusy(false); }
   };
@@ -50,7 +65,7 @@ export default function InviaDocumentazioneDialog({ open, onClose, modelli, mode
       <DialogContent className="max-w-lg max-h-[92vh] overflow-y-auto" data-testid="dialog-invia-doc">
         <DialogHeader>
           <DialogTitle className="font-display flex items-center gap-2"><Send className="w-5 h-5 text-primary" /> Invia documentazione</DialogTitle>
-          <DialogDescription>Scheda tecnica, listino prezzi pubblico, lista accessori, catalogo, Real (video) e omologazione del modello via email (allegati) o WhatsApp (link).</DialogDescription>
+          <DialogDescription>Scheda tecnica, listino prezzi pubblico, lista accessori, catalogo, Real (video) e omologazione del modello inviati come file (PDF e video) via email o WhatsApp.</DialogDescription>
         </DialogHeader>
         <div className="space-y-3">
           <div className="space-y-1.5">
