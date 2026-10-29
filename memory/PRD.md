@@ -1051,3 +1051,6 @@ Backend spezzato in moduli (`server.py` ora 112 righe, prima 2761):
 ## 2026-10-29 — Invio documentazione gommoni: file reali
 - Email: allega tutti i documenti compresi Catalogo PDF e video Real (fino a 20 MB; oltre, link di download). Nessun elenco link nel corpo.
 - WhatsApp: condivisione nativa dei file (PDF + video) tramite Web Share API sul telefono; fallback ai link wa.me solo se il dispositivo non supporta la condivisione file.
+
+## 2026-10-29 — Fatture in Cloud: cliente esistente
+- `_entita` cerca il cliente per P.IVA, codice fiscale e nome; se esiste usa l'anagrafica FIC così com'è (nessun PUT/POST) e invia la proforma. Crea il cliente solo se davvero assente; errore duplicato ora spiegato.

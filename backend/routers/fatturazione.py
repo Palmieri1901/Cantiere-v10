@@ -171,18 +171,35 @@ async def _entita(tok: str, cid: int, soggetto: dict, nome: str) -> dict:
     if payload.get("ei_code") or payload.get("certified_email"):
         payload["e_invoice"] = True
     esc = lambda v: str(v).replace("'", "\\'")  # noqa: E731
-    q = f"vat_number = '{esc(payload['vat_number'])}'" if payload.get("vat_number") else f"name = '{esc(payload['name'])}'"
-    try:
-        found = (await _fic("GET", f"/c/{cid}/entities/clients", tok, params={"q": q, "per_page": 50})).get("data", [])
-    except HTTPException as e:
-        if e.status_code == 403:
-            raise HTTPException(403, "Il token Fatture in Cloud non ha il permesso 'Clienti' (lettura/scrittura): rigeneralo con i permessi Clienti e Proforma")
-        found = []
-    hit = next((x for x in found if (payload.get("vat_number") and x.get("vat_number") == payload["vat_number"]) or (x.get("name") or "").lower() == payload["name"].lower()), None)
+    norm = lambda v: "".join(ch for ch in str(v or "") if ch.isalnum()).upper()  # noqa: E731
+    queries = []
+    if payload.get("vat_number"):
+        queries.append(f"vat_number = '{esc(payload['vat_number'])}'")
+    if payload.get("tax_code"):
+        queries.append(f"tax_code = '{esc(payload['tax_code'])}'")
+    queries.append(f"name = '{esc(payload['name'])}'")
+    found = []
+    for q in queries:
+        try:
+            found += (await _fic("GET", f"/c/{cid}/entities/clients", tok, params={"q": q, "per_page": 50})).get("data", [])
+        except HTTPException as e:
+            if e.status_code == 403:
+                raise HTTPException(403, "Il token Fatture in Cloud non ha il permesso 'Clienti' (lettura/scrittura): rigeneralo con i permessi Clienti e Proforma")
+
+    def _match(x):
+        return (payload.get("vat_number") and norm(x.get("vat_number")) == norm(payload["vat_number"])) or \
+               (payload.get("tax_code") and norm(x.get("tax_code")) == norm(payload["tax_code"])) or \
+               (x.get("name") or "").strip().lower() == payload["name"].lower()
+    hit = next((x for x in found if _match(x)), None)
     if hit:
-        await _fic("PUT", f"/c/{cid}/entities/clients/{hit['id']}", tok, json={"data": payload})
-        return {**payload, "id": hit["id"]}
-    new_id = (await _fic("POST", f"/c/{cid}/entities/clients", tok, json={"data": payload})).get("data", {}).get("id")
+        return {**{k: v for k, v in hit.items() if k in payload or k == "id"}, "name": hit.get("name") or payload["name"]}
+    try:
+        new_id = (await _fic("POST", f"/c/{cid}/entities/clients", tok, json={"data": payload})).get("data", {}).get("id")
+    except HTTPException as e:
+        det = str(getattr(e, "detail", "")).lower()
+        if "fiscal" in det or "tax" in det or "vat" in det or "già" in det or "already" in det or "present" in det:
+            raise HTTPException(400, f"Fatture in Cloud segnala che il cliente esiste già ma non è stato trovato con CF/P.IVA/nome indicati: controlla in Fatture in Cloud che CF «{payload.get('tax_code', '')}» e nome «{payload['name']}» coincidano con l'anagrafica del gestionale. Dettaglio: {e.detail}")
+        raise
     return {**payload, "id": new_id}
 
 
