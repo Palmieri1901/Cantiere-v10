@@ -167,7 +167,8 @@ export default function LavorazioniEsterne() {
               <SoggettoFiscale f={edit} update={(k, v) => setEdit((s) => ({ ...s, [k]: v }))} compact />
               <Input value={edit.nome} onChange={(e) => setEdit({ ...edit, nome: e.target.value })} placeholder={edit.tipo_soggetto === "azienda" ? "Referente" : "Nominativo"} data-testid="input-edit-nome" />
               <Input value={edit.telefono || ""} onChange={(e) => setEdit({ ...edit, telefono: e.target.value })} placeholder="Telefono" data-testid="input-edit-telefono" />
-              <Input value={edit.note || ""} onChange={(e) => setEdit({ ...edit, note: e.target.value })} placeholder="Note (barca, contatto…)" data-testid="input-edit-note" />
+              <Input value={edit.barca || ""} onChange={(e) => setEdit({ ...edit, barca: e.target.value })} placeholder="Nome barca" data-testid="input-edit-barca" />
+              <Input value={edit.note || ""} onChange={(e) => setEdit({ ...edit, note: e.target.value })} placeholder="Note (contatto…)" data-testid="input-edit-note" />
               <Button onClick={salvaEdit} className="w-full bg-primary hover:bg-primary/90" data-testid="btn-salva-esterno">Salva</Button>
             </div>
           )}

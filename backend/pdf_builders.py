@@ -642,14 +642,15 @@ def build_conto_esterno_pdf(est: dict, lavori: list, cantiere_doc: dict, anno=No
             logo_cell = RLImage(io.BytesIO(_b64.b64decode(logo_b64.split(",", 1)[1])), width=30*mm, height=18*mm, kind="proportional")
         except Exception:
             pass
-    periodo = f"Anno {anno}" if anno else "Tutti i lavori"
-    elems = [Table([[logo_cell, Paragraph(f"<para align=right><font color='#5B6478' size=8>STIMA DEI COSTI</font><br/><font size=13 color='#B0562E'><b>{periodo}</b></font><br/><font color='#5B6478' size=8>{date.today().strftime('%d/%m/%Y')}</font></para>", body)]], colWidths=[100*mm, 86*mm])]
+    elems = [Table([[logo_cell, Paragraph(f"<para align=right><font color='#B0562E' size=14><b>STIMA DEI COSTI</b></font><br/><font color='#B0562E' size=9>{date.today().strftime('%d/%m/%Y')}</font></para>", body)]], colWidths=[100*mm, 86*mm])]
     elems[0].setStyle(TableStyle([("VALIGN", (0, 0), (-1, -1), "MIDDLE")]))
     if parts:
         elems.append(Paragraph(" · ".join(parts), small))
     sep = Table([[""]], colWidths=[186*mm], rowHeights=[1.5])
     sep.setStyle(TableStyle([("BACKGROUND", (0, 0), (-1, -1), TEAK)]))
     elems += [Spacer(1, 2*mm), sep, Spacer(1, 3*mm), Paragraph("CLIENTE", h2), Paragraph(intestazione_cliente(est, est.get('nome', '')), val)]
+    if est.get("barca"):
+        elems.append(Paragraph(escape(est["barca"]), body))
     contatti = " · ".join(x for x in [est.get("telefono"), est.get("note")] if x)
     if contatti:
         elems.append(Paragraph(contatti, small))
@@ -687,11 +688,11 @@ def build_conto_esterno_pdf(est: dict, lavori: list, cantiere_doc: dict, anno=No
     elems += [tbl]
     if banca and banca.get("iban"):
         ib = banca["iban"].replace(" ", "").upper()
-        righe_b = [("Intestatario", banca.get("intestatario") or cantiere_doc.get("nome", "")), ("Banca", banca.get("banca", "")),
+        righe_b = [("IBAN intestato a", banca.get("intestatario") or cantiere_doc.get("nome", "")), ("Banca", banca.get("banca", "")),
                    ("IBAN", " ".join(ib[i:i + 4] for i in range(0, len(ib), 4))), ("BIC / SWIFT", banca.get("bic", "")),
                    ("Causale", f"Stima dei costi {est.get('nome', '')}" + (f" {anno}" if anno else ""))]
         mono = ParagraphStyle("mono", parent=body, fontName="Courier-Bold", fontSize=9)
-        tb = Table([[Paragraph(k, small), Paragraph(escape(str(v)), mono if k in ("IBAN", "BIC / SWIFT") else body)] for k, v in righe_b if v], colWidths=[32*mm, 154*mm])
+        tb = Table([[Paragraph(f"{k}:", small), Paragraph(escape(str(v)), mono if k in ("IBAN", "BIC / SWIFT") else body)] for k, v in righe_b if v], colWidths=[32*mm, 154*mm])
         tb.setStyle(TableStyle([("BACKGROUND", (0, 0), (-1, -1), SAND), ("TOPPADDING", (0, 0), (-1, -1), 2), ("BOTTOMPADDING", (0, 0), (-1, -1), 2), ("LEFTPADDING", (0, 0), (-1, -1), 6)]))
         elems += [Spacer(1, 4*mm), KeepTogether([Paragraph("RIFERIMENTI BANCARI PER BONIFICO", h2), tb])]
     pdf.build(elems)

@@ -1063,3 +1063,6 @@ Backend spezzato in moduli (`server.py` ora 112 righe, prima 2761):
 
 ## 2026-10-30 — Riferimenti bancari nel PDF Stima dei costi
 - In fondo al PDF (lavorazioni esterne) blocco "Riferimenti bancari per bonifico" (intestatario, banca, IBAN, BIC, causale) letto da Impostazioni → Documenti di servizio (`documenti_servizio`) ad ogni generazione: modifiche in impostazioni si riflettono subito.
+
+## 2026-10-30 — PDF Stima dei costi: intestazione
+- "STIMA DEI COSTI" e data in marrone, rimossa la riga "Tutti i lavori/Anno"; sotto il cliente compare il nome barca (nuovo campo `barca` su clienti esterni, modificabile dal dialog). Blocco banca: "IBAN intestato a:".

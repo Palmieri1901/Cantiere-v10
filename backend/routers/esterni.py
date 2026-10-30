@@ -31,6 +31,7 @@ class EsternoIn(BaseModel):
     citta: Optional[str] = ""
     provincia: Optional[str] = ""
     nazione: Optional[str] = ""
+    barca: Optional[str] = ""
 
 
 FISCALI = ("tipo_soggetto", "ragione_sociale", "partita_iva", "codice_sdi", "pec", "codice_fiscale", "indirizzo", "via", "cap", "citta", "provincia", "nazione")
@@ -92,7 +93,7 @@ async def create_esterno(payload: EsternoIn):
 
 @router.put("/esterni/{eid}")
 async def update_esterno(eid: str, payload: EsternoIn):
-    r = await db.clienti_esterni.update_one({"id": eid}, {"$set": {"nome": capitalizza_nome(payload.nome), "telefono": payload.telefono or "", "note": payload.note or "", **_fiscali(payload)}})
+    r = await db.clienti_esterni.update_one({"id": eid}, {"$set": {"nome": capitalizza_nome(payload.nome), "telefono": payload.telefono or "", "note": payload.note or "", "barca": (payload.barca or "").strip(), **_fiscali(payload)}})
     if not r.matched_count:
         raise HTTPException(404, "Cliente esterno non trovato")
     return await db.clienti_esterni.find_one({"id": eid}, {"_id": 0})
