@@ -12,7 +12,7 @@ SOTTOTITOLI_VOCI = {"costo_lavaggio_inizio": "coperta e gavoni", "costo_lavaggio
 from reportlab.lib import colors
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import mm
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image as RLImage, KeepTogether
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image as RLImage
 from xml.sax.saxutils import escape
 
 from helpers import _euro
@@ -642,7 +642,17 @@ def build_conto_esterno_pdf(est: dict, lavori: list, cantiere_doc: dict, anno=No
             logo_cell = RLImage(io.BytesIO(_b64.b64decode(logo_b64.split(",", 1)[1])), width=30*mm, height=18*mm, kind="proportional")
         except Exception:
             pass
-    elems = [Table([[logo_cell, Paragraph(f"<para align=right><font color='#B0562E' size=14><b>STIMA DEI COSTI</b></font><br/><font color='#B0562E' size=9>{date.today().strftime('%d/%m/%Y')}</font></para>", body)]], colWidths=[100*mm, 86*mm])]
+    testa_dx = f"<font color='#B0562E' size=14><b>STIMA DEI COSTI</b></font><br/><font color='#B0562E' size=9>{date.today().strftime('%d/%m/%Y')}</font>"
+    if banca and banca.get("iban"):
+        ib = banca["iban"].replace(" ", "").upper()
+        righe_b = [("IBAN intestato a", banca.get("intestatario") or cantiere_doc.get("nome", "")), ("Banca", banca.get("banca", "")),
+                   ("IBAN", " ".join(ib[i:i + 4] for i in range(0, len(ib), 4))), ("BIC / SWIFT", banca.get("bic", ""))]
+        testa_dx += "<br/><font size=7 color='#5B6478'><b>RIFERIMENTI BANCARI PER BONIFICO</b></font>"
+        for k, v in righe_b:
+            if v:
+                vv = f"<font name='Courier-Bold'>{escape(str(v))}</font>" if k in ("IBAN", "BIC / SWIFT") else escape(str(v))
+                testa_dx += f"<br/><font size=7.5 color='#5B6478'>{k}:</font> <font size=7.5>{vv}</font>"
+    elems = [Table([[logo_cell, Paragraph(f"<para align=right>{testa_dx}</para>", body)]], colWidths=[100*mm, 86*mm])]
     elems[0].setStyle(TableStyle([("VALIGN", (0, 0), (-1, -1), "MIDDLE")]))
     if parts:
         elems.append(Paragraph(" · ".join(parts), small))
@@ -686,15 +696,6 @@ def build_conto_esterno_pdf(est: dict, lavori: list, cantiere_doc: dict, anno=No
         ("TOPPADDING", (0, 0), (-1, -1), 4), ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
     ]))
     elems += [tbl]
-    if banca and banca.get("iban"):
-        ib = banca["iban"].replace(" ", "").upper()
-        righe_b = [("IBAN intestato a", banca.get("intestatario") or cantiere_doc.get("nome", "")), ("Banca", banca.get("banca", "")),
-                   ("IBAN", " ".join(ib[i:i + 4] for i in range(0, len(ib), 4))), ("BIC / SWIFT", banca.get("bic", "")),
-                   ("Causale", f"Stima dei costi {est.get('nome', '')}" + (f" {anno}" if anno else ""))]
-        mono = ParagraphStyle("mono", parent=body, fontName="Courier-Bold", fontSize=9)
-        tb = Table([[Paragraph(f"{k}:", small), Paragraph(escape(str(v)), mono if k in ("IBAN", "BIC / SWIFT") else body)] for k, v in righe_b if v], colWidths=[32*mm, 154*mm])
-        tb.setStyle(TableStyle([("BACKGROUND", (0, 0), (-1, -1), SAND), ("TOPPADDING", (0, 0), (-1, -1), 2), ("BOTTOMPADDING", (0, 0), (-1, -1), 2), ("LEFTPADDING", (0, 0), (-1, -1), 6)]))
-        elems += [Spacer(1, 4*mm), KeepTogether([Paragraph("RIFERIMENTI BANCARI PER BONIFICO", h2), tb])]
     pdf.build(elems)
     return buf.getvalue()
 
