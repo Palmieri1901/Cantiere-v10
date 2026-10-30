@@ -1060,3 +1060,6 @@ Backend spezzato in moduli (`server.py` ora 112 righe, prima 2761):
 
 ## 2026-10-30 — "Conto" → "Stima dei costi"
 - Lavorazioni esterne: pulsanti, selettore anno, nome file e intestazione PDF usano "Stima dei costi" al posto di "Conto".
+
+## 2026-10-30 — Riferimenti bancari nel PDF Stima dei costi
+- In fondo al PDF (lavorazioni esterne) blocco "Riferimenti bancari per bonifico" (intestatario, banca, IBAN, BIC, causale) letto da Impostazioni → Documenti di servizio (`documenti_servizio`) ad ogni generazione: modifiche in impostazioni si riflettono subito.

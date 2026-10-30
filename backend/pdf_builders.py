@@ -12,7 +12,8 @@ SOTTOTITOLI_VOCI = {"costo_lavaggio_inizio": "coperta e gavoni", "costo_lavaggio
 from reportlab.lib import colors
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import mm
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image as RLImage
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image as RLImage, KeepTogether
+from xml.sax.saxutils import escape
 
 from helpers import _euro
 from models import Tariffe
@@ -617,7 +618,7 @@ def _build_preventivo_pdf(doc: dict, lavori_docs: list, cantiere_doc: dict, t_cu
     return buf.getvalue()
 
 
-def build_conto_esterno_pdf(est: dict, lavori: list, cantiere_doc: dict, anno=None) -> bytes:
+def build_conto_esterno_pdf(est: dict, lavori: list, cantiere_doc: dict, anno=None, banca: dict | None = None) -> bytes:
     """Conto lavori per cliente esterno (solo nominativo): elenco interventi, articoli e totale."""
     buf = io.BytesIO()
     pdf = SimpleDocTemplate(buf, pagesize=A4, leftMargin=12*mm, rightMargin=12*mm, topMargin=10*mm, bottomMargin=8*mm,
@@ -684,6 +685,15 @@ def build_conto_esterno_pdf(est: dict, lavori: list, cantiere_doc: dict, anno=No
         ("TOPPADDING", (0, 0), (-1, -1), 4), ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
     ]))
     elems += [tbl]
+    if banca and banca.get("iban"):
+        ib = banca["iban"].replace(" ", "").upper()
+        righe_b = [("Intestatario", banca.get("intestatario") or cantiere_doc.get("nome", "")), ("Banca", banca.get("banca", "")),
+                   ("IBAN", " ".join(ib[i:i + 4] for i in range(0, len(ib), 4))), ("BIC / SWIFT", banca.get("bic", "")),
+                   ("Causale", f"Stima dei costi {est.get('nome', '')}" + (f" {anno}" if anno else ""))]
+        mono = ParagraphStyle("mono", parent=body, fontName="Courier-Bold", fontSize=9)
+        tb = Table([[Paragraph(k, small), Paragraph(escape(str(v)), mono if k in ("IBAN", "BIC / SWIFT") else body)] for k, v in righe_b if v], colWidths=[32*mm, 154*mm])
+        tb.setStyle(TableStyle([("BACKGROUND", (0, 0), (-1, -1), SAND), ("TOPPADDING", (0, 0), (-1, -1), 2), ("BOTTOMPADDING", (0, 0), (-1, -1), 2), ("LEFTPADDING", (0, 0), (-1, -1), 6)]))
+        elems += [Spacer(1, 4*mm), KeepTogether([Paragraph("RIFERIMENTI BANCARI PER BONIFICO", h2), tb])]
     pdf.build(elems)
     return buf.getvalue()
 
