@@ -36,7 +36,7 @@ export default function LavorazioniEsterne() {
   const anteprimaConto = async (e) => {
     try {
       const anno = contoAnno === "tutti" ? "" : `?anno=${contoAnno}`;
-      setPreviewName(`Conto_${e.nome.replace(/\s+/g, "_")}${contoAnno === "tutti" ? "" : `_${contoAnno}`}.pdf`);
+      setPreviewName(`Stima_costi_${e.nome.replace(/\s+/g, "_")}${contoAnno === "tutti" ? "" : `_${contoAnno}`}.pdf`);
       await openBlob(api, "get", `/esterni/${e.id}/conto.pdf${anno}`, null, setPreviewUrl, setPreviewOpen);
     } catch (err) { toast.error(err.response?.data?.detail || "Errore PDF"); }
   };
@@ -104,7 +104,7 @@ export default function LavorazioniEsterne() {
         <div className="relative flex-1 max-w-sm"><Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" /><Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Cerca nominativo…" className="pl-9" data-testid="input-cerca-esterno" /></div>
         <div className="text-sm text-muted-foreground">{visibili.length} clienti · totale lavori {fmtEuro(totale)}</div>
         <div className="flex items-center gap-2 ml-auto text-xs text-muted-foreground">
-          Conto PDF per
+          Stima dei costi PDF per
           <select className="h-9 rounded-md border border-input bg-background px-2 text-sm font-mono-num" value={contoAnno} onChange={(ev) => setContoAnno(ev.target.value)} data-testid="select-conto-anno">
             <option value="tutti">tutti gli anni</option>
             {Array.from({ length: 4 }, (_, i) => new Date().getFullYear() - i).map((a) => <option key={a} value={a}>{a}</option>)}
@@ -124,7 +124,7 @@ export default function LavorazioniEsterne() {
               </div>
               <div className="font-mono-num text-sm font-semibold">{fmtEuro(e.totale)}</div>
               <Button size="sm" variant="outline" onClick={(ev) => { ev.stopPropagation(); setOpen(e); }} data-testid={`btn-preventivo-${e.id}`}><FileText className="w-3.5 h-3.5 mr-1" /> Preventivo</Button>
-              <Button size="sm" variant="outline" onClick={(ev) => { ev.stopPropagation(); anteprimaConto(e); }} data-testid={`btn-conto-${e.id}`}><FileText className="w-3.5 h-3.5 mr-1" /> Conto PDF</Button>
+              <Button size="sm" variant="outline" onClick={(ev) => { ev.stopPropagation(); anteprimaConto(e); }} data-testid={`btn-conto-${e.id}`}><FileText className="w-3.5 h-3.5 mr-1" /> Stima dei costi PDF</Button>
               <InviaFatturazioneButton tipo="esterno" id={e.id} anno={contoAnno === "tutti" ? null : Number(contoAnno)} nome={e.nome} />
               <Button size="icon" variant="ghost" className="h-8 w-8" onClick={(ev) => { ev.stopPropagation(); setEdit({ ...e }); }} data-testid={`btn-edit-esterno-${e.id}`}><Pencil className="w-3.5 h-3.5" /></Button>
               <Button size="icon" variant="ghost" className="h-8 w-8" onClick={(ev) => { ev.stopPropagation(); setUnisci(e); }} data-testid={`btn-unisci-esterno-${e.id}`} title="Unisci con un altro cliente (doppione)"><Merge className="w-3.5 h-3.5" /></Button>
@@ -148,7 +148,7 @@ export default function LavorazioniEsterne() {
                   <TabsTrigger value="lavori" data-testid="tab-esterno-lavori">Lavori eseguiti</TabsTrigger>
                   <TabsTrigger value="preventivi" data-testid="tab-esterno-preventivi">Preventivi</TabsTrigger>
                 </TabsList>
-                <Button size="sm" variant="outline" onClick={() => anteprimaConto(open)} data-testid="btn-conto-dialog"><FileText className="w-3.5 h-3.5 mr-1" /> Anteprima conto PDF</Button>
+                <Button size="sm" variant="outline" onClick={() => anteprimaConto(open)} data-testid="btn-conto-dialog"><FileText className="w-3.5 h-3.5 mr-1" /> Anteprima stima dei costi PDF</Button>
               </div>
               <TabsContent value="lavori"><LavoriSection key={lavoriKey} clienteId={open.id} /></TabsContent>
               <TabsContent value="preventivi"><PreventiviEsternoTab esterno={open} anteprima={(url, name) => { setPreviewName(name); openBlob(api, "get", url, null, setPreviewUrl, setPreviewOpen).catch((e) => toast.error(e.response?.data?.detail || "Errore PDF")); }} onLavoroCreato={() => setLavoriKey((k) => k + 1)} /></TabsContent>

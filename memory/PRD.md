@@ -1057,3 +1057,6 @@ Backend spezzato in moduli (`server.py` ora 112 righe, prima 2761):
 
 ## 2026-10-29 — Conferma prima di ogni cancellazione
 - Tutte le rimozioni (anche righe/voci dentro moduli, foto laser, memo cliente, nuova chat officina, righe import AI, servizi extra tariffe, articoli in approvazione/app dipendente) passano da `confirmDialog`.
+
+## 2026-10-30 — "Conto" → "Stima dei costi"
+- Lavorazioni esterne: pulsanti, selettore anno, nome file e intestazione PDF usano "Stima dei costi" al posto di "Conto".

@@ -123,7 +123,7 @@ async def conto_pdf(eid: str, anno: Optional[int] = None):
     lavori = await db.lavori.find(q, {"_id": 0}).sort("data", 1).to_list(2000)
     cantiere = await db.cantiere.find_one({"id": "default"}, {"_id": 0}) or {}
     pdf = build_conto_esterno_pdf(est, lavori, cantiere, anno)
-    fname = f"Conto_{est['nome'].replace(' ', '_')}{f'_{anno}' if anno else ''}.pdf"
+    fname = f"Stima_costi_{est['nome'].replace(' ', '_')}{f'_{anno}' if anno else ''}.pdf"
     return StreamingResponse(io.BytesIO(pdf), media_type="application/pdf", headers={"Content-Disposition": f'inline; filename="{fname}"'})
 
 

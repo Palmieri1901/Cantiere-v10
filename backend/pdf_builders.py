@@ -621,7 +621,7 @@ def build_conto_esterno_pdf(est: dict, lavori: list, cantiere_doc: dict, anno=No
     """Conto lavori per cliente esterno (solo nominativo): elenco interventi, articoli e totale."""
     buf = io.BytesIO()
     pdf = SimpleDocTemplate(buf, pagesize=A4, leftMargin=12*mm, rightMargin=12*mm, topMargin=10*mm, bottomMargin=8*mm,
-                            title=f"Conto lavori {est.get('nome', '')}")
+                            title=f"Stima dei costi {est.get('nome', '')}")
     styles = getSampleStyleSheet()
     NAVY = colors.HexColor("#0F1B3D")
     TEAK = colors.HexColor("#B0562E")
@@ -642,7 +642,7 @@ def build_conto_esterno_pdf(est: dict, lavori: list, cantiere_doc: dict, anno=No
         except Exception:
             pass
     periodo = f"Anno {anno}" if anno else "Tutti i lavori"
-    elems = [Table([[logo_cell, Paragraph(f"<para align=right><font color='#5B6478' size=8>CONTO LAVORI</font><br/><font size=13 color='#B0562E'><b>{periodo}</b></font><br/><font color='#5B6478' size=8>{date.today().strftime('%d/%m/%Y')}</font></para>", body)]], colWidths=[100*mm, 86*mm])]
+    elems = [Table([[logo_cell, Paragraph(f"<para align=right><font color='#5B6478' size=8>STIMA DEI COSTI</font><br/><font size=13 color='#B0562E'><b>{periodo}</b></font><br/><font color='#5B6478' size=8>{date.today().strftime('%d/%m/%Y')}</font></para>", body)]], colWidths=[100*mm, 86*mm])]
     elems[0].setStyle(TableStyle([("VALIGN", (0, 0), (-1, -1), "MIDDLE")]))
     if parts:
         elems.append(Paragraph(" · ".join(parts), small))

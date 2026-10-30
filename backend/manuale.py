@@ -100,7 +100,7 @@ SEZIONI = [
     ("8. Lavorazioni esterne", [
         "Clienti non in rimessaggio: basta il nominativo (privato o azienda). Qui finiscono anche i clienti creati approvando i lavori dei dipendenti.",
         ("-", "Nuovo cliente esterno: scegli Privato/Azienda, scrivi il nominativo, Aggiungi; oppure Da anagrafica."),
-        ("-", "Riga cliente: totale lavori, Preventivo (nuovo preventivo), Conto PDF (per l'anno scelto in alto a destra o per tutti gli anni), Invia a fatturazione, matita (modifica dati fiscali), frecce (unisci), cestino, freccia > (apri lavori e preventivi)."),
+        ("-", "Riga cliente: totale lavori, Preventivo (nuovo preventivo), Stima dei costi PDF (per l'anno scelto in alto a destra o per tutti gli anni), Invia a fatturazione, matita (modifica dati fiscali), frecce (unisci), cestino, freccia > (apri lavori e preventivi)."),
         ("-", "Lavori: elenco per anno con righe separate; si aggiungono a mano o arrivano dai dipendenti."),
         ("-", "Preventivi esterni: numerazione automatica, oggetto, righe con descrizione, quantità, unità e prezzo (dal Listino o libere), note; PDF e Invia a fatturazione; eliminazione con conferma."),
     ]),
