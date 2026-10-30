@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
+import { confirmDialog } from "@/components/ConfirmDialog";
 import { Save, Search, X, Plus, StickyNote } from "lucide-react";
 
 const TIPI = ["Riparazione", "Manutenzione motore", "Antivegetativa", "Pulizia", "Elettrico", "Altro"];
@@ -144,7 +145,7 @@ export default function NuovoLavoro({ onSaved, iniziale = null, onAnnulla }) {
                   <div className="text-xs text-muted-foreground font-mono-num" data-testid={`mobile-art-prezzo-${i}`}>{fmtEuro(art?.prezzo_pubblico || 0)} cad.{(Number(a.quantita) || 0) > 1 ? ` · tot. ${fmtEuro((art?.prezzo_pubblico || 0) * Number(a.quantita))}` : ""} <span className="font-sans">IVA incl.</span></div>
                 </div>
                 <Input type="number" inputMode="decimal" min="0.5" step="0.5" value={a.quantita} onChange={(e) => set("articoli", f.articoli.map((x, j) => j === i ? { ...x, quantita: e.target.value } : x))} className="w-20 h-10 text-right" />
-                <button onClick={() => set("articoli", f.articoli.filter((_, j) => j !== i))}><X className="w-4 h-4 text-destructive" /></button>
+                <button onClick={async () => { if (await confirmDialog("Rimuovere questo articolo?", { okLabel: "Rimuovi" })) set("articoli", f.articoli.filter((_, j) => j !== i)); }} data-testid={`mobile-art-del-${i}`}><X className="w-4 h-4 text-destructive" /></button>
               </div>
             );
           })}
@@ -169,7 +170,7 @@ export default function NuovoLavoro({ onSaved, iniziale = null, onAnnulla }) {
             <Input type="number" inputMode="decimal" min="0" step="0.5" value={a.quantita} onChange={(e) => setLibero(i, "quantita", e.target.value)} className="w-16 h-10 text-right" placeholder="Q.tà" data-testid={`mobile-art-lib-qty-${i}`} />
             {a.unita && <span className="text-xs text-muted-foreground" data-testid={`mobile-art-lib-unita-${i}`}>{a.unita}</span>}
             <div className="relative w-24"><span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">€</span><Input type="number" inputMode="decimal" min="0" step="0.01" value={a.prezzo_unitario} onChange={(e) => setLibero(i, "prezzo_unitario", e.target.value)} className="pl-6 h-10 text-right" placeholder="Prezzo" data-testid={`mobile-art-lib-price-${i}`} /></div>
-            <button onClick={() => set("articoli_liberi", f.articoli_liberi.filter((_, j) => j !== i))} data-testid={`mobile-art-lib-del-${i}`}><X className="w-4 h-4 text-destructive" /></button>
+            <button onClick={async () => { if (await confirmDialog("Rimuovere questo articolo?", { okLabel: "Rimuovi" })) set("articoli_liberi", f.articoli_liberi.filter((_, j) => j !== i)); }} data-testid={`mobile-art-lib-del-${i}`}><X className="w-4 h-4 text-destructive" /></button>
           </div>
         ))}
       </div>

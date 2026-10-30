@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
+import { confirmDialog } from "@/components/ConfirmDialog";
 import { Plus, Trash2, Package, Clock, Tag, Search } from "lucide-react";
 import { ListinoPicker } from "@/components/ListinoPicker";
 import { RigheRiordinabili } from "@/components/RigheRiordinabili";
@@ -111,7 +112,7 @@ export default function PreventivoEsternoDialog({ esterno, preventivo, open, onC
                   <Input type="number" step="0.5" min="0" className="col-span-2 h-9 font-mono-num text-right" value={r.quantita} onChange={(e) => setRiga(i, "quantita", e.target.value)} title={r.tipo === "manodopera" ? "Ore" : r.unita ? `Quantità (${r.unita})` : "Quantità"} />
                   <Input type="number" step="0.01" min="0" className="col-span-2 h-9 font-mono-num text-right" value={r.prezzo_unitario} onChange={(e) => setRiga(i, "prezzo_unitario", e.target.value)} />
                   <div className="col-span-1 font-mono-num text-right text-xs">{fmtEuro((Number(r.quantita) || 0) * (Number(r.prezzo_unitario) || 0))}</div>
-                  <button className="col-span-1 justify-self-end" onClick={() => set("righe", f.righe.filter((_, j) => j !== i))} data-testid={`prev-del-riga-${i}`}><Trash2 className="w-4 h-4 text-destructive" /></button>
+                  <button className="col-span-1 justify-self-end" onClick={async () => { if (await confirmDialog("Rimuovere questa voce dal preventivo?", { okLabel: "Rimuovi" })) set("righe", f.righe.filter((_, j) => j !== i)); }} data-testid={`prev-del-riga-${i}`}><Trash2 className="w-4 h-4 text-destructive" /></button>
                 </div>
               )} />
           )}

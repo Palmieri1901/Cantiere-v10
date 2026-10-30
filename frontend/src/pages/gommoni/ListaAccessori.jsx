@@ -24,7 +24,7 @@ export default function ListaAccessori({ titolo, endpoint, valori, onChange, col
     if (!voci.some((x) => x.toLowerCase() === v.toLowerCase())) await saveVoci([...voci, v]);
     setNuovo("");
   };
-  const del = (i) => onChange(lista.filter((_, idx) => idx !== i));
+  const del = async (i) => { if (await confirmDialog(`Rimuovere "${lista[i]}" da questa lista?`, { okLabel: "Rimuovi" })) onChange(lista.filter((_, idx) => idx !== i)); };
   const delVoce = async (v) => { if (await confirmDialog(`Eliminare "${v}" dalla lista di scelta? I modelli che già lo hanno non vengono modificati.`)) await saveVoci(voci.filter((x) => x !== v)); };
   const chip = colore === "emerald" ? "bg-emerald-50 border-emerald-200 text-emerald-800" : "bg-sky-50 border-sky-200 text-sky-800";
   return (

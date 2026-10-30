@@ -2,11 +2,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Plus, Trash2 } from "lucide-react";
 import { fmt } from "./common";
+import { confirmDialog } from "@/components/ConfirmDialog";
 
 export default function RigheEditor({ righe, onChange }) {
   const upd = (i, k, v) => onChange(righe.map((r, idx) => idx === i ? { ...r, [k]: v } : r));
   const add = () => onChange([...righe, { quantita: 1, descrizione: "", prezzo_unitario: 0 }]);
-  const del = (i) => onChange(righe.filter((_, idx) => idx !== i));
+  const del = async (i) => { if (await confirmDialog("Rimuovere questa riga?", { okLabel: "Rimuovi" })) onChange(righe.filter((_, idx) => idx !== i)); };
   const tot = righe.reduce((s, r) => s + (Number(r.quantita) || 0) * (Number(r.prezzo_unitario) || 0), 0);
   return (
     <div>

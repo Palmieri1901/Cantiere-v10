@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
+import { confirmDialog } from "@/components/ConfirmDialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
@@ -61,7 +62,7 @@ export default function ChatOfficina({ client, basePath = "/officina", compact =
   };
   const { supportato, ascolto, parziale, avvia, stop, parla, sbloccaAudio } = useVoce({ onFinal: (t) => invia(t), onErrore: (m) => toast.error(m) });
 
-  const nuova = () => { const s = uid(); localStorage.setItem(SESSION_KEY, s); setSession(s); setMsgs([]); };
+  const nuova = async () => { if (msgs.length && !await confirmDialog("Iniziare una nuova conversazione? Quella attuale verrà cancellata.", { okLabel: "Nuova" })) return; const s = uid(); localStorage.setItem(SESSION_KEY, s); setSession(s); setMsgs([]); };
 
   return (
     <div className={`flex flex-col ${compact ? "h-[calc(100dvh-11rem)]" : "h-[calc(100dvh-16.5rem)] sm:h-[calc(100dvh-14rem)] min-h-[360px] sm:min-h-[480px]"}`} data-testid="chat-officina">

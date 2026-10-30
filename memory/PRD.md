@@ -1054,3 +1054,6 @@ Backend spezzato in moduli (`server.py` ora 112 righe, prima 2761):
 
 ## 2026-10-29 — Fatture in Cloud: cliente esistente
 - `_entita` cerca il cliente per P.IVA, codice fiscale e nome; se esiste usa l'anagrafica FIC così com'è (nessun PUT/POST) e invia la proforma. Crea il cliente solo se davvero assente; errore duplicato ora spiegato.
+
+## 2026-10-29 — Conferma prima di ogni cancellazione
+- Tutte le rimozioni (anche righe/voci dentro moduli, foto laser, memo cliente, nuova chat officina, righe import AI, servizi extra tariffe, articoli in approvazione/app dipendente) passano da `confirmDialog`.

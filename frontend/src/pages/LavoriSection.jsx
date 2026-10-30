@@ -49,7 +49,7 @@ export default function LavoriSection({ clienteId, editLavoroId }) {
   const [artLiberi, setArtLiberi] = useState([]); // articoli non in magazzino: [{descrizione, quantita, prezzo_unitario}]
   const addLibero = () => setArtLiberi((s) => [...s, { descrizione: "", quantita: 1, prezzo_unitario: "" }]);
   const updateLibero = (i, k, v) => setArtLiberi((s) => s.map((x, idx) => idx === i ? { ...x, [k]: v } : x));
-  const removeLibero = (i) => setArtLiberi((s) => s.filter((_, idx) => idx !== i));
+  const removeLibero = async (i) => { if (await confirmDialog("Rimuovere questo articolo dal lavoro?", { okLabel: "Rimuovi" })) setArtLiberi((s) => s.filter((_, idx) => idx !== i)); };
   const costoLiberi = artLiberi.reduce((s, a) => s + (Number(a.quantita || 0) * Number(a.prezzo_unitario || 0)), 0);
 
   const load = () => {

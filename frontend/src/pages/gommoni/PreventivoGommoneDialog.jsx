@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { api } from "@/lib/api";
 import { toast } from "sonner";
+import { confirmDialog } from "@/components/ConfirmDialog";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -49,7 +50,7 @@ export default function PreventivoGommoneDialog({ value, gommoni, accessori, mot
     setForm((f) => ({ ...f, accessori: [...(f.accessori || []), { accessorio_id: a.id, nome: diSerie ? `${a.nome} (di serie)` : a.nome, prezzo: prezzoIncl, quantita: 1 }] }));
   };
   const updAcc = (i, k, v) => setForm((f) => ({ ...f, accessori: f.accessori.map((a, idx) => idx === i ? { ...a, [k]: v } : a) }));
-  const delAcc = (i) => setForm((f) => ({ ...f, accessori: f.accessori.filter((_, idx) => idx !== i) }));
+  const delAcc = async (i) => { if (await confirmDialog("Rimuovere questo accessorio dal preventivo?", { okLabel: "Rimuovi" })) setForm((f) => ({ ...f, accessori: f.accessori.filter((_, idx) => idx !== i) })); };
 
   const calc = useMemo(() => {
     const pub = numOrZero(form.prezzo_gommone);

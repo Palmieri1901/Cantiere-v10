@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
+import { confirmDialog } from "@/components/ConfirmDialog";
 import { Settings2, RefreshCw, Save, Waves, Anchor, Wrench, Cog, ListPlus, Plus, Trash2 } from "lucide-react";
 import { useYear } from "@/lib/year";
 import { UNITA, normUnita } from "@/lib/unita";
@@ -215,7 +216,7 @@ export default function Tariffe() {
                       <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">€</span>
                       <Input type="number" step="0.01" min="0" value={s.prezzo} onChange={(e) => setT({ ...t, servizi_extra: t.servizi_extra.map((x, j) => j === i ? { ...x, prezzo: e.target.value } : x) })} className="pl-10 font-mono-num text-right h-9" data-testid={`servizio-prezzo-${i}`} />
                     </div>
-                    <Button size="icon" variant="ghost" className="h-9 w-9 text-destructive" onClick={() => setT({ ...t, servizi_extra: t.servizi_extra.filter((_, j) => j !== i) })} data-testid={`servizio-del-${i}`}><Trash2 className="w-4 h-4" /></Button>
+                    <Button size="icon" variant="ghost" className="h-9 w-9 text-destructive" onClick={async () => { if (await confirmDialog("Eliminare questo servizio extra dalle tariffe?", { okLabel: "Elimina" })) setT({ ...t, servizi_extra: t.servizi_extra.filter((_, j) => j !== i) }); }} data-testid={`servizio-del-${i}`}><Trash2 className="w-4 h-4" /></Button>
                   </div>
                 ))}
               </div>

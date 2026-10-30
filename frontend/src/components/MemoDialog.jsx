@@ -4,6 +4,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
+import { confirmDialog } from "@/components/ConfirmDialog";
 import { StickyNote, Save, Trash2 } from "lucide-react";
 
 // Inserimento rapido del memo di un cliente in rimessaggio (senza aprire la scheda completa)
@@ -31,7 +32,7 @@ export function MemoDialog({ cliente, onClose, onSaved }) {
         </DialogHeader>
         <Textarea rows={4} autoFocus value={memo} onChange={(e) => setMemo(e.target.value)} placeholder="Es. Chiedere conferma antivegetativa · Chiavi nel cassetto 3 · Pagamento in sospeso…" className="border-amber-300 bg-amber-50/60 focus-visible:ring-amber-400" data-testid="memo-testo" />
         <DialogFooter className="flex-row gap-2 sm:justify-between">
-          {cliente?.memo ? <Button variant="ghost" onClick={() => salva("")} disabled={busy} className="text-destructive hover:text-destructive" data-testid="memo-rimuovi"><Trash2 className="w-4 h-4 mr-1.5" /> Rimuovi</Button> : <span />}
+          {cliente?.memo ? <Button variant="ghost" onClick={async () => { if (await confirmDialog("Rimuovere il memo di questo cliente?", { okLabel: "Rimuovi" })) salva(""); }} disabled={busy} className="text-destructive hover:text-destructive" data-testid="memo-rimuovi"><Trash2 className="w-4 h-4 mr-1.5" /> Rimuovi</Button> : <span />}
           <Button onClick={() => salva(memo)} disabled={busy} className="bg-primary hover:bg-primary/90" data-testid="memo-salva"><Save className="w-4 h-4 mr-1.5" /> Salva</Button>
         </DialogFooter>
       </DialogContent>

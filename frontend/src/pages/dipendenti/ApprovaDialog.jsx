@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
+import { confirmDialog } from "@/components/ConfirmDialog";
 import { ClientePicker } from "./ClientePicker";
 import { ArticoloPicker } from "@/components/ArticoloPicker";
 import { ListinoPicker } from "@/components/ListinoPicker";
@@ -127,7 +128,7 @@ export default function ApprovaDialog({ item, onClose, onDone }) {
                   <div key={a.articolo_id} className="flex items-center gap-2 text-sm" data-testid={`approva-art-${a.articolo_id}`}>
                     <span className="flex-1 min-w-0 truncate">{art?.nome || a.nome || a.articolo_id}{art && <span className="text-[11px] text-muted-foreground ml-1">· {fmtEuro(art.prezzo_listino || 0)} · giac. {Number(art.quantita)}</span>}</span>
                     <Input type="number" min="0" step="0.5" value={a.quantita} onChange={(e) => setArt(i, e.target.value)} className="w-16 h-8 font-mono-num shrink-0" data-testid={`approva-art-qta-${a.articolo_id}`} />
-                    <button type="button" onClick={() => set("articoli_magazzino", f.articoli_magazzino.filter((_, j) => j !== i))} data-testid={`approva-art-rimuovi-${a.articolo_id}`}><X className="w-4 h-4 text-destructive" /></button>
+                    <button type="button" onClick={async () => { if (await confirmDialog("Rimuovere questo articolo dal lavoro?", { okLabel: "Rimuovi" })) set("articoli_magazzino", f.articoli_magazzino.filter((_, j) => j !== i)); }} data-testid={`approva-art-rimuovi-${a.articolo_id}`}><X className="w-4 h-4 text-destructive" /></button>
                   </div>
                 );
               })}
@@ -145,7 +146,7 @@ export default function ApprovaDialog({ item, onClose, onDone }) {
                   <Input value={a.descrizione} onChange={(e) => setLibero(i, "descrizione", e.target.value)} placeholder="Descrizione" className="h-8" data-testid={`approva-libero-desc-${i}`} />
                   <Input type="number" min="0" step="0.5" value={a.quantita} onChange={(e) => setLibero(i, "quantita", e.target.value)} className="h-8 font-mono-num" data-testid={`approva-libero-qta-${i}`} />
                   <Input type="number" min="0" step="0.01" value={a.prezzo_unitario} onChange={(e) => setLibero(i, "prezzo_unitario", e.target.value)} placeholder="€ cad." className="h-8 font-mono-num" data-testid={`approva-libero-prezzo-${i}`} />
-                  <button type="button" onClick={() => set("articoli_liberi", f.articoli_liberi.filter((_, j) => j !== i))} data-testid={`approva-libero-rimuovi-${i}`}><X className="w-4 h-4 text-destructive" /></button>
+                  <button type="button" onClick={async () => { if (await confirmDialog("Rimuovere questo articolo dal lavoro?", { okLabel: "Rimuovi" })) set("articoli_liberi", f.articoli_liberi.filter((_, j) => j !== i)); }} data-testid={`approva-libero-rimuovi-${i}`}><X className="w-4 h-4 text-destructive" /></button>
                 </div>
               ))}
               {f.articoli_liberi.length > 0 && <div className="text-[11px] text-muted-foreground">Totale altri articoli: {fmtEuro(f.articoli_liberi.reduce((s, a) => s + Number(a.quantita || 0) * Number(a.prezzo_unitario || 0), 0))} — aggiunto al costo del lavoro.</div>}

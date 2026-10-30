@@ -4,6 +4,7 @@ import { zoom as createZoom, zoomIdentity } from "d3-zoom";
 import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Check as CheckIcon, Minus, PenLine, Plus, Redo2, RotateCcw, RotateCw, Scan, Undo2, X, Crosshair, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { confirmDialog } from "@/components/ConfirmDialog";
 import { fileToCanvases, deletePhoto, loadPhotos, savePhotos, urlToCanvas, download } from "@/lib/laser/files";
 import { trace, toDXF, toSVG, sogliaAutomatica } from "@/lib/laser/vectorize";
 import { appendContour, insertNearestPoint, boxBounds, isInsideBox, movePoint, rotateShapes, refineContours, countPointsInBox, deletePointsInBox, snapToPoint, pointInBox } from "@/lib/laser/contourEdit";
@@ -94,7 +95,8 @@ export default function LaserLogo() {
     setLoading(false);
   }
 
-  function removeItem(id) {
+  async function removeItem(id) {
+    if (!await confirmDialog("Eliminare questa foto? Verrà rimossa anche dagli altri dispositivi.", { okLabel: "Elimina" })) return;
     deletePhoto(id);
     setItems((p) => { const rest = p.filter((i) => i.id !== id); if (active === id) setActive(rest[0]?.id ?? null); return rest; });
     if (active === id) setPaths([]);

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { api } from "@/lib/api";
 import { toast } from "sonner";
+import { confirmDialog } from "@/components/ConfirmDialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -75,7 +76,7 @@ export default function ImportAIGommoniDialog({ open, onClose, onSaved }) {
                         {COLS.map(([k, , type]) => (
                           <td key={k} className="p-1"><Input className={`h-7 text-xs ${type === "number" ? "text-right font-mono w-16" : k === "dotazioni" ? "min-w-[220px]" : "min-w-[110px]"}`} type={type} step="0.01" value={r[k] ?? ""} onChange={(e) => updateRow(i, k, e.target.value)} /></td>
                         ))}
-                        <td className="p-1 text-center"><button onClick={() => setRows((rs) => rs.filter((_, idx) => idx !== i))} className="text-destructive hover:opacity-70"><Trash2 className="w-3.5 h-3.5" /></button></td>
+                        <td className="p-1 text-center"><button onClick={async () => { if (await confirmDialog("Escludere questa riga dall'importazione?", { okLabel: "Escludi" })) setRows((rs) => rs.filter((_, idx) => idx !== i)); }} data-testid={`import-ai-del-${i}`} className="text-destructive hover:opacity-70"><Trash2 className="w-3.5 h-3.5" /></button></td>
                       </tr>
                     ))}
                   </tbody>
