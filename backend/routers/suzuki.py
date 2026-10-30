@@ -14,7 +14,7 @@ from fastapi.responses import StreamingResponse, FileResponse
 from pydantic import BaseModel
 
 from database import db
-from pdf_builders import listino_riferimento, listino_nota_finale
+from pdf_builders import listino_riferimento, listino_nota_finale, banca_markup
 from helpers import serialize
 from models import (
     SuzukiModello, SuzukiModelloCreate, SuzukiModelloUpdate,
@@ -1202,6 +1202,9 @@ async def _build_pdf(p: SuzukiPreventivo) -> bytes:
         ("RIGHTPADDING", (0,0), (-1,-1), 0),
     ]))
     story.append(header)
+    bm = banca_markup(await db.documenti_servizio.find_one({"id": "default"}, {"_id": 0}), {"nome": "GEB di Palmieri Sandro"})
+    if bm:
+        story.append(Paragraph(bm, ParagraphStyle("bk", parent=st_label, alignment=TA_RIGHT, leading=9.5)))
     story.append(Spacer(1, 6))
     story.append(HRFlowable(width="100%", thickness=0.8, color=BORDER, spaceBefore=0, spaceAfter=6))
 

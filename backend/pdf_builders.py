@@ -618,6 +618,21 @@ def _build_preventivo_pdf(doc: dict, lavori_docs: list, cantiere_doc: dict, t_cu
     return buf.getvalue()
 
 
+def banca_markup(banca: dict | None, cantiere_doc: dict | None = None, color: str = "#5B6478") -> str:
+    """Righe (markup Paragraph) con i riferimenti bancari; stringa vuota se IBAN assente."""
+    if not banca or not banca.get("iban"):
+        return ""
+    ib = banca["iban"].replace(" ", "").upper()
+    righe = [("IBAN intestato a", banca.get("intestatario") or (cantiere_doc or {}).get("nome", "")), ("Banca", banca.get("banca", "")),
+             ("IBAN", " ".join(ib[i:i + 4] for i in range(0, len(ib), 4))), ("BIC / SWIFT", banca.get("bic", ""))]
+    out = f"<font size=7 color='{color}'><b>RIFERIMENTI BANCARI PER BONIFICO</b></font>"
+    for k, v in righe:
+        if v:
+            vv = f"<font name='Courier-Bold'>{escape(str(v))}</font>" if k in ("IBAN", "BIC / SWIFT") else escape(str(v))
+            out += f"<br/><font size=7.5 color='{color}'>{k}:</font> <font size=7.5>{vv}</font>"
+    return out
+
+
 def build_conto_esterno_pdf(est: dict, lavori: list, cantiere_doc: dict, anno=None, banca: dict | None = None) -> bytes:
     """Conto lavori per cliente esterno (solo nominativo): elenco interventi, articoli e totale."""
     buf = io.BytesIO()
@@ -643,15 +658,9 @@ def build_conto_esterno_pdf(est: dict, lavori: list, cantiere_doc: dict, anno=No
         except Exception:
             pass
     testa_dx = f"<font color='#B0562E' size=14><b>STIMA DEI COSTI</b></font><br/><font color='#B0562E' size=9>{date.today().strftime('%d/%m/%Y')}</font>"
-    if banca and banca.get("iban"):
-        ib = banca["iban"].replace(" ", "").upper()
-        righe_b = [("IBAN intestato a", banca.get("intestatario") or cantiere_doc.get("nome", "")), ("Banca", banca.get("banca", "")),
-                   ("IBAN", " ".join(ib[i:i + 4] for i in range(0, len(ib), 4))), ("BIC / SWIFT", banca.get("bic", ""))]
-        testa_dx += "<br/><font size=7 color='#5B6478'><b>RIFERIMENTI BANCARI PER BONIFICO</b></font>"
-        for k, v in righe_b:
-            if v:
-                vv = f"<font name='Courier-Bold'>{escape(str(v))}</font>" if k in ("IBAN", "BIC / SWIFT") else escape(str(v))
-                testa_dx += f"<br/><font size=7.5 color='#5B6478'>{k}:</font> <font size=7.5>{vv}</font>"
+    bm = banca_markup(banca, cantiere_doc)
+    if bm:
+        testa_dx += "<br/>" + bm
     elems = [Table([[logo_cell, Paragraph(f"<para align=right>{testa_dx}</para>", body)]], colWidths=[100*mm, 86*mm])]
     elems[0].setStyle(TableStyle([("VALIGN", (0, 0), (-1, -1), "MIDDLE")]))
     if parts:
@@ -775,7 +784,7 @@ def _build_documento_servizio(cantiere_doc, sottotitolo, blocchi, note, testo, f
     return buf.getvalue(), pdf.page
 
 
-def build_preventivo_esterno_pdf(p: dict, est: dict, cantiere_doc: dict) -> bytes:
+def build_preventivo_esterno_pdf(p: dict, est: dict, cantiere_doc: dict, banca: dict | None = None) -> bytes:
     """Preventivo per cliente esterno: righe manodopera/articoli/voci, sconto, IVA, totale."""
     from xml.sax.saxutils import escape
     from datetime import datetime as _dt, timedelta as _td
@@ -799,7 +808,8 @@ def build_preventivo_esterno_pdf(p: dict, est: dict, cantiere_doc: dict) -> byte
         scad = (_dt.strptime(p.get("data", ""), "%Y-%m-%d") + _td(days=int(p.get("validita_giorni") or 30))).strftime("%d/%m/%Y")
     except Exception:
         scad = ""
-    head = Table([[logo_cell, Paragraph(f"<para align=right><font color='#5B6478' size=8>PREVENTIVO</font><br/><font size=14 color='#B0562E'><b>N. {p['numero']}/{p['anno']}</b></font><br/><font color='#5B6478' size=8>del {escape(str(p.get('data', '')))}{(' · valido fino al ' + scad) if scad else ''}</font></para>", body)]], colWidths=[100*mm, 82*mm])
+    bm = banca_markup(banca, cantiere_doc)
+    head = Table([[logo_cell, Paragraph(f"<para align=right><font color='#5B6478' size=8>PREVENTIVO</font><br/><font size=14 color='#B0562E'><b>N. {p['numero']}/{p['anno']}</b></font><br/><font color='#5B6478' size=8>del {escape(str(p.get('data', '')))}{(' · valido fino al ' + scad) if scad else ''}</font>{('<br/>' + bm) if bm else ''}</para>", body)]], colWidths=[100*mm, 82*mm])
     head.setStyle(TableStyle([("VALIGN", (0, 0), (-1, -1), "MIDDLE")]))
     sep = Table([[""]], colWidths=[182*mm], rowHeights=[1.5]); sep.setStyle(TableStyle([("BACKGROUND", (0, 0), (-1, -1), TEAK)]))
     elems = [head] + ([Paragraph(escape(" · ".join(parts)), small)] if parts else []) + [Spacer(1, 2*mm), sep, Spacer(1, 3*mm),

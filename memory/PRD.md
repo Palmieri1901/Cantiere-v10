@@ -1066,3 +1066,6 @@ Backend spezzato in moduli (`server.py` ora 112 righe, prima 2761):
 
 ## 2026-10-30 — PDF Stima dei costi: intestazione
 - "STIMA DEI COSTI" e data in marrone, rimossa la riga "Tutti i lavori/Anno"; sotto il cliente compare il nome barca (nuovo campo `barca` su clienti esterni, modificabile dal dialog). Blocco banca: "IBAN intestato a:".
+
+## 2026-10-30 — Riferimenti bancari sui preventivi
+- Helper `banca_markup()` in pdf_builders; usato in alto a destra in: stima dei costi, preventivi esterni, preventivi Suzuki, preventivi gommoni. Dati sempre letti da `documenti_servizio` (Impostazioni).

@@ -236,6 +236,7 @@ async def preventivo_esterno_pdf(pid: str):
         raise HTTPException(404, "Preventivo non trovato")
     est = await db.clienti_esterni.find_one({"id": p["esterno_id"]}, {"_id": 0}) or {"nome": p.get("esterno_nome", "")}
     cant = await db.cantiere.find_one({"id": "default"}, {"_id": 0}) or {}
-    pdf = build_preventivo_esterno_pdf(p, est, cant)
+    banca = await db.documenti_servizio.find_one({"id": "default"}, {"_id": 0}) or {}
+    pdf = build_preventivo_esterno_pdf(p, est, cant, banca)
     return StreamingResponse(io.BytesIO(pdf), media_type="application/pdf",
                              headers={"Content-Disposition": f'inline; filename="Preventivo_{p["numero"]}_{p["anno"]}_{est["nome"].replace(" ", "_")}.pdf"'})

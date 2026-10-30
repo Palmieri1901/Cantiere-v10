@@ -11,7 +11,7 @@ from bson import ObjectId
 from motor.motor_asyncio import AsyncIOMotorGridFSBucket
 
 from database import db
-from pdf_builders import listino_riferimento, listino_nota_finale
+from pdf_builders import listino_riferimento, listino_nota_finale, banca_markup
 from helpers import serialize
 from models import (
     GommoneModello, GommoneModelloCreate, GommoneBulkCreate,
@@ -794,6 +794,9 @@ async def _build_preventivo_pdf(p: GommonePreventivo) -> bytes:
              Table([[Paragraph("N°", st_label), Paragraph(p.numero or "—", st_val)],
                     [Paragraph("Data", st_label), Paragraph(data_it, st_val)]], colWidths=[18*mm, 50*mm],
                    style=TableStyle([("LEFTPADDING", (0,0), (-1,-1), 0), ("TOPPADDING", (0,0), (-1,-1), 1.5), ("BOTTOMPADDING", (0,0), (-1,-1), 1.5)]))]
+    bm = banca_markup(await db.documenti_servizio.find_one({"id": "default"}, {"_id": 0}), {"nome": "GEB di Palmieri Sandro"})
+    if bm:
+        right += [Spacer(1, 3), Paragraph(bm, ParagraphStyle("bk", parent=st_label, alignment=TA_RIGHT, leading=9.5))]
     header = Table([[left, right]], colWidths=[112*mm, 70*mm])
     header.setStyle(TableStyle([("VALIGN", (0,0), (-1,-1), "TOP"), ("LEFTPADDING", (0,0), (-1,-1), 0), ("RIGHTPADDING", (0,0), (-1,-1), 0)]))
     story += [header, Spacer(1, 6), HRFlowable(width="100%", thickness=0.8, color=BORDER, spaceAfter=6)]
