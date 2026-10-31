@@ -1,6 +1,6 @@
 import { useRef } from "react";
 import { Button } from "@/components/ui/button";
-import { Camera, X } from "lucide-react";
+import { Camera, Image as ImageIcon, X } from "lucide-react";
 import { toast } from "sonner";
 
 const MAX = 4;
@@ -24,7 +24,8 @@ export function comprimiFoto(file) {
 }
 
 export function FotoPicker({ foto, onChange, testId }) {
-  const ref = useRef(null);
+  const refCam = useRef(null);
+  const refGal = useRef(null);
   const aggiungi = async (e) => {
     const files = Array.from(e.target.files || []);
     e.target.value = "";
@@ -46,13 +47,19 @@ export function FotoPicker({ foto, onChange, testId }) {
           </div>
         ))}
         {foto.length < MAX && (
-          <Button type="button" variant="outline" size="sm" className="h-16 w-16 flex-col gap-1 text-[10px]" onClick={() => ref.current?.click()} data-testid={`${testId}-add`}>
-            <Camera className="w-4 h-4" /> Foto
-          </Button>
+          <>
+            <Button type="button" variant="outline" size="sm" className="h-16 w-16 flex-col gap-1 text-[10px]" onClick={() => refCam.current?.click()} data-testid={`${testId}-add`}>
+              <Camera className="w-4 h-4" /> Scatta
+            </Button>
+            <Button type="button" variant="outline" size="sm" className="h-16 w-16 flex-col gap-1 text-[10px]" onClick={() => refGal.current?.click()} data-testid={`${testId}-gallery`}>
+              <ImageIcon className="w-4 h-4" /> Galleria
+            </Button>
+          </>
         )}
       </div>
-      <input ref={ref} type="file" accept="image/*" capture="environment" multiple className="hidden" onChange={aggiungi} data-testid={`${testId}-input`} />
-      <div className="text-[11px] text-muted-foreground">Fino a {MAX} foto (facoltative): l'AI valuta lo stato reale visibile.</div>
+      <input ref={refCam} type="file" accept="image/*" capture="environment" className="hidden" onChange={aggiungi} data-testid={`${testId}-input`} />
+      <input ref={refGal} type="file" accept="image/*" multiple className="hidden" onChange={aggiungi} data-testid={`${testId}-input-gallery`} />
+      <div className="text-[11px] text-muted-foreground">Fino a {MAX} foto (facoltative): scatta o scegli dalla galleria del telefono. L'AI valuta lo stato reale visibile.</div>
     </div>
   );
 }
