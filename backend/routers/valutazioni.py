@@ -16,7 +16,7 @@ from pdf_builders import build_documento_servizio_pdf
 
 router = APIRouter(prefix="/valutazioni")
 
-STATI = ("ottimo", "buono", "pessimo")
+STATI = ("ottimo", "buono", "usurato", "pessimo")
 
 
 class MotoreIn(BaseModel):
@@ -48,7 +48,8 @@ SYSTEM = (
     "Sei un perito nautico italiano esperto di usato (gommoni e fuoribordo), con conoscenza dei listini tipo Eurotax/Nautica usato. "
     "Fornisci quotazioni realistiche in euro per il mercato italiano dell'anno corrente, stimando valore minimo, massimo e consigliato "
     "per vendita tra privati/permuta in cantiere. Considera anno, ore moto, stato generale, prezzo di listino del nuovo, deprezzamento tipico, "
-    "tubolari rifatti (per i gommoni). Rispondi SOLO con JSON valido, senza testo attorno."
+    "tubolari rifatti (per i gommoni). Scala degli stati dichiarati: ottimo > buono > usurato (funzionante ma con segni evidenti di usura, interventi necessari a breve) > pessimo. "
+    "Rispondi SOLO con JSON valido, senza testo attorno."
 )
 
 
@@ -126,7 +127,7 @@ async def crea_valutazione(p: ValutazioneIn, bg: BackgroundTasks):
         raise HTTPException(400, "Indica almeno un motore o un gommone")
     for s in [p.motore and p.motore.stato, p.gommone and p.gommone.stato]:
         if s and s not in STATI:
-            raise HTTPException(400, "Stato non valido (ottimo/buono/pessimo)")
+            raise HTTPException(400, "Stato non valido (ottimo/buono/usurato/pessimo)")
     doc = {
         "id": str(uuid.uuid4()),
         "created_at": datetime.now(timezone.utc).isoformat(),

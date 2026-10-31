@@ -1115,3 +1115,6 @@ Backend spezzato in moduli (`server.py` ora 112 righe, prima 2761):
 
 ## 2026-10-31 — FotoPicker: Scatta + Galleria
 - Due tasti: "Scatta" (capture=environment) e "Galleria" (multiplo, senza capture) per caricare foto già presenti sul telefono.
+
+## 2026-10-31 — Valutazioni: stato "usurato"
+- Scala stati: ottimo, buono, usurato, pessimo (backend STATI + prompt + select frontend).

@@ -15,7 +15,7 @@ import { ValutazioneCard } from "@/pages/valutazioni/ValutazioneCard";
 import { FotoPicker } from "@/pages/valutazioni/FotoPicker";
 
 const L = ({ children }) => <label className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">{children}</label>;
-const STATI = [["ottimo", "Ottimo"], ["buono", "Buono"], ["pessimo", "Pessimo"]];
+const STATI = [["ottimo", "Ottimo"], ["buono", "Buono"], ["usurato", "Usurato"], ["pessimo", "Pessimo"]];
 const StatoSelect = ({ value, onChange, testId }) => (
   <Select value={value} onValueChange={onChange}>
     <SelectTrigger data-testid={testId}><SelectValue /></SelectTrigger>
