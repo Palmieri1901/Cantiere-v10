@@ -66,7 +66,7 @@ export default function DipendentiTab() {
                 </div>
                 <div className="text-xs text-muted-foreground font-mono break-words">Chiave ····{d.key_hint} {d.ultimo_accesso ? `· ultimo accesso ${new Date(d.ultimo_accesso).toLocaleString("it-IT")}` : "· mai connesso"}</div>
                 <div className="text-[11px] text-muted-foreground mt-0.5" data-testid={`dip-funzioni-${d.id}`}>
-                  {d.funzioni == null || d.funzioni.length === FUNZIONI_APP.length ? "Tutte le funzioni" : d.funzioni.length === 0 ? "Nessuna funzione (solo invio)" : `Funzioni: ${FUNZIONI_APP.filter(([id]) => d.funzioni.includes(id)).map(([, t]) => t).join(", ")}`}
+                  {d.funzioni == null || d.funzioni.length >= FUNZIONI_APP.length ? "Tutte le funzioni" : d.funzioni.length === 0 ? "Nessuna funzione (solo invio)" : `Funzioni: ${FUNZIONI_APP.filter(([id]) => d.funzioni.includes(id)).map(([, t]) => t).join(", ")}`}
                 </div>
               </div>
               <div className="flex items-center gap-2 flex-wrap">

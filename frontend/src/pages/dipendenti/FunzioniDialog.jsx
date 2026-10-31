@@ -12,6 +12,8 @@ export const FUNZIONI_APP = [
   ["capitaneria", "Comunicazione Capitaneria", "Avvisi alaggio/varo con PDF ed email"],
   ["quotazione", "Quotazione usato", "Valutazione AI di gommoni e motori con PDF"],
   ["lavagna", "Lavagna", "Messaggi e promemoria dal cantiere"],
+  ["calendario", "Calendario", "Appuntamenti del cantiere, aggiunta eventi"],
+  ["ddt", "Foglio destinazione", "Etichetta di destinazione da rubrica DDT, PDF"],
 ];
 
 export function FunzioniDialog({ dip, onClose, onSaved }) {
@@ -22,7 +24,7 @@ export function FunzioniDialog({ dip, onClose, onSaved }) {
   const salva = async () => {
     setBusy(true);
     try {
-      await api.put(`/dipendenti/${dip.id}`, { nome: dip.nome, attivo: dip.attivo, funzioni: sel });
+      await api.put(`/dipendenti/${dip.id}`, { nome: dip.nome, attivo: dip.attivo, funzioni: sel.length === tutte.length ? ["*"] : sel });
       toast.success("Funzioni aggiornate");
       onSaved();
     } catch (e) { toast.error(e.response?.data?.detail || "Errore salvataggio"); } finally { setBusy(false); }

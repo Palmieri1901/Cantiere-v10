@@ -12,6 +12,8 @@ import { RefreshCw, LogOut, Wifi, WifiOff, Sailboat, Home, ClipboardPlus, Packag
 import ChatOfficina from "@/pages/officina/ChatOfficina";
 import CapitaneriaMobile from "@/pages/app-dipendente/CapitaneriaMobile";
 import ValutazioniUsato from "@/pages/ValutazioniUsato";
+import CalendarioMobile from "@/pages/app-dipendente/CalendarioMobile";
+import DdtDestinazioneMobile from "@/pages/app-dipendente/DdtDestinazioneMobile";
 import { Lavagna } from "@/components/Lavagna";
 import AppLock from "@/components/AppLock";
 import { resetSblocco } from "@/lib/passkey";
@@ -121,6 +123,8 @@ export default function AppDipendente() {
         {view === "officina" && <ChatOfficina client={mobileApi()} basePath="/officina" compact autore={mobileStore.getNome()} />}
         {view === "capitaneria" && <CapitaneriaMobile />}
         {view === "quotazione" && <ValutazioniUsato client={mobileApi()} mobile />}
+        {view === "calendario" && <CalendarioMobile />}
+        {view === "ddt" && <DdtDestinazioneMobile />}
         {view === "lavagna" && <div className="space-y-3" data-testid="lavagna-mobile"><h2 className="font-display text-2xl font-semibold flex items-center gap-2"><ClipboardList className="w-6 h-6 text-primary" /> Lavagna</h2><Lavagna client={mobileApi()} basePath="/lavagna" compact /></div>}
         {view === "coda" && <Coda coda={coda} setCoda={salvaCoda} onSync={sincronizza} syncing={syncing} online={online} onModifica={(x) => { setInModifica(x); setView("nuovo"); }} />}
       </main>

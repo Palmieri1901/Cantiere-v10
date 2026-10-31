@@ -1128,3 +1128,9 @@ Backend spezzato in moduli (`server.py` ora 112 righe, prima 2761):
 
 ## 2026-10-31 — App dipendenti: prezzi bloccati + listini PDF
 - NuovoLavoro: prezzo articoli liberi in sola lettura (da listino tariffe); backend /mobile/lavori scarta prezzo_unitario degli articoli magazzino. Nuovi endpoint /mobile/listini e /mobile/listini/{gommoni|accessori|suzuki|magazzino}.pdf (listini pubblici); sezione "Listini al pubblico (PDF)" con apri + WhatsApp nella scheda Listino.
+
+## 2026-10-31 — App dipendenti: Calendario + Foglio destinazione
+- `calendario.mobile_router` (/api/mobile/calendario tipi/eventi GET+POST) e `ddt.mobile_router` (/api/mobile/ddt indirizzi, foglio-destinazione.pdf), funzioni "calendario" e "ddt" in FUNZIONI_APP. Nuove viste CalendarioMobile.jsx (mese, elenco, nuovo appuntamento) e DdtDestinazioneMobile.jsx (rubrica, destinatario, contenuto, PDF + WhatsApp). "Tutte" nel dialog funzioni salva ["*"] → None (include funzioni future).
+
+## 2026-10-31 — Valutazioni: n° motori e tipo imbarcazione
+- MotoreIn.numero (quotazione per l insieme dei motori); GommoneIn.tipo gommone|barca (campo payload resta `gommone`, etichetta "Imbarcazione"); tubolari solo per gommone; PDF e card aggiornati.

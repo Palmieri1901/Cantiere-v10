@@ -118,3 +118,13 @@ async def elimina_evento(eid: str):
     if r.deleted_count == 0:
         raise HTTPException(404, "Evento non trovato")
     return {"ok": True}
+
+
+# ---------- App dipendenti (API key) ----------
+from fastapi import Depends  # noqa: E402
+from routers.mobile import richiede  # noqa: E402
+
+mobile_router = APIRouter(prefix="/api/mobile/calendario", dependencies=[Depends(richiede("calendario"))])
+mobile_router.add_api_route("/tipi", get_tipi, methods=["GET"])
+mobile_router.add_api_route("/eventi", list_eventi, methods=["GET"])
+mobile_router.add_api_route("/eventi", crea_evento, methods=["POST"])

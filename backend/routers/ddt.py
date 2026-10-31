@@ -334,3 +334,12 @@ async def _build_foglio_pdf(d: Ddt) -> bytes:
         story.append(Paragraph(extra, st_small))
     doc.build(story)
     return buf.getvalue()
+
+
+# ---------- App dipendenti (API key): rubrica indirizzi e foglio destinazione ----------
+from fastapi import Depends  # noqa: E402
+from routers.mobile import richiede  # noqa: E402
+
+mobile_router = APIRouter(prefix="/api/mobile/ddt", dependencies=[Depends(richiede("ddt"))])
+mobile_router.add_api_route("/indirizzi", list_indirizzi, methods=["GET"], response_model=List[DdtIndirizzo])
+mobile_router.add_api_route("/foglio-destinazione.pdf", preview_foglio_pdf, methods=["POST"])

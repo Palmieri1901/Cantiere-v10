@@ -31,7 +31,7 @@ class DipendenteIn(BaseModel):
     funzioni: Optional[List[str]] = None  # None = tutte le funzioni dell'app
 
 
-FUNZIONI_APP = ["nuovo", "listino", "officina", "capitaneria", "quotazione", "lavagna"]
+FUNZIONI_APP = ["nuovo", "listino", "officina", "capitaneria", "quotazione", "lavagna", "ddt", "calendario"]
 
 
 class QrImport(BaseModel):
@@ -84,7 +84,7 @@ async def create_dipendente(payload: DipendenteIn):
 async def update_dipendente(did: str, payload: DipendenteIn):
     upd = {"nome": capitalizza_nome(payload.nome), "attivo": bool(payload.attivo)}
     if payload.funzioni is not None:
-        upd["funzioni"] = [f for f in payload.funzioni if f in FUNZIONI_APP]
+        upd["funzioni"] = None if "*" in payload.funzioni else [f for f in payload.funzioni if f in FUNZIONI_APP]
     r = await db.dipendenti.update_one({"id": did}, {"$set": upd})
     if not r.matched_count:
         raise HTTPException(404, "Dipendente non trovato")

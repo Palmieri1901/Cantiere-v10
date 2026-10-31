@@ -23,6 +23,7 @@ class MotoreIn(BaseModel):
     modello: str
     anno: int
     ore: Optional[float] = 0
+    numero: Optional[int] = 1
     stato: str = "buono"
 
 
@@ -30,6 +31,7 @@ class GommoneIn(BaseModel):
     modello: str
     anno: int
     stato: str = "buono"
+    tipo: str = "gommone"  # gommone | barca
     tubolari_nuovi: bool = False
     tubolari_anni: Optional[int] = None
 
@@ -57,11 +59,16 @@ def _descr(p: ValutazioneIn) -> str:
     parti = []
     if p.motore:
         m = p.motore
-        parti.append(f"MOTORE: modello {m.modello}, anno {m.anno}, ore moto {m.ore or 0:g}, stato generale {m.stato}.")
+        n = int(m.numero or 1)
+        parti.append(f"MOTORE: {'n. ' + str(n) + ' motori identici' if n > 1 else 'singolo motore'} modello {m.modello}, anno {m.anno}, ore moto {m.ore or 0:g} ciascuno, stato generale {m.stato}."
+                     + (" La quotazione del motore deve riferirsi all'insieme dei motori." if n > 1 else ""))
     if p.gommone:
         g = p.gommone
-        tub = f"tubolari rifatti/nuovi da {g.tubolari_anni} anni" if g.tubolari_nuovi and g.tubolari_anni is not None else ("tubolari nuovi" if g.tubolari_nuovi else "tubolari originali")
-        parti.append(f"GOMMONE: modello {g.modello}, anno {g.anno}, stato generale {g.stato}, {tub}.")
+        if g.tipo == "barca":
+            parti.append(f"IMBARCAZIONE (barca a motore in vetroresina/legno, non gommone): modello {g.modello}, anno {g.anno}, stato generale {g.stato}.")
+        else:
+            tub = f"tubolari rifatti/nuovi da {g.tubolari_anni} anni" if g.tubolari_nuovi and g.tubolari_anni is not None else ("tubolari nuovi" if g.tubolari_nuovi else "tubolari originali")
+            parti.append(f"IMBARCAZIONE (gommone): modello {g.modello}, anno {g.anno}, stato generale {g.stato}, {tub}.")
     if p.note:
         parti.append(f"Note aggiuntive: {p.note}")
     return "\n".join(parti)
@@ -99,7 +106,7 @@ async def _elabora(vid: str, p: ValutazioneIn):
     anno = datetime.now().year
     schema = {
         "motore": {"valore_min": 0, "valore_max": 0, "valore_consigliato": 0, "prezzo_nuovo_stimato": 0, "fattori": ["..."], "note": "..."},
-        "gommone": {"valore_min": 0, "valore_max": 0, "valore_consigliato": 0, "prezzo_nuovo_stimato": 0, "fattori": ["..."], "note": "..."},
+        "gommone": {"valore_min": 0, "valore_max": 0, "valore_consigliato": 0, "prezzo_nuovo_stimato": 0, "fattori": ["..."], "note": "..."},  # imbarcazione (gommone o barca)
         "totale": {"valore_min": 0, "valore_max": 0, "valore_consigliato": 0},
         "commento": "sintesi in 2-3 frasi per il cliente",
     }
@@ -215,22 +222,23 @@ async def pdf_valutazione(vid: str):
         blocchi.append(("Cliente", [("Nominativo", d.get("cliente") or "—"), ("Telefono", d.get("telefono") or "—")]))
     if d.get("motore"):
         m, rm = d["motore"], r.get("motore") or {}
-        blocchi.append(("Motore fuoribordo", [
-            ("Modello", m["modello"]), ("Anno", str(m["anno"])), ("Ore moto", f"{float(m.get('ore') or 0):g} h"), ("Stato generale", str(m.get("stato", "")).capitalize()),
+        blocchi.append((f"Motore fuoribordo{' (n. ' + str(m.get('numero')) + ')' if int(m.get('numero') or 1) > 1 else ''}", [
+            ("Modello", m["modello"]), ("N° motori", str(int(m.get("numero") or 1))), ("Anno", str(m["anno"])), ("Ore moto", f"{float(m.get('ore') or 0):g} h"), ("Stato generale", str(m.get("stato", "")).capitalize()),
             ("Quotazione", f"{_eur(rm.get('valore_min'))} – {_eur(rm.get('valore_max'))}"), ("Valore consigliato", _eur(rm.get("valore_consigliato"))),
         ]))
     if d.get("gommone"):
         g, rg = d["gommone"], r.get("gommone") or {}
+        barca = g.get("tipo") == "barca"
         tub = (f"Rifatti da {g.get('tubolari_anni')} anni" if g.get("tubolari_nuovi") and g.get("tubolari_anni") is not None else ("Nuovi" if g.get("tubolari_nuovi") else "Originali"))
-        blocchi.append(("Gommone", [
-            ("Modello", g["modello"]), ("Anno", str(g["anno"])), ("Stato generale", str(g.get("stato", "")).capitalize()), ("Tubolari", tub),
+        blocchi.append(("Imbarcazione – " + ("Barca" if barca else "Gommone"), [
+            ("Modello", g["modello"]), ("Anno", str(g["anno"])), ("Stato generale", str(g.get("stato", "")).capitalize()), *([] if barca else [("Tubolari", tub)]),
             ("Quotazione", f"{_eur(rg.get('valore_min'))} – {_eur(rg.get('valore_max'))}"), ("Valore consigliato", _eur(rg.get("valore_consigliato"))),
         ]))
     if d.get("motore") and d.get("gommone") and r.get("totale"):
         t = r["totale"]
         blocchi.append(("Valutazione complessiva", [("Quotazione", f"{_eur(t.get('valore_min'))} – {_eur(t.get('valore_max'))}"), ("Valore consigliato", _eur(t.get("valore_consigliato")))]))
     righe = []
-    for k, lab in (("motore", "Motore"), ("gommone", "Gommone")):
+    for k, lab in (("motore", "Motore"), ("gommone", "Imbarcazione")):
         rr = r.get(k) or {}
         if rr.get("fattori"):
             righe.append(f"{lab} – fattori considerati: " + "; ".join(str(x) for x in rr["fattori"]))
