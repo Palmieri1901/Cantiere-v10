@@ -24,6 +24,7 @@ export default function LoginKey({ onLogged }) {
       mobileStore.login(k.trim().toUpperCase(), "", url);
       const r = await mobileApi().get("/me");
       mobileStore.login(k.trim().toUpperCase(), r.data.nome, url);
+      mobileStore.setFunzioni(r.data.funzioni ?? null);
       toast.success(`Benvenuto ${r.data.nome}`);
       onLogged();
     } catch (e) {

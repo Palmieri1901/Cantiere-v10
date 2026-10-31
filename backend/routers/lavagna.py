@@ -6,10 +6,10 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
 from database import db
-from routers.mobile import get_dipendente
+from routers.mobile import get_dipendente, richiede
 
 router = APIRouter(prefix="/lavagna")
-mobile_router = APIRouter(prefix="/api/mobile/lavagna")
+mobile_router = APIRouter(prefix="/api/mobile/lavagna", dependencies=[Depends(richiede("lavagna"))])
 
 TIPI = ("memo", "manca", "commissione", "urgente")
 

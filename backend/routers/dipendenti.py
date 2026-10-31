@@ -28,6 +28,10 @@ def _gen_key() -> str:
 class DipendenteIn(BaseModel):
     nome: str
     attivo: Optional[bool] = True
+    funzioni: Optional[List[str]] = None  # None = tutte le funzioni dell'app
+
+
+FUNZIONI_APP = ["nuovo", "listino", "officina", "capitaneria", "quotazione", "lavagna"]
 
 
 class QrImport(BaseModel):
@@ -78,7 +82,10 @@ async def create_dipendente(payload: DipendenteIn):
 
 @router.put("/dipendenti/{did}")
 async def update_dipendente(did: str, payload: DipendenteIn):
-    r = await db.dipendenti.update_one({"id": did}, {"$set": {"nome": capitalizza_nome(payload.nome), "attivo": bool(payload.attivo)}})
+    upd = {"nome": capitalizza_nome(payload.nome), "attivo": bool(payload.attivo)}
+    if payload.funzioni is not None:
+        upd["funzioni"] = [f for f in payload.funzioni if f in FUNZIONI_APP]
+    r = await db.dipendenti.update_one({"id": did}, {"$set": upd})
     if not r.matched_count:
         raise HTTPException(404, "Dipendente non trovato")
     return _pub(await db.dipendenti.find_one({"id": did}))

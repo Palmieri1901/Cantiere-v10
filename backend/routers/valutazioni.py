@@ -245,3 +245,15 @@ async def pdf_valutazione(vid: str):
     nome = (d.get("cliente") or (d.get("gommone") or {}).get("modello") or (d.get("motore") or {}).get("modello") or "usato").replace(" ", "_")
     return StreamingResponse(io.BytesIO(pdf), media_type="application/pdf",
                              headers={"Content-Disposition": f'inline; filename="Valutazione_{nome}.pdf"'})
+
+
+# ---------- App dipendenti (API key) ----------
+from fastapi import Depends  # noqa: E402
+from routers.mobile import richiede  # noqa: E402
+
+mobile_router = APIRouter(prefix="/api/mobile/valutazioni", dependencies=[Depends(richiede("quotazione"))])
+mobile_router.add_api_route("", crea_valutazione, methods=["POST"])
+mobile_router.add_api_route("", lista_valutazioni, methods=["GET"])
+mobile_router.add_api_route("/{vid}", get_valutazione, methods=["GET"])
+mobile_router.add_api_route("/{vid}/riprova", riprova_valutazione, methods=["POST"])
+mobile_router.add_api_route("/{vid}/pdf", pdf_valutazione, methods=["GET"])

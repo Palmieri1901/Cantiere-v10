@@ -684,9 +684,9 @@ async def leggi_targhetta(p: FotoIn):
 
 
 # ---------- App dipendenti ----------
-from routers.mobile import get_dipendente  # noqa: E402
+from routers.mobile import get_dipendente, richiede  # noqa: E402
 
-mobile_router = APIRouter(prefix="/api/mobile/officina")
+mobile_router = APIRouter(prefix="/api/mobile/officina", dependencies=[Depends(richiede("officina"))])
 
 
 @mobile_router.post("/chat")

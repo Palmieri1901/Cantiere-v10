@@ -11,6 +11,7 @@ import { confirmDialog } from "@/components/ConfirmDialog";
 import { RefreshCw, LogOut, Wifi, WifiOff, Sailboat, Home, ClipboardPlus, Package, Send, Wrench, Anchor, ClipboardList } from "lucide-react";
 import ChatOfficina from "@/pages/officina/ChatOfficina";
 import CapitaneriaMobile from "@/pages/app-dipendente/CapitaneriaMobile";
+import ValutazioniUsato from "@/pages/ValutazioniUsato";
 import { Lavagna } from "@/components/Lavagna";
 import AppLock from "@/components/AppLock";
 import { resetSblocco } from "@/lib/passkey";
@@ -47,11 +48,13 @@ export default function AppDipendente() {
     return () => { window.removeEventListener("online", on); window.removeEventListener("offline", off); };
   }, []);
 
+  const [funzioni, setFunzioni] = useState(() => mobileStore.getFunzioni());
   const aggiornaDati = async (silent) => {
     try {
       const a = mobileApi();
-      const [c, ar] = await Promise.all([a.get("/clienti"), a.get("/articoli")]);
+      const [c, ar, me] = await Promise.all([a.get("/clienti"), a.get("/articoli"), a.get("/me")]);
       mobileStore.setClienti(c.data); mobileStore.setArticoli(ar.data);
+      mobileStore.setFunzioni(me.data.funzioni ?? null); setFunzioni(me.data.funzioni ?? null);
       if (!silent) toast.success(`Aggiornati ${c.data.length} clienti e ${ar.data.length} articoli`);
     } catch (e) {
       if (e.response?.status === 401) { mobileStore.logout(); setLogged(false); toast.error("Chiave non più valida"); }
@@ -117,13 +120,14 @@ export default function AppDipendente() {
         {view === "listino" && <Listino />}
         {view === "officina" && <ChatOfficina client={mobileApi()} basePath="/officina" compact autore={mobileStore.getNome()} />}
         {view === "capitaneria" && <CapitaneriaMobile />}
+        {view === "quotazione" && <ValutazioniUsato client={mobileApi()} mobile />}
         {view === "lavagna" && <div className="space-y-3" data-testid="lavagna-mobile"><h2 className="font-display text-2xl font-semibold flex items-center gap-2"><ClipboardList className="w-6 h-6 text-primary" /> Lavagna</h2><Lavagna client={mobileApi()} basePath="/lavagna" compact /></div>}
         {view === "coda" && <Coda coda={coda} setCoda={salvaCoda} onSync={sincronizza} syncing={syncing} online={online} onModifica={(x) => { setInModifica(x); setView("nuovo"); }} />}
       </main>
 
-      <nav className="fixed bottom-0 left-0 right-0 max-w-lg mx-auto grid grid-cols-7 border-t border-border/60 bg-card">
-        {[["home", Home, "Home"], ["nuovo", ClipboardPlus, "Lavoro"], ["listino", Package, "Listino"], ["officina", Wrench, "Officina"], ["lavagna", ClipboardList, "Lavagna"], ["capitaneria", Anchor, "Capitan."], ["coda", Send, "Invia"]].map(([id, Icon, label]) => (
-          <button key={id} onClick={() => setView(id)} className={`py-2 flex flex-col items-center gap-0.5 text-[10px] font-medium relative ${view === id ? "text-primary" : "text-muted-foreground"}`} data-testid={`tab-${id === "nuovo" ? "nuovo-lavoro" : id}`}>
+      <nav className="fixed bottom-0 left-0 right-0 max-w-lg mx-auto flex border-t border-border/60 bg-card">
+        {[["home", Home, "Home"], ["nuovo", ClipboardPlus, "Lavoro"], ["listino", Package, "Listino"], ["officina", Wrench, "Officina"], ["lavagna", ClipboardList, "Lavagna"], ["capitaneria", Anchor, "Capitan."], ["coda", Send, "Invia"]].filter(([id]) => id === "home" || id === "coda" || funzioni === null || funzioni.includes(id)).map(([id, Icon, label]) => (
+          <button key={id} onClick={() => setView(id)} className={`flex-1 py-2 flex flex-col items-center gap-0.5 text-[10px] font-medium relative ${view === id ? "text-primary" : "text-muted-foreground"}`} data-testid={`tab-${id === "nuovo" ? "nuovo-lavoro" : id}`}>
             <Icon className="w-5 h-5" />{label}
             {id === "coda" && pendenti > 0 && <span className="absolute top-1 right-1/4 min-w-4 h-4 px-1 rounded-full bg-primary text-primary-foreground text-[10px] grid place-items-center" data-testid="coda-badge">{pendenti}</span>}
             {id === "lavagna" && nuoviLavagna > 0 && <span className="absolute top-1 right-1/4 min-w-4 h-4 px-1 rounded-full bg-rose-600 text-white text-[10px] grid place-items-center animate-pulse" data-testid="lavagna-badge">{nuoviLavagna}</span>}

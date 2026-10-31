@@ -28,7 +28,17 @@ class LavoriBatch(BaseModel):
 @router.get("/me")
 async def me(dip: dict = Depends(get_dipendente)):
     cant = await db.cantiere.find_one({"id": "default"}, {"_id": 0, "nome": 1}) or {}
-    return {"id": dip["id"], "nome": dip["nome"], "cantiere": cant.get("nome", "Gestionale GEBnautica")}
+    return {"id": dip["id"], "nome": dip["nome"], "cantiere": cant.get("nome", "Gestionale GEBnautica"), "funzioni": dip.get("funzioni")}
+
+
+def richiede(funzione: str):
+    """Dependency: il dipendente deve avere la funzione abilitata (None = tutte)."""
+    async def _check(dip: dict = Depends(get_dipendente)):
+        f = dip.get("funzioni")
+        if f is not None and funzione not in f:
+            raise HTTPException(403, "Funzione non abilitata per questo dipendente")
+        return dip
+    return _check
 
 
 @router.get("/clienti")

@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const KEYS = { key: "pm_mobile_key", nome: "pm_mobile_nome", clienti: "pm_mobile_clienti", articoli: "pm_mobile_articoli", coda: "pm_mobile_coda", url: "pm_mobile_url" };
+const KEYS = { key: "pm_mobile_key", nome: "pm_mobile_nome", clienti: "pm_mobile_clienti", articoli: "pm_mobile_articoli", coda: "pm_mobile_coda", url: "pm_mobile_url", funzioni: "pm_mobile_funzioni" };
 
 const read = (k, def) => { try { return JSON.parse(localStorage.getItem(k)) ?? def; } catch { return def; } };
 const write = (k, v) => localStorage.setItem(k, JSON.stringify(v));
@@ -8,6 +8,9 @@ const write = (k, v) => localStorage.setItem(k, JSON.stringify(v));
 export const mobileStore = {
   getKey: () => localStorage.getItem(KEYS.key) || "",
   getNome: () => localStorage.getItem(KEYS.nome) || "",
+  getFunzioni: () => read(KEYS.funzioni, null),
+  setFunzioni: (v) => write(KEYS.funzioni, v),
+  puo: (f) => { const l = read(KEYS.funzioni, null); return l === null || l.includes(f); },
   getUrl: () => localStorage.getItem(KEYS.url) || (window.location.hostname.startsWith("lavori.") ? window.location.origin : process.env.REACT_APP_BACKEND_URL),
   login: (key, nome, url) => { localStorage.setItem(KEYS.key, key); localStorage.setItem(KEYS.nome, nome); if (url) localStorage.setItem(KEYS.url, url); },
   logout: () => Object.values(KEYS).forEach((k) => localStorage.removeItem(k)),

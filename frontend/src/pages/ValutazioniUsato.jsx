@@ -23,7 +23,7 @@ const StatoSelect = ({ value, onChange, testId }) => (
   </Select>
 );
 
-export default function ValutazioniUsato() {
+export default function ValutazioniUsato({ client = api, mobile = false }) {
   const anno = new Date().getFullYear();
   const [conMotore, setConMotore] = useState(true);
   const [conGommone, setConGommone] = useState(true);
@@ -38,13 +38,13 @@ export default function ValutazioniUsato() {
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewName, setPreviewName] = useState("");
 
-  const load = () => api.get("/valutazioni").then((r) => setLista(r.data || [])).catch(() => {});
+  const load = () => client.get("/valutazioni").then((r) => setLista(r.data || [])).catch(() => {});
   useEffect(() => { load(); }, []);
 
   const attendi = async (id) => {
     for (let i = 0; i < 60; i++) {
       await new Promise((r) => setTimeout(r, 3000));
-      const d = (await api.get(`/valutazioni/${id}`)).data;
+      const d = (await client.get(`/valutazioni/${id}`)).data;
       if (d.stato === "pronta") return d;
       if (d.stato === "errore") throw new Error(d.errore || "Errore AI");
     }
@@ -64,7 +64,7 @@ export default function ValutazioniUsato() {
         foto_motore: conMotore ? fotoMotore : [],
         foto_gommone: conGommone ? fotoGommone : [],
       };
-      const r = await api.post("/valutazioni", body, { timeout: 120000 });
+      const r = await client.post("/valutazioni", body, { timeout: 120000 });
       setLista((l) => [r.data, ...l]);
       const pronta = await attendi(r.data.id);
       setLista((l) => l.map((x) => (x.id === pronta.id ? pronta : x)));
@@ -78,7 +78,7 @@ export default function ValutazioniUsato() {
 
   const riprova = async (v) => {
     try {
-      await api.post(`/valutazioni/${v.id}/riprova`);
+      await client.post(`/valutazioni/${v.id}/riprova`);
       setLista((l) => l.map((x) => (x.id === v.id ? { ...x, stato: "in_corso", errore: "" } : x)));
       const pronta = await attendi(v.id);
       setLista((l) => l.map((x) => (x.id === pronta.id ? pronta : x)));
@@ -88,19 +88,22 @@ export default function ValutazioniUsato() {
 
   const nomeFile = (v) => `Valutazione_${(v.cliente || v.gommone?.modello || v.motore?.modello || "usato").replace(/\s+/g, "_")}.pdf`;
   const apriPdf = async (v) => {
-    try { setPreviewName(nomeFile(v)); await openBlob(api, "get", `/valutazioni/${v.id}/pdf`, null, setPreviewUrl, setPreviewOpen); }
+    try {
+      if (mobile) { const r = await client.get(`/valutazioni/${v.id}/pdf`, { responseType: "blob" }); window.open(URL.createObjectURL(new Blob([r.data], { type: "application/pdf" })), "_blank"); return; }
+      setPreviewName(nomeFile(v)); await openBlob(client, "get", `/valutazioni/${v.id}/pdf`, null, setPreviewUrl, setPreviewOpen);
+    }
     catch (e) { toast.error(e.response?.data?.detail || "Errore PDF"); }
   };
   const elimina = async (v) => {
     if (!await confirmDialog("Eliminare questa valutazione?", { okLabel: "Elimina" })) return;
-    try { await api.delete(`/valutazioni/${v.id}`); setLista((l) => l.filter((x) => x.id !== v.id)); toast.success("Eliminata"); } catch { toast.error("Errore"); }
+    try { await client.delete(`/valutazioni/${v.id}`); setLista((l) => l.filter((x) => x.id !== v.id)); toast.success("Eliminata"); } catch { toast.error("Errore"); }
   };
 
   return (
     <div className="space-y-6" data-testid="valutazioni-page">
       <div>
         <div className="flex items-center gap-2 text-xs uppercase tracking-widest text-muted-foreground"><BadgeEuro className="w-4 h-4" /> Valutazioni usato</div>
-        <h1 className="font-serif text-3xl sm:text-4xl mt-1">Quotazione usato AI</h1>
+        <h1 className={`font-serif mt-1 ${mobile ? "text-2xl" : "text-3xl sm:text-4xl"}`}>Quotazione usato AI</h1>
         <p className="text-muted-foreground text-sm mt-1">Valore di mercato stile Eurotax di gommone e/o motore fuoribordo. Report PDF su carta intestata, inviabile su WhatsApp.</p>
       </div>
 
@@ -156,14 +159,14 @@ export default function ValutazioniUsato() {
               {v.stato === "errore" && <><span className="text-xs text-destructive" data-testid={`val-errore-${v.id}`}>{v.errore || "Errore AI"}</span><Button variant="outline" size="sm" onClick={() => riprova(v)} data-testid={`val-riprova-${v.id}`}>Riprova</Button></>}
               {v.risultato && <>
                 <Button variant="outline" size="sm" onClick={() => apriPdf(v)} data-testid={`val-pdf-${v.id}`}><FileText className="w-4 h-4 mr-1.5" /> PDF</Button>
-                <WhatsAppPdfButton url={`/valutazioni/${v.id}/pdf`} filename={nomeFile(v)} testo={`Valutazione usato${v.cliente ? ` per ${v.cliente}` : ""} – Cantiere GEB nautica`} testId={`val-wa-${v.id}`} />
+                <WhatsAppPdfButton url={`/valutazioni/${v.id}/pdf`} filename={nomeFile(v)} testo={`Valutazione usato${v.cliente ? ` per ${v.cliente}` : ""} – Cantiere GEB nautica`} testId={`val-wa-${v.id}`} client={mobile ? client : undefined} uploadPath={mobile ? "/condividi/pdf" : undefined} />
               </>}
-              <Button variant="ghost" size="icon" className="text-destructive" onClick={() => elimina(v)} data-testid={`val-del-${v.id}`}><Trash2 className="w-4 h-4" /></Button>
+              {!mobile && <Button variant="ghost" size="icon" className="text-destructive" onClick={() => elimina(v)} data-testid={`val-del-${v.id}`}><Trash2 className="w-4 h-4" /></Button>}
             </>
           } />
         ))}
       </div>
-      <PdfPreviewOverlay open={previewOpen} onClose={() => setPreviewOpen(false)} url={previewUrl} filename={previewName} />
+      {!mobile && <PdfPreviewOverlay open={previewOpen} onClose={() => setPreviewOpen(false)} url={previewUrl} filename={previewName} />}
     </div>
   );
 }

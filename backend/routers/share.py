@@ -21,6 +21,10 @@ def _bucket():
 
 @router.post("/pdf")
 async def carica_pdf(request: Request, file: UploadFile = File(...), filename: str = Form("documento.pdf")):
+    return await _carica(request, file, filename)
+
+
+async def _carica(request: Request, file: UploadFile, filename: str):
     data = await file.read()
     if not data[:5] == b"%PDF-":
         raise HTTPException(400, "Il file non è un PDF")
@@ -50,3 +54,14 @@ async def scarica_pdf(token: str):
     except Exception:
         raise HTTPException(404, "File non trovato")
     return StreamingResponse(io.BytesIO(data), media_type="application/pdf", headers={"Content-Disposition": f'inline; filename="{doc.get("filename", "documento.pdf")}"'})
+
+
+from fastapi import Depends  # noqa: E402
+from routers.mobile import get_dipendente  # noqa: E402
+
+mobile_router = APIRouter(prefix="/api/mobile/condividi")
+
+
+@mobile_router.post("/pdf")
+async def carica_pdf_mobile(request: Request, file: UploadFile = File(...), filename: str = Form("documento.pdf"), dip: dict = Depends(get_dipendente)):
+    return await _carica(request, file, filename)

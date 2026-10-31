@@ -290,9 +290,9 @@ async def _invia_email(cid: str, request: Request, inviata_da: str = ""):
 
 # ---------- App dipendenti ----------
 from fastapi import Depends  # noqa: E402
-from routers.mobile import get_dipendente  # noqa: E402
+from routers.mobile import get_dipendente, richiede  # noqa: E402
 
-mobile_router = APIRouter(prefix="/api/mobile/capitaneria")
+mobile_router = APIRouter(prefix="/api/mobile/capitaneria", dependencies=[Depends(richiede("capitaneria"))])
 
 
 @mobile_router.get("/impostazioni")
