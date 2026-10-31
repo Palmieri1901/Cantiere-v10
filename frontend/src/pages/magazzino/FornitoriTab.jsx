@@ -76,6 +76,7 @@ export default function FornitoriTab() {
               <TableHead>Password</TableHead>
               <TableHead className="text-right" title="Ricarico % predefinito applicato agli articoli di questo fornitore">Ricarico %</TableHead>
               <TableHead className="text-right" title="Aliquota IVA applicata ai prezzi di vendita di questo fornitore">IVA %</TableHead>
+              <TableHead className="text-right" title="Ricarico totale dal prezzo netto di acquisto al prezzo finito IVA inclusa">Totale (ric.+IVA)</TableHead>
               <TableHead className="text-right w-[140px]">Azioni</TableHead>
             </TableRow>
           </TableHeader>
@@ -94,6 +95,11 @@ export default function FornitoriTab() {
                     : <span className="text-muted-foreground">—</span>}
                 </TableCell>
                 <TableCell className="text-right font-mono-num text-sm" data-testid={`forn-iva-${f.id}`}>{Number(f.iva_percent ?? 22).toFixed(0)}%</TableCell>
+                <TableCell className="text-right font-mono-num text-sm" data-testid={`forn-ricarico-tot-${f.id}`}>
+                  {f.ricarico_default_percent != null
+                    ? <span className="font-semibold">+{(((1 + Number(f.ricarico_default_percent) / 100) * (1 + Number(f.iva_percent ?? 22) / 100) - 1) * 100).toFixed(1)}%</span>
+                    : <span className="text-muted-foreground">—</span>}
+                </TableCell>
                 <TableCell className="text-right">
                   <Button variant="ghost" size="icon" onClick={() => setApplyMarkup({ fornitore: f, reason: "manual" })} disabled={f.ricarico_default_percent == null} title={f.ricarico_default_percent == null ? "Imposta prima un ricarico %" : `Applica +${Number(f.ricarico_default_percent).toFixed(1)}% a tutti gli articoli`} data-testid={`btn-applica-ricarico-${f.id}`}>
                     <Percent className="w-3.5 h-3.5 text-primary" />
@@ -133,7 +139,7 @@ export default function FornitoriTab() {
                 ? <>Hai modificato il ricarico di <b>{applyMarkup?.fornitore?.nome}</b> a <b>+{Number(applyMarkup?.fornitore?.ricarico_default_percent ?? 0).toFixed(1)}%</b>. Vuoi ricalcolare il <b>prezzo di listino</b> di TUTTI gli articoli di questo fornitore usando il nuovo ricarico?</>
                 : <>Ricalcolare il <b>prezzo di listino</b> di TUTTI gli articoli di <b>{applyMarkup?.fornitore?.nome}</b> applicando il ricarico corrente <b>+{Number(applyMarkup?.fornitore?.ricarico_default_percent ?? 0).toFixed(1)}%</b> al prezzo di acquisto?</>}
               <br/><br/>
-              <span className="text-xs text-muted-foreground">Formula: prezzo_listino = prezzo_acquisto × (1 + ricarico%). Gli articoli senza prezzo di acquisto verranno saltati.</span>
+              <span className="text-xs text-muted-foreground">Formula: vendita netto = acquisto netto × (1 + ricarico%) · prezzo finito = vendita netto × (1 + IVA {Number(applyMarkup?.fornitore?.iva_percent ?? 22)}%). Gli articoli senza prezzo di acquisto verranno saltati.</span>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

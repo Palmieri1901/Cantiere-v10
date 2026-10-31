@@ -99,7 +99,12 @@ export default function FornitoreForm({ open, onOpenChange, value, onSaved }) {
             </div>
           </FormField>
           <div className="text-[11px] text-muted-foreground col-span-2 -mt-1" data-testid="forn-hint-ricarico">
-            Prezzo vendita = acquisto × (1 + ricarico%) · Prezzo IVA inclusa = vendita × (1 + IVA%). Il ricarico è applicato ai nuovi articoli da DDT e al ricalcolo del listino; gli articoli con ricarico impostato a mano non vengono toccati.
+            Prezzo finito = acquisto netto × (1 + ricarico%) × (1 + IVA%). Il ricalcolo del listino e i nuovi articoli da DDT usano questi due valori; gli articoli con ricarico impostato a mano non vengono toccati.
+            {form.ricarico_default_percent != null && (() => {
+              const r = Number(form.ricarico_default_percent) || 0, i = Number(form.iva_percent ?? 22) || 0;
+              const netto = 100 * (1 + r / 100), fin = netto * (1 + i / 100);
+              return <div className="mt-1 font-mono-num text-foreground" data-testid="forn-esempio-ricarico">Esempio: acquisto 100,00 € → +{r}% = {netto.toFixed(2)} € → +IVA {i}% = <b>{fin.toFixed(2)} €</b> finito (ricarico totale +{(fin - 100).toFixed(1)}%)</div>;
+            })()}
           </div>
           <FormField label="Note" full><Textarea rows={2} value={form.note || ""} onChange={(e) => set("note", e.target.value)} /></FormField>
         </div>

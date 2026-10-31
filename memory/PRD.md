@@ -1087,3 +1087,6 @@ Backend spezzato in moduli (`server.py` ora 112 righe, prima 2761):
 
 ## 2026-10-31 — Preventivi esterni: IVA fornitore
 - Il netto proposto da magazzino è prezzoIvato(a) / (1 + iva_pct preventivo): il cliente paga sempre il prezzo IVA inclusa calcolato con l'IVA del fornitore. Etichetta mostra netto + IVA% = ivato (e IVA fornitore se diversa).
+
+## 2026-10-31 — Fornitori: ricarico in due valori con anteprima
+- Form fornitore: Ricarico % + IVA % con esempio live (100 → ricaricato → finito, ricarico totale). Tabella fornitori: colonna "Totale (ric.+IVA)". Etichette articoli: Acquisto netto / Vendita netto / Prezzo finito IVA inc.

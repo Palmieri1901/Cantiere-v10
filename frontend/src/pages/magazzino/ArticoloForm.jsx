@@ -155,7 +155,7 @@ export default function ArticoloForm({ open, onOpenChange, value, fornitori, onS
               Seleziona a cosa si riferisce il prezzo. Verrà mostrato ovunque accanto ai valori (es. €/{form.unita_misura || "pz"}).
             </div>
           </FormField>
-          <FormField label={`Prezzo acquisto + IVA € / ${form.unita_misura || "pz"}`}>
+          <FormField label={`Prezzo acquisto netto € / ${form.unita_misura || "pz"}`}>
             <Input type="number" step="0.01" value={form.prezzo_acquisto} onChange={(e) => setAcquisto(e.target.value)} data-testid="input-prezzo-acquisto" />
             {ricDefault !== null && ricDefault !== undefined && <div className="text-[11px] text-muted-foreground mt-1">Cambiando l'acquisto, la vendita si aggiorna con il ricarico corrente{Number(form.prezzo_acquisto) > 0 && Number(form.prezzo_listino) > 0 ? "" : ` (${ricDefault}% del fornitore)`}.</div>}
           </FormField>
@@ -170,10 +170,10 @@ export default function ArticoloForm({ open, onOpenChange, value, fornitori, onS
               </div>
             </FormField>
           )}
-          <FormField label={`Prezzo vendita + IVA € / ${form.unita_misura || "pz"}`}>
+          <FormField label={`Prezzo vendita netto (acquisto + ricarico) € / ${form.unita_misura || "pz"}`}>
             <Input type="number" step="0.01" value={form.prezzo_listino} onChange={(e) => set("prezzo_listino", e.target.value)} data-testid="input-prezzo-listino" />
           </FormField>
-          <FormField label={`Prezzo vendita IVA inc. (${ivaForn}%) € / ${form.unita_misura || "pz"}`} full>
+          <FormField label={`Prezzo finito IVA inc. (${ivaForn}%) € / ${form.unita_misura || "pz"}`} full>
             <Input
               type="text"
               readOnly
