@@ -1,0 +1,33 @@
+{
+  "summary": "Tested the fix for the 'Valutazioni usato' barca 0 € bug. The backend was run against the live AI 3 times and passed every time. Barca (Jeanneau Cap Camarat 755 2008 usurato + 2x Suzuki DF140 2008 1700h): motore 6000-8500/7200, gommone 17000-24000/20000, totale 23000-32500/27200, and totale = motore + gommone. Gommone (GEB 780 Tsunami 2016 buono, tubolari rifatti 2 anni, 1 motore): all values > 0 and consistent. The PDF returns 200 application/pdf. The pypdf text contains 'Imbarcazione – Barca' and 'N° motori', has no '0 € – 0 €', and the gommone PDF shows 'Rifatti da 2 anni'. Validation returns 400 for an empty body and for an invalid stato, and 404 for an unknown id. Unit tests of _normalizza cover the imbarcazione/barca aliases, deriving the gommone value from totale − motore, and deriving totale. Frontend smoke check: val-motore-numero and val-gommone-tipo are present, 7 cards are listed, and every val-quota-gommone-* (BARCA/GOMMONE) shows a non-zero amount.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "_normalizza (POST /api/valutazioni background)", "issue": "float() on AI values crashes when the AI returns strings like '6.000 €'. The exception is caught, so the valutazione is saved with stato 'errore' instead of being parsed. A '12.000' string is read as 12.0. A safe numeric parser (remove everything that is not a digit) would make this more robust."},
+      {"endpoint": "_normalizza", "issue": "Values are only derived when ALL 3 values of a mezzo are 0. Partial zeros (e.g. valore_consigliato 0 while min/max > 0) are not fixed. A gommone-only or motore-only valutazione with all zeros has no fallback (it is not retried)."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Valutazioni recenti cards", "issues": ["Thousands separators are inconsistent: 4-digit amounts show as '2600 € – 3400 €' while 5-digit ones show as '26.000 €'. it-IT Intl does not group 4-digit numbers by default; use useGrouping 'always' or a manual formatter."]}
+    ]
+  },
+  "test_report_links": ["/app/backend/tests/test_valutazioni_barca_fix.py", "/app/backend/tests/test_valutazioni_normalizza_unit.py", "/app/test_reports/pytest/pytest_valutazioni.xml"],
+  "action_items": [
+    "Optional: make the AI value parsing robust to string amounts in _normalizza",
+    "Optional: fix the inconsistent thousands formatting for 4-digit amounts in ValutazioneCard"
+  ],
+  "critical_code_review_comments": [
+    "_normalizza: use a helper like num(v) that strips non-digits, so one malformed AI value does not turn the whole valutazione into 'errore'",
+    "For single-mezzo valutazioni, consider re-asking the AI if all values are 0"
+  ],
+  "updated_files": ["/app/backend/tests/test_valutazioni_barca_fix.py", "/app/backend/tests/test_valutazioni_normalizza_unit.py"],
+  "success_rate": {"backend": "100% (9/9)", "frontend": "100% (smoke)"},
+  "test_credentials": "password 'admin' on POST /api/auth/login",
+  "seed_data_creation": "TEST_barca / TEST_gommone valutazioni were created and deleted in teardown",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "The valutazioni tests call the real AI (about 20s each). Run them with -n0 -s to see the values. The PDF text from pypdf puts labels and values in separate columns."
+}
