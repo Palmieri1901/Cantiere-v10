@@ -1125,3 +1125,6 @@ Backend spezzato in moduli (`server.py` ora 112 righe, prima 2761):
 
 ## 2026-10-31 — Dipendenti: layout mobile righe
 - Riga dipendente in colonna su mobile (testo sopra, tasti sotto); dialog funzioni scrollabile.
+
+## 2026-10-31 — App dipendenti: prezzi bloccati + listini PDF
+- NuovoLavoro: prezzo articoli liberi in sola lettura (da listino tariffe); backend /mobile/lavori scarta prezzo_unitario degli articoli magazzino. Nuovi endpoint /mobile/listini e /mobile/listini/{gommoni|accessori|suzuki|magazzino}.pdf (listini pubblici); sezione "Listini al pubblico (PDF)" con apri + WhatsApp nella scheda Listino.

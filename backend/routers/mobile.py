@@ -87,5 +87,36 @@ async def tariffe_mobile(dip: dict = Depends(get_dipendente)):
 
 @router.post("/lavori")
 async def invia_lavori(payload: LavoriBatch, dip: dict = Depends(get_dipendente)):
+    # I dipendenti non possono variare i prezzi: gli articoli di magazzino prendono il prezzo di listino al momento dell'approvazione
+    for lav in payload.lavori:
+        for a in lav.get("articoli") or []:
+            a.pop("prezzo_unitario", None)
     nuovi = await inserisci_pending(payload.lavori, dip, "api")
     return {"ok": True, "ricevuti": len(payload.lavori), "nuovi": nuovi}
+
+
+LISTINI_PUBBLICI = {
+    "gommoni": ("gommoni", "listino_pdf", "Listino_gommoni_GEB.pdf"),
+    "accessori": ("gommoni", "accessori_pdf", "Listino_accessori_gommoni.pdf"),
+    "suzuki": ("suzuki", "listino_pdf", "Listino_motori_Suzuki.pdf"),
+    "magazzino": ("magazzino", "listino_pdf", "Listino_magazzino.pdf"),
+}
+
+
+@router.get("/listini")
+async def listini_mobile(dip: dict = Depends(get_dipendente)):
+    return [{"tipo": "gommoni", "titolo": "Gommoni GEB", "desc": "Listino pubblico modelli"},
+            {"tipo": "accessori", "titolo": "Accessori gommoni", "desc": "Listino accessori per serie"},
+            {"tipo": "suzuki", "titolo": "Motori Suzuki", "desc": "Listino pubblico fuoribordo"},
+            {"tipo": "magazzino", "titolo": "Ricambi magazzino", "desc": "Prezzi al pubblico IVA inclusa"}]
+
+
+@router.get("/listini/{tipo}.pdf")
+async def listino_mobile_pdf(tipo: str, dip: dict = Depends(get_dipendente)):
+    import importlib
+    if tipo not in LISTINI_PUBBLICI:
+        raise HTTPException(404, "Listino non disponibile")
+    modulo, fn, nome = LISTINI_PUBBLICI[tipo]
+    resp = await getattr(importlib.import_module(f"routers.{modulo}"), fn)()
+    resp.headers["Content-Disposition"] = f'inline; filename="{nome}"'
+    return resp

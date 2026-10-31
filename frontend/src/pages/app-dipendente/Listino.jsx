@@ -4,6 +4,7 @@ import { fmtEuro } from "@/lib/api";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Search } from "lucide-react";
+import ListiniPdfMobile from "@/pages/app-dipendente/ListiniPdfMobile";
 
 const norm = (s) => (s || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 
@@ -28,13 +29,15 @@ export default function Listino() {
   return (
     <div className="space-y-3" data-testid="listino-mobile">
       <div>
-        <h2 className="font-display text-2xl font-semibold">Listino magazzino</h2>
-        <p className="text-xs text-muted-foreground">{articoli.length} articoli · prezzi al pubblico IVA inclusa</p>
+        <h2 className="font-display text-2xl font-semibold">Listini</h2>
+        <p className="text-xs text-muted-foreground">Prezzi al pubblico IVA inclusa · sola consultazione</p>
       </div>
-      <div className="sticky top-[57px] z-10 bg-background py-1 space-y-2">
+      <ListiniPdfMobile />
+      <div className="label-mini pt-2">Cerca articolo in magazzino ({articoli.length})</div>
+      <div className="bg-background py-1 space-y-2">
         <div className="relative">
           <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-          <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Cerca per codice o descrizione…" className="pl-9 h-11" autoFocus data-testid="listino-cerca" />
+          <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Cerca per codice o descrizione…" className="pl-9 h-11" data-testid="listino-cerca" />
         </div>
         <div className="grid grid-cols-2 gap-2">
           <Select value={forn} onValueChange={setForn}>

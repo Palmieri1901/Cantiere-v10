@@ -169,7 +169,7 @@ export default function NuovoLavoro({ onSaved, iniziale = null, onAnnulla }) {
             <Input value={a.descrizione} onChange={(e) => setLibero(i, "descrizione", e.target.value)} placeholder="Descrizione articolo" className="flex-1 min-w-[150px] h-10" data-testid={`mobile-art-lib-descr-${i}`} />
             <Input type="number" inputMode="decimal" min="0" step="0.5" value={a.quantita} onChange={(e) => setLibero(i, "quantita", e.target.value)} className="w-16 h-10 text-right" placeholder="Q.tà" data-testid={`mobile-art-lib-qty-${i}`} />
             {a.unita && <span className="text-xs text-muted-foreground" data-testid={`mobile-art-lib-unita-${i}`}>{a.unita}</span>}
-            <div className="relative w-24"><span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">€</span><Input type="number" inputMode="decimal" min="0" step="0.01" value={a.prezzo_unitario} onChange={(e) => setLibero(i, "prezzo_unitario", e.target.value)} className="pl-6 h-10 text-right" placeholder="Prezzo" data-testid={`mobile-art-lib-price-${i}`} /></div>
+            <div className="w-24 h-10 flex items-center justify-end font-mono-num text-sm text-muted-foreground" title="Prezzo di listino: non modificabile dall'app" data-testid={`mobile-art-lib-price-${i}`}>{a.prezzo_unitario !== "" && a.prezzo_unitario != null ? fmtEuro(Number(a.prezzo_unitario) || 0) : "da listino"}</div>
             <button onClick={async () => { if (await confirmDialog("Rimuovere questo articolo?", { okLabel: "Rimuovi" })) set("articoli_liberi", f.articoli_liberi.filter((_, j) => j !== i)); }} data-testid={`mobile-art-lib-del-${i}`}><X className="w-4 h-4 text-destructive" /></button>
           </div>
         ))}
