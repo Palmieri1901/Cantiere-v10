@@ -28,14 +28,13 @@ def _mime(b64: str) -> str:
 
 
 async def _gemini_direct(api_key: str, system: str, prompt: str, images: List[str]) -> str:
-    primario = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash")
-    # In caso di 503/429 (modello sovraccarico) riprova e poi passa a modelli alternativi
-    modelli = [primario] + [m for m in ("gemini-2.5-flash-lite", "gemini-2.0-flash", "gemini-2.5-pro") if m != primario]
+    primario = os.environ.get("GEMINI_MODEL", "gemini-3.6-flash")
+    # In caso di 503/429/404 (modello sovraccarico o non più disponibile) riprova e poi passa a modelli alternativi
+    modelli = [primario] + [m for m in ("gemini-3.8-flash", "gemini-3.5-flash-lite", "gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-2.0-flash") if m != primario]
     parts = [{"text": prompt}] + [{"inline_data": {"mime_type": _mime(i), "data": i}} for i in images]
     body = {
         "system_instruction": {"parts": [{"text": system}]},
         "contents": [{"role": "user", "parts": parts}],
-        "generationConfig": {"temperature": 0.1},
     }
     ultimo = None
     async with httpx.AsyncClient(timeout=180) as client:
@@ -50,12 +49,16 @@ async def _gemini_direct(api_key: str, system: str, prompt: str, images: List[st
                 if r.status_code == 200:
                     break
                 ultimo = f"{r.status_code}: {r.text[:200]}"
+                if r.status_code in (404, 400) and "model" in r.text.lower():
+                    break  # modello non disponibile → passa al successivo
                 if r.status_code in (503, 429, 500):
                     await asyncio.sleep(2 * (tentativo + 1))
                     continue
                 raise HTTPException(502, f"Errore Gemini ({r.status_code}): {r.text[:200]}")
             else:
                 continue  # modello esaurito i tentativi → prova il successivo
+            if r.status_code != 200:
+                continue
             break
         else:
             raise HTTPException(503, f"Il servizio AI è momentaneamente sovraccarico su tutti i modelli disponibili. Riprova tra qualche minuto. (ultimo errore {ultimo})")
