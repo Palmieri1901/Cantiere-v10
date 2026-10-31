@@ -37,7 +37,7 @@ export default function PreventivoEsternoDialog({ esterno, preventivo, open, onC
   const setRiga = (i, k, v) => set("righe", f.righe.map((r, j) => j === i ? { ...r, [k]: v } : r));
   const addRiga = (r) => set("righe", [...f.righe, { ...r, _k: nextKey() }]);
 
-  const prezzoArticolo = (a) => (Number(f.iva_pct) > 0 ? +(Number(a.prezzo_listino || 0)).toFixed(2) : prezzoIvato(a));
+  const prezzoArticolo = (a) => (Number(f.iva_pct) > 0 ? +(prezzoIvato(a) / (1 + Number(f.iva_pct) / 100)).toFixed(2) : prezzoIvato(a));
 
   const trovati = useMemo(() => {
     const s = q.trim().toLowerCase();
@@ -92,7 +92,7 @@ export default function PreventivoEsternoDialog({ esterno, preventivo, open, onC
                 {trovati.map((a) => (
                   <button key={a.id} onClick={() => { addRiga({ tipo: "articolo", articolo_id: a.id, codice: a.codice, descrizione: a.nome, quantita: 1, prezzo_unitario: prezzoArticolo(a) }); setQ(""); }} className="w-full text-left px-3 py-2 hover:bg-muted text-sm flex justify-between gap-3" data-testid={`prev-art-${a.id}`}>
                     <span className="font-medium text-base leading-tight whitespace-normal"><Package className="w-3.5 h-3.5 inline mr-1.5 text-primary" />{a.nome}</span>
-                    <span className="font-mono-num text-xs text-muted-foreground shrink-0">{Number(f.iva_pct) > 0 ? `${fmtEuro(a.prezzo_listino || 0)} + IVA (${fmtEuro(prezzoIvato(a))} IVA inc.)` : `${fmtEuro(prezzoIvato(a))} IVA inc.`}</span>
+                    <span className="font-mono-num text-xs text-muted-foreground shrink-0">{Number(f.iva_pct) > 0 ? `${fmtEuro(prezzoArticolo(a))} + IVA ${Number(f.iva_pct)}% = ${fmtEuro(prezzoIvato(a))} IVA inc.${Number(a.iva_percent ?? 22) !== Number(f.iva_pct) ? ` (IVA fornitore ${Number(a.iva_percent ?? 22)}%)` : ""}` : `${fmtEuro(prezzoIvato(a))} IVA inc.`}</span>
                   </button>
                 ))}
                 <button onClick={() => { addRiga({ tipo: "articolo", articolo_id: null, codice: "", descrizione: q.trim(), quantita: 1, prezzo_unitario: 0 }); setQ(""); }} className="w-full text-left px-3 py-2 hover:bg-muted text-sm text-primary" data-testid="prev-art-nuovo">

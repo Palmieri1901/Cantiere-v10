@@ -1084,3 +1084,6 @@ Backend spezzato in moduli (`server.py` ora 112 righe, prima 2761):
 
 ## 2026-10-31 — Fornitori: ricarico % + IVA %
 - Fornitore ha `iva_percent` (default 22). `iva_utils.py`: `iva_fornitori()` e `prezzo_ivato(art, iva_map)`. Articoli in lettura espongono `iva_percent` del fornitore; "Vendita IVA inc." in tabella/form/RicaricoCell/listino PDF/app dipendente/lavori usa l'IVA del fornitore. Form fornitore: due campi (Ricarico %, IVA %); colonna IVA % in tabella fornitori.
+
+## 2026-10-31 — Preventivi esterni: IVA fornitore
+- Il netto proposto da magazzino è prezzoIvato(a) / (1 + iva_pct preventivo): il cliente paga sempre il prezzo IVA inclusa calcolato con l'IVA del fornitore. Etichetta mostra netto + IVA% = ivato (e IVA fornitore se diversa).
