@@ -1100,3 +1100,6 @@ Backend spezzato in moduli (`server.py` ora 112 righe, prima 2761):
 
 ## 2026-10-31 — Valutazioni: elaborazione in background
 - POST crea doc stato in_corso e lancia BackgroundTask; GET /{id} per polling; /{id}/riprova; parsing JSON tollerante con fino a 3 tentativi AI. Frontend fa polling ogni 3 s, mostra "in corso"/"errore + Riprova". Risolto errore "Valutazione non riuscita" da timeout 30 s.
+
+## 2026-10-31 — Fix anteprima PDF valutazioni
+- Bug: setter wrapper passava una funzione updater come URL; ora stato separato previewUrl/previewOpen/previewName come nelle altre pagine.

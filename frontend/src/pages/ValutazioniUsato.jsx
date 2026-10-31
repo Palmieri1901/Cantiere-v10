@@ -31,7 +31,9 @@ export default function ValutazioniUsato() {
   const [gommone, setGommone] = useState({ modello: "", anno: anno - 5, stato: "buono", tubolari_nuovi: false, tubolari_anni: "" });
   const [busy, setBusy] = useState(false);
   const [lista, setLista] = useState([]);
-  const [preview, setPreview] = useState({ open: false, url: "", name: "" });
+  const [previewUrl, setPreviewUrl] = useState("");
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewName, setPreviewName] = useState("");
 
   const load = () => api.get("/valutazioni").then((r) => setLista(r.data || [])).catch(() => {});
   useEffect(() => { load(); }, []);
@@ -81,8 +83,8 @@ export default function ValutazioniUsato() {
 
   const nomeFile = (v) => `Valutazione_${(v.cliente || v.gommone?.modello || v.motore?.modello || "usato").replace(/\s+/g, "_")}.pdf`;
   const apriPdf = async (v) => {
-    try { await openBlob(api, "get", `/valutazioni/${v.id}/pdf`, null, (u) => setPreview((p) => ({ ...p, url: u, name: nomeFile(v) })), (o) => setPreview((p) => ({ ...p, open: o }))); }
-    catch { toast.error("Errore PDF"); }
+    try { setPreviewName(nomeFile(v)); await openBlob(api, "get", `/valutazioni/${v.id}/pdf`, null, setPreviewUrl, setPreviewOpen); }
+    catch (e) { toast.error(e.response?.data?.detail || "Errore PDF"); }
   };
   const elimina = async (v) => {
     if (!await confirmDialog("Eliminare questa valutazione?", { okLabel: "Elimina" })) return;
@@ -154,7 +156,7 @@ export default function ValutazioniUsato() {
           } />
         ))}
       </div>
-      <PdfPreviewOverlay open={preview.open} onClose={() => setPreview((p) => ({ ...p, open: false }))} url={preview.url} filename={preview.name} />
+      <PdfPreviewOverlay open={previewOpen} onClose={() => setPreviewOpen(false)} url={previewUrl} filename={previewName} />
     </div>
   );
 }
