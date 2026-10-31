@@ -1069,3 +1069,6 @@ Backend spezzato in moduli (`server.py` ora 112 righe, prima 2761):
 
 ## 2026-10-30 — Riferimenti bancari sui preventivi
 - Helper `banca_markup()` in pdf_builders; usato in alto a destra in: stima dei costi, preventivi esterni, preventivi Suzuki, preventivi gommoni. Dati sempre letti da `documenti_servizio` (Impostazioni).
+
+## 2026-10-30 — Magazzino: ordinamento
+- Selettore "Ordina per nome / per codice" nella barra filtri articoli (persistito in localStorage `mag_ordina`); ordinamento alfabetico naturale, vale anche dentro i gruppi per categoria.

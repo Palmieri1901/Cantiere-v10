@@ -79,7 +79,10 @@ export default function ArticoliTab() {
 
   useEffect(() => { load(); }, []);
 
+  const [ordina, setOrdina] = useState(() => localStorage.getItem("mag_ordina") || "nome");
+  useEffect(() => { localStorage.setItem("mag_ordina", ordina); }, [ordina]);
   const filtered = useMemo(() => {
+    const key = ordina === "codice" ? "codice" : "nome";
     return articoli.filter((a) => {
       if (fFornitore !== "all" && a.fornitore_id !== fFornitore) return false;
       if (fCategoria !== "all" && a.categoria !== fCategoria) return false;
@@ -89,8 +92,11 @@ export default function ArticoliTab() {
         if (![a.codice, a.nome, a.descrizione, a.categoria].filter(Boolean).some((v) => v.toLowerCase().includes(s))) return false;
       }
       return true;
+    }).sort((a, b) => {
+      if (key === "codice" && !a.codice !== !b.codice) return a.codice ? -1 : 1;
+      return (a[key] || "").localeCompare(b[key] || "", "it", { numeric: true, sensitivity: "base" });
     });
-  }, [articoli, q, fFornitore, fCategoria, soloSottoScorta]);
+  }, [articoli, q, fFornitore, fCategoria, soloSottoScorta, ordina]);
 
   const fornMap = useMemo(() => Object.fromEntries(fornitori.map((f) => [f.id, f.nome])), [fornitori]);
 
@@ -295,6 +301,15 @@ export default function ArticoliTab() {
             <SelectContent>
               <SelectItem value="all">Tutte le categorie</SelectItem>
               {categorie.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <Select value={ordina} onValueChange={setOrdina}>
+            <SelectTrigger className="w-[170px]" data-testid="sort-articoli">
+              <SelectValue placeholder="Ordina per" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="nome" data-testid="sort-articoli-nome">Ordina per nome</SelectItem>
+              <SelectItem value="codice" data-testid="sort-articoli-codice">Ordina per codice</SelectItem>
             </SelectContent>
           </Select>
           <Button
