@@ -33,6 +33,7 @@ import Mezzi from "@/pages/Mezzi";
 import Calendario from "@/pages/Calendario";
 import Anagrafica from "@/pages/Anagrafica";
 import Officina from "@/pages/Officina";
+import ValutazioniUsato from "@/pages/ValutazioniUsato";
 import { isAppDipendentiHost } from "@/lib/appHost";
 
 function App() {
@@ -82,6 +83,7 @@ function App() {
                 <Route path="/clienti" element={<Clienti />} />
                 <Route path="/anagrafica" element={<Anagrafica />} />
                 <Route path="/officina" element={<Officina />} />
+                <Route path="/valutazioni" element={<ValutazioniUsato />} />
                 <Route path="/posti-barca" element={<PostiBarca />} />
                 <Route path="/tariffe" element={<Tariffe />} />
                 <Route path="/impostazioni" element={<Impostazioni />} />

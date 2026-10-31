@@ -1093,3 +1093,7 @@ Backend spezzato in moduli (`server.py` ora 112 righe, prima 2761):
 
 ## 2026-10-31 — Magazzino: colonna Ricarico / IVA / Tot.
 - RicaricoCell mostra ricarico fornitore, IVA fornitore e ricarico totale; popover e form articolo mostrano la catena acquisto netto + ricarico = vendita netto + IVA = prezzo al pubblico.
+
+## 2026-10-31 — Valutazioni usato (nuovo modulo)
+- Backend `routers/valutazioni.py` (`/api/valutazioni` POST/GET/DELETE, `/{id}/pdf`): quotazione AI (Claude via ai_client.testo) di motore (modello, anno, ore, stato) e/o gommone (modello, anno, stato, tubolari rifatti + anni); risultato JSON min/max/consigliato + fattori + commento; salvato in `valutazioni`. PDF su carta intestata via build_documento_servizio_pdf.
+- Frontend `/valutazioni` (ValutazioniUsato.jsx + valutazioni/ValutazioneCard.jsx), tile in Home e voce menu. Anteprima PDF + tasto WhatsApp + elimina con conferma.

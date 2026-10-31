@@ -1,0 +1,131 @@
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
+import { api } from "@/lib/api";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { BadgeEuro, FileText, Trash2, Loader2, Sparkles } from "lucide-react";
+import { PdfPreviewOverlay } from "@/components/PdfPreviewOverlay";
+import { WhatsAppPdfButton } from "@/components/WhatsAppPdfButton";
+import { confirmDialog } from "@/components/ConfirmDialog";
+import { openBlob } from "@/pages/ddt/common";
+import { ValutazioneCard } from "@/pages/valutazioni/ValutazioneCard";
+
+const L = ({ children }) => <label className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">{children}</label>;
+const STATI = [["ottimo", "Ottimo"], ["buono", "Buono"], ["pessimo", "Pessimo"]];
+const StatoSelect = ({ value, onChange, testId }) => (
+  <Select value={value} onValueChange={onChange}>
+    <SelectTrigger data-testid={testId}><SelectValue /></SelectTrigger>
+    <SelectContent>{STATI.map(([v, l]) => <SelectItem key={v} value={v}>{l}</SelectItem>)}</SelectContent>
+  </Select>
+);
+
+export default function ValutazioniUsato() {
+  const anno = new Date().getFullYear();
+  const [conMotore, setConMotore] = useState(true);
+  const [conGommone, setConGommone] = useState(true);
+  const [cliente, setCliente] = useState({ cliente: "", telefono: "", note: "" });
+  const [motore, setMotore] = useState({ modello: "", anno: anno - 5, ore: "", stato: "buono" });
+  const [gommone, setGommone] = useState({ modello: "", anno: anno - 5, stato: "buono", tubolari_nuovi: false, tubolari_anni: "" });
+  const [busy, setBusy] = useState(false);
+  const [lista, setLista] = useState([]);
+  const [preview, setPreview] = useState({ open: false, url: "", name: "" });
+
+  const load = () => api.get("/valutazioni").then((r) => setLista(r.data || [])).catch(() => {});
+  useEffect(() => { load(); }, []);
+
+  const valuta = async () => {
+    if (!conMotore && !conGommone) { toast.error("Seleziona motore e/o gommone"); return; }
+    if (conMotore && !motore.modello.trim()) { toast.error("Indica il modello del motore"); return; }
+    if (conGommone && !gommone.modello.trim()) { toast.error("Indica il modello del gommone"); return; }
+    setBusy(true);
+    try {
+      const body = {
+        ...cliente,
+        motore: conMotore ? { ...motore, anno: Number(motore.anno), ore: Number(motore.ore) || 0 } : null,
+        gommone: conGommone ? { ...gommone, anno: Number(gommone.anno), tubolari_anni: gommone.tubolari_nuovi && gommone.tubolari_anni !== "" ? Number(gommone.tubolari_anni) : null } : null,
+      };
+      const r = await api.post("/valutazioni", body);
+      toast.success("Valutazione pronta");
+      setLista((l) => [r.data, ...l]);
+      await apriPdf(r.data);
+    } catch (e) { toast.error(e.response?.data?.detail || "Valutazione non riuscita"); } finally { setBusy(false); }
+  };
+
+  const nomeFile = (v) => `Valutazione_${(v.cliente || v.gommone?.modello || v.motore?.modello || "usato").replace(/\s+/g, "_")}.pdf`;
+  const apriPdf = async (v) => {
+    try { await openBlob(api, "get", `/valutazioni/${v.id}/pdf`, null, (u) => setPreview((p) => ({ ...p, url: u, name: nomeFile(v) })), (o) => setPreview((p) => ({ ...p, open: o }))); }
+    catch { toast.error("Errore PDF"); }
+  };
+  const elimina = async (v) => {
+    if (!await confirmDialog("Eliminare questa valutazione?", { okLabel: "Elimina" })) return;
+    try { await api.delete(`/valutazioni/${v.id}`); setLista((l) => l.filter((x) => x.id !== v.id)); toast.success("Eliminata"); } catch { toast.error("Errore"); }
+  };
+
+  return (
+    <div className="space-y-6" data-testid="valutazioni-page">
+      <div>
+        <div className="flex items-center gap-2 text-xs uppercase tracking-widest text-muted-foreground"><BadgeEuro className="w-4 h-4" /> Valutazioni usato</div>
+        <h1 className="font-serif text-3xl sm:text-4xl mt-1">Quotazione usato AI</h1>
+        <p className="text-muted-foreground text-sm mt-1">Valore di mercato stile Eurotax di gommone e/o motore fuoribordo. Report PDF su carta intestata, inviabile su WhatsApp.</p>
+      </div>
+
+      <Card className="p-4 sm:p-6 space-y-5">
+        <div className="grid sm:grid-cols-3 gap-3">
+          <div className="space-y-1.5"><L>Cliente (facoltativo)</L><Input value={cliente.cliente} onChange={(e) => setCliente({ ...cliente, cliente: e.target.value })} placeholder="Nome e cognome" data-testid="val-cliente" /></div>
+          <div className="space-y-1.5"><L>Telefono WhatsApp</L><Input value={cliente.telefono} onChange={(e) => setCliente({ ...cliente, telefono: e.target.value })} placeholder="es. 347…" data-testid="val-telefono" /></div>
+          <div className="space-y-1.5"><L>Note</L><Input value={cliente.note} onChange={(e) => setCliente({ ...cliente, note: e.target.value })} placeholder="Accessori, difetti, tagliandi…" data-testid="val-note" /></div>
+        </div>
+
+        <div className="grid lg:grid-cols-2 gap-4">
+          <div className={`rounded-lg border p-4 space-y-3 ${conMotore ? "" : "opacity-60"}`}>
+            <div className="flex items-center justify-between"><div className="font-semibold">Motore fuoribordo</div><Switch checked={conMotore} onCheckedChange={setConMotore} data-testid="val-switch-motore" /></div>
+            {conMotore && <>
+              <div className="space-y-1.5"><L>Modello</L><Input value={motore.modello} onChange={(e) => setMotore({ ...motore, modello: e.target.value })} placeholder="es. Suzuki DF140A" data-testid="val-motore-modello" /></div>
+              <div className="grid grid-cols-3 gap-3">
+                <div className="space-y-1.5"><L>Anno</L><Input type="number" value={motore.anno} onChange={(e) => setMotore({ ...motore, anno: e.target.value })} className="font-mono-num" data-testid="val-motore-anno" /></div>
+                <div className="space-y-1.5"><L>Ore moto</L><Input type="number" value={motore.ore} onChange={(e) => setMotore({ ...motore, ore: e.target.value })} className="font-mono-num" placeholder="es. 350" data-testid="val-motore-ore" /></div>
+                <div className="space-y-1.5"><L>Stato</L><StatoSelect value={motore.stato} onChange={(v) => setMotore({ ...motore, stato: v })} testId="val-motore-stato" /></div>
+              </div>
+            </>}
+          </div>
+          <div className={`rounded-lg border p-4 space-y-3 ${conGommone ? "" : "opacity-60"}`}>
+            <div className="flex items-center justify-between"><div className="font-semibold">Gommone</div><Switch checked={conGommone} onCheckedChange={setConGommone} data-testid="val-switch-gommone" /></div>
+            {conGommone && <>
+              <div className="space-y-1.5"><L>Modello</L><Input value={gommone.modello} onChange={(e) => setGommone({ ...gommone, modello: e.target.value })} placeholder="es. GEB 780 Tsunami" data-testid="val-gommone-modello" /></div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5"><L>Anno</L><Input type="number" value={gommone.anno} onChange={(e) => setGommone({ ...gommone, anno: e.target.value })} className="font-mono-num" data-testid="val-gommone-anno" /></div>
+                <div className="space-y-1.5"><L>Stato</L><StatoSelect value={gommone.stato} onChange={(v) => setGommone({ ...gommone, stato: v })} testId="val-gommone-stato" /></div>
+              </div>
+              <div className="flex flex-wrap items-center gap-3 pt-1">
+                <div className="flex items-center gap-2 text-sm"><Switch checked={gommone.tubolari_nuovi} onCheckedChange={(v) => setGommone({ ...gommone, tubolari_nuovi: v })} data-testid="val-gommone-tubolari" /> Tubolari rifatti / nuovi</div>
+                {gommone.tubolari_nuovi && <div className="flex items-center gap-2 text-sm">da <Input type="number" min="0" value={gommone.tubolari_anni} onChange={(e) => setGommone({ ...gommone, tubolari_anni: e.target.value })} className="w-20 h-8 font-mono-num" placeholder="0" data-testid="val-gommone-tubolari-anni" /> anni</div>}
+              </div>
+            </>}
+          </div>
+        </div>
+
+        <Button onClick={valuta} disabled={busy} className="w-full sm:w-auto" data-testid="val-calcola">
+          {busy ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Sparkles className="w-4 h-4 mr-2" />} {busy ? "Valuto con AI…" : "Calcola valutazione"}
+        </Button>
+      </Card>
+
+      <div className="space-y-3">
+        <div className="text-xs uppercase tracking-widest text-muted-foreground">Valutazioni recenti ({lista.length})</div>
+        {lista.length === 0 && <Card className="p-6 text-sm text-muted-foreground text-center" data-testid="val-vuoto">Nessuna valutazione ancora.</Card>}
+        {lista.map((v) => (
+          <ValutazioneCard key={v.id} v={v} actions={
+            <>
+              <Button variant="outline" size="sm" onClick={() => apriPdf(v)} data-testid={`val-pdf-${v.id}`}><FileText className="w-4 h-4 mr-1.5" /> PDF</Button>
+              <WhatsAppPdfButton url={`/valutazioni/${v.id}/pdf`} filename={nomeFile(v)} testo={`Valutazione usato${v.cliente ? ` per ${v.cliente}` : ""} – Cantiere GEB nautica`} testId={`val-wa-${v.id}`} />
+              <Button variant="ghost" size="icon" className="text-destructive" onClick={() => elimina(v)} data-testid={`val-del-${v.id}`}><Trash2 className="w-4 h-4" /></Button>
+            </>
+          } />
+        ))}
+      </div>
+      <PdfPreviewOverlay open={preview.open} onClose={() => setPreview((p) => ({ ...p, open: false }))} url={preview.url} filename={preview.name} />
+    </div>
+  );
+}

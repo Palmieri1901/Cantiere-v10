@@ -21,7 +21,7 @@ from routers import (
     tariffe, clienti, lavori, stats, export,
     cantiere, backup, preventivo, report, anni, contratti, magazzino, tubolari, suzuki, gommoni, ddt,
     dipendenti, mobile, esterni, servizio, capitaneria, mezzi, aggiornamenti, calendario, assistente, unisci, anagrafica, officina, officina_siti, fatturazione, webauthn_lock, lavagna, laser,
-    share,
+    share, valutazioni,
 )
 
 
@@ -42,6 +42,7 @@ api_router.include_router(anagrafica.router)
 api_router.include_router(share.router)
 api_router.include_router(officina.router)
 api_router.include_router(officina_siti.router)
+api_router.include_router(valutazioni.router)
 api_router.include_router(webauthn_lock.router)
 api_router.include_router(fatturazione.router)
 api_router.include_router(lavori.router)
