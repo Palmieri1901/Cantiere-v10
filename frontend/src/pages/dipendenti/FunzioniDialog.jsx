@@ -29,10 +29,10 @@ export function FunzioniDialog({ dip, onClose, onSaved }) {
   };
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-md" data-testid="dialog-funzioni-dip">
+      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto" data-testid="dialog-funzioni-dip">
         <DialogHeader>
           <DialogTitle>Funzioni app di {dip.nome}</DialogTitle>
-          <DialogDescription>Scegli cosa può usare questo dipendente nell'app. "Da inviare" è sempre disponibile.</DialogDescription>
+          <DialogDescription>Spunta le funzioni da dare a questo dipendente, togli la spunta per rimuoverle. "Da inviare" è sempre disponibile.</DialogDescription>
         </DialogHeader>
         <div className="space-y-2">
           {FUNZIONI_APP.map(([id, titolo, desc]) => (

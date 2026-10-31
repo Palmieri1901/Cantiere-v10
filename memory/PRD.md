@@ -1122,3 +1122,6 @@ Backend spezzato in moduli (`server.py` ora 112 righe, prima 2761):
 ## 2026-10-31 — App dipendenti: Quotazione usato + funzioni per dipendente
 - `valutazioni.mobile_router` (/api/mobile/valutazioni, API key) e `share.mobile_router` (/api/mobile/condividi/pdf). ValutazioniUsato accetta props `client`/`mobile`; WhatsAppPdfButton/condividiPdfWhatsApp accettano client+uploadPath. Voce "Quotazione usato" in home app.
 - Dipendente.funzioni (None = tutte; lista di nuovo/listino/officina/capitaneria/quotazione/lavagna). PUT /dipendenti accetta funzioni; /mobile/me le restituisce; dependency `richiede(f)` su router mobile valutazioni/capitaneria/officina/lavagna (403). Gestionale: tasto "Funzioni" per dipendente (FunzioniDialog). App: home e barra filtrate (Da inviare sempre).
+
+## 2026-10-31 — Dipendenti: layout mobile righe
+- Riga dipendente in colonna su mobile (testo sopra, tasti sotto); dialog funzioni scrollabile.

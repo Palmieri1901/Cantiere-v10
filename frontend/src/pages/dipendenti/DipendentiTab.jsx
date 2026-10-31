@@ -59,20 +59,22 @@ export default function DipendentiTab() {
       ) : (
         <div className="border border-border rounded-md divide-y divide-border">
           {list.map((d) => (
-            <div key={d.id} className="p-3 flex items-center gap-3 hover:bg-muted/40" data-testid={`dip-row-${d.id}`}>
+            <div key={d.id} className="p-3 flex flex-col sm:flex-row sm:items-center gap-3 hover:bg-muted/40" data-testid={`dip-row-${d.id}`}>
               <div className="flex-1 min-w-0">
                 <div className="font-medium text-sm flex items-center gap-2">{d.nome}
                   <Badge variant="outline" className={`text-[10px] ${d.attivo ? "text-emerald-700 border-emerald-300" : "text-muted-foreground"}`}>{d.attivo ? "Attivo" : "Disattivato"}</Badge>
                 </div>
-                <div className="text-xs text-muted-foreground font-mono">Chiave ····{d.key_hint} {d.ultimo_accesso ? `· ultimo accesso ${new Date(d.ultimo_accesso).toLocaleString("it-IT")}` : "· mai connesso"}</div>
+                <div className="text-xs text-muted-foreground font-mono break-words">Chiave ····{d.key_hint} {d.ultimo_accesso ? `· ultimo accesso ${new Date(d.ultimo_accesso).toLocaleString("it-IT")}` : "· mai connesso"}</div>
                 <div className="text-[11px] text-muted-foreground mt-0.5" data-testid={`dip-funzioni-${d.id}`}>
                   {d.funzioni == null || d.funzioni.length === FUNZIONI_APP.length ? "Tutte le funzioni" : d.funzioni.length === 0 ? "Nessuna funzione (solo invio)" : `Funzioni: ${FUNZIONI_APP.filter(([id]) => d.funzioni.includes(id)).map(([, t]) => t).join(", ")}`}
                 </div>
               </div>
-              <Button size="sm" variant="outline" onClick={() => setFunzDip(d)} data-testid={`btn-funzioni-${d.id}`}><SlidersHorizontal className="w-3.5 h-3.5 mr-1" /> Funzioni</Button>
-              <Button size="sm" variant="outline" onClick={() => rigenera(d)} data-testid={`btn-rigenera-${d.id}`}><KeyRound className="w-3.5 h-3.5 mr-1" /> Nuova chiave</Button>
-              <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => toggle(d)} title={d.attivo ? "Disattiva" : "Attiva"} data-testid={`btn-toggle-${d.id}`}><Power className="w-3.5 h-3.5" /></Button>
-              <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => del(d)} data-testid={`btn-del-dip-${d.id}`}><Trash2 className="w-3.5 h-3.5 text-destructive" /></Button>
+              <div className="flex items-center gap-2 flex-wrap">
+                <Button size="sm" variant="outline" onClick={() => setFunzDip(d)} data-testid={`btn-funzioni-${d.id}`}><SlidersHorizontal className="w-3.5 h-3.5 mr-1" /> Funzioni</Button>
+                <Button size="sm" variant="outline" onClick={() => rigenera(d)} data-testid={`btn-rigenera-${d.id}`}><KeyRound className="w-3.5 h-3.5 mr-1" /> Nuova chiave</Button>
+                <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => toggle(d)} title={d.attivo ? "Disattiva" : "Attiva"} data-testid={`btn-toggle-${d.id}`}><Power className="w-3.5 h-3.5" /></Button>
+                <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => del(d)} data-testid={`btn-del-dip-${d.id}`}><Trash2 className="w-3.5 h-3.5 text-destructive" /></Button>
+              </div>
             </div>
           ))}
         </div>
