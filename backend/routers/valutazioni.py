@@ -102,6 +102,29 @@ async def _chiedi(prompt: str, foto: list[str] | None = None) -> dict:
     raise ultimo
 
 
+def _normalizza(res: dict, p: ValutazioneIn) -> dict:
+    """Allinea le chiavi della risposta AI allo schema atteso e ricava i valori mancanti."""
+    for alias in ("imbarcazione", "barca", "scafo", "natante"):
+        if alias in res and "gommone" not in res:
+            res["gommone"] = res.pop(alias)
+    for alias in ("motori", "motore_fuoribordo"):
+        if alias in res and "motore" not in res:
+            res["motore"] = res.pop(alias)
+    chiavi = ("valore_min", "valore_max", "valore_consigliato")
+
+    def vuoto(k):
+        v = res.get(k) or {}
+        return not any(float(v.get(c) or 0) > 0 for c in chiavi)
+    tot = res.get("totale") or {}
+    if p.motore and p.gommone and any(float(tot.get(c) or 0) > 0 for c in chiavi):
+        for k, altro in (("gommone", "motore"), ("motore", "gommone")):
+            if vuoto(k) and not vuoto(altro):
+                res[k] = {**(res.get(k) or {}), **{c: max(0, float(tot.get(c) or 0) - float((res.get(altro) or {}).get(c) or 0)) for c in chiavi}}
+    if p.motore and p.gommone and not any(float(tot.get(c) or 0) > 0 for c in chiavi) and not vuoto("motore") and not vuoto("gommone"):
+        res["totale"] = {c: float(res["motore"].get(c) or 0) + float(res["gommone"].get(c) or 0) for c in chiavi}
+    return res
+
+
 async def _elabora(vid: str, p: ValutazioneIn):
     anno = datetime.now().year
     schema = {
@@ -112,7 +135,7 @@ async def _elabora(vid: str, p: ValutazioneIn):
     }
     prompt = (
         f"Anno corrente: {anno}.\n{_descr(p)}\n\n"
-        f"Restituisci JSON con questo schema (ometti la chiave 'motore' o 'gommone' se non presente, valori interi in euro, massimo 5 fattori brevi, note e commento concisi): {json.dumps(schema, ensure_ascii=False)}"
+        f"Restituisci JSON con questo schema (usa ESATTAMENTE le chiavi 'motore' per i motori e 'gommone' per l'imbarcazione, sia gommone che barca; ometti la chiave se il mezzo non è presente; ogni mezzo deve avere valori > 0; valori interi in euro, massimo 5 fattori brevi, note e commento concisi): {json.dumps(schema, ensure_ascii=False)}"
     )
     foto = [*(p.foto_motore or [])[:4], *(p.foto_gommone or [])[:4]]
     if foto:
@@ -121,7 +144,7 @@ async def _elabora(vid: str, p: ValutazioneIn):
                    "Esamina lo stato reale visibile (corrosione, graffi, usura tubolari, incollaggi, gelcoat, pulizia, accessori) e adegua la quotazione di conseguenza; "
                    "cita nei 'fattori' ciò che hai osservato nelle foto. Se le foto contraddicono lo stato dichiarato, segnalalo nelle note.")
     try:
-        res = await _chiedi(prompt, foto)
+        res = _normalizza(await _chiedi(prompt, foto), p)
         await db.valutazioni.update_one({"id": vid}, {"$set": {"risultato": res, "stato": "pronta"}})
     except Exception as e:
         msg = getattr(e, "detail", None) or str(e) or "Errore AI"

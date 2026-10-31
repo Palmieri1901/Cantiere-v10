@@ -1134,3 +1134,6 @@ Backend spezzato in moduli (`server.py` ora 112 righe, prima 2761):
 
 ## 2026-10-31 — Valutazioni: n° motori e tipo imbarcazione
 - MotoreIn.numero (quotazione per l insieme dei motori); GommoneIn.tipo gommone|barca (campo payload resta `gommone`, etichetta "Imbarcazione"); tubolari solo per gommone; PDF e card aggiornati.
+
+## 2026-11-01 — Fix valore barca 0 nelle valutazioni
+- `_normalizza`: mappa alias chiavi AI (imbarcazione/barca→gommone, motori→motore), ricava il valore mancante da totale − altro mezzo, calcola totale se assente; prompt impone chiavi esatte e valori > 0.
