@@ -12,6 +12,7 @@ import { WhatsAppPdfButton } from "@/components/WhatsAppPdfButton";
 import { confirmDialog } from "@/components/ConfirmDialog";
 import { openBlob } from "@/pages/ddt/common";
 import { ValutazioneCard } from "@/pages/valutazioni/ValutazioneCard";
+import { FotoPicker } from "@/pages/valutazioni/FotoPicker";
 
 const L = ({ children }) => <label className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">{children}</label>;
 const STATI = [["ottimo", "Ottimo"], ["buono", "Buono"], ["pessimo", "Pessimo"]];
@@ -29,6 +30,8 @@ export default function ValutazioniUsato() {
   const [cliente, setCliente] = useState({ cliente: "", telefono: "", note: "" });
   const [motore, setMotore] = useState({ modello: "", anno: anno - 5, ore: "", stato: "buono" });
   const [gommone, setGommone] = useState({ modello: "", anno: anno - 5, stato: "buono", tubolari_nuovi: false, tubolari_anni: "" });
+  const [fotoMotore, setFotoMotore] = useState([]);
+  const [fotoGommone, setFotoGommone] = useState([]);
   const [busy, setBusy] = useState(false);
   const [lista, setLista] = useState([]);
   const [previewUrl, setPreviewUrl] = useState("");
@@ -58,8 +61,10 @@ export default function ValutazioniUsato() {
         ...cliente,
         motore: conMotore ? { ...motore, anno: Number(motore.anno), ore: Number(motore.ore) || 0 } : null,
         gommone: conGommone ? { ...gommone, anno: Number(gommone.anno), tubolari_anni: gommone.tubolari_nuovi && gommone.tubolari_anni !== "" ? Number(gommone.tubolari_anni) : null } : null,
+        foto_motore: conMotore ? fotoMotore : [],
+        foto_gommone: conGommone ? fotoGommone : [],
       };
-      const r = await api.post("/valutazioni", body);
+      const r = await api.post("/valutazioni", body, { timeout: 120000 });
       setLista((l) => [r.data, ...l]);
       const pronta = await attendi(r.data.id);
       setLista((l) => l.map((x) => (x.id === pronta.id ? pronta : x)));
@@ -116,6 +121,7 @@ export default function ValutazioniUsato() {
                 <div className="space-y-1.5"><L>Ore moto</L><Input type="number" value={motore.ore} onChange={(e) => setMotore({ ...motore, ore: e.target.value })} className="font-mono-num" placeholder="es. 350" data-testid="val-motore-ore" /></div>
                 <div className="space-y-1.5"><L>Stato</L><StatoSelect value={motore.stato} onChange={(v) => setMotore({ ...motore, stato: v })} testId="val-motore-stato" /></div>
               </div>
+              <FotoPicker foto={fotoMotore} onChange={setFotoMotore} testId="val-foto-motore" />
             </>}
           </div>
           <div className={`rounded-lg border p-4 space-y-3 ${conGommone ? "" : "opacity-60"}`}>
@@ -130,6 +136,7 @@ export default function ValutazioniUsato() {
                 <div className="flex items-center gap-2 text-sm"><Switch checked={gommone.tubolari_nuovi} onCheckedChange={(v) => setGommone({ ...gommone, tubolari_nuovi: v })} data-testid="val-gommone-tubolari" /> Tubolari rifatti / nuovi</div>
                 {gommone.tubolari_nuovi && <div className="flex items-center gap-2 text-sm">da <Input type="number" min="0" value={gommone.tubolari_anni} onChange={(e) => setGommone({ ...gommone, tubolari_anni: e.target.value })} className="w-20 h-8 font-mono-num" placeholder="0" data-testid="val-gommone-tubolari-anni" /> anni</div>}
               </div>
+              <FotoPicker foto={fotoGommone} onChange={setFotoGommone} testId="val-foto-gommone" />
             </>}
           </div>
         </div>

@@ -11,7 +11,7 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
 from database import db
-from ai_client import testo
+from ai_client import testo, vision
 from pdf_builders import build_documento_servizio_pdf
 
 router = APIRouter(prefix="/valutazioni")
@@ -40,6 +40,8 @@ class ValutazioneIn(BaseModel):
     note: Optional[str] = ""
     motore: Optional[MotoreIn] = None
     gommone: Optional[GommoneIn] = None
+    foto_motore: Optional[list[str]] = []
+    foto_gommone: Optional[list[str]] = []
 
 
 SYSTEM = (
@@ -80,12 +82,13 @@ def _parse(raw: str) -> dict:
     raise HTTPException(502, "Risposta AI non interpretabile")
 
 
-async def _chiedi(prompt: str) -> dict:
+async def _chiedi(prompt: str, foto: list[str] | None = None) -> dict:
     ultimo = None
     for tentativo in range(3):
         try:
             extra = "" if tentativo == 0 else "\nATTENZIONE: la risposta precedente non era JSON valido. Rispondi ESCLUSIVAMENTE con un oggetto JSON valido, senza markdown, senza commenti, stringhe senza virgolette interne."
-            return _parse(await testo(SYSTEM, prompt + extra))
+            raw = await vision(SYSTEM, prompt + extra, foto) if foto else await testo(SYSTEM, prompt + extra)
+            return _parse(raw)
         except Exception as e:
             ultimo = e
     raise ultimo
@@ -103,8 +106,14 @@ async def _elabora(vid: str, p: ValutazioneIn):
         f"Anno corrente: {anno}.\n{_descr(p)}\n\n"
         f"Restituisci JSON con questo schema (ometti la chiave 'motore' o 'gommone' se non presente, valori interi in euro, massimo 5 fattori brevi, note e commento concisi): {json.dumps(schema, ensure_ascii=False)}"
     )
+    foto = [*(p.foto_motore or [])[:4], *(p.foto_gommone or [])[:4]]
+    if foto:
+        nm, ng = len((p.foto_motore or [])[:4]), len((p.foto_gommone or [])[:4])
+        prompt += (f"\n\nSono allegate {len(foto)} foto: le prime {nm} del motore, le successive {ng} del gommone. "
+                   "Esamina lo stato reale visibile (corrosione, graffi, usura tubolari, incollaggi, gelcoat, pulizia, accessori) e adegua la quotazione di conseguenza; "
+                   "cita nei 'fattori' ciò che hai osservato nelle foto. Se le foto contraddicono lo stato dichiarato, segnalalo nelle note.")
     try:
-        res = await _chiedi(prompt)
+        res = await _chiedi(prompt, foto)
         await db.valutazioni.update_one({"id": vid}, {"$set": {"risultato": res, "stato": "pronta"}})
     except Exception as e:
         msg = getattr(e, "detail", None) or str(e) or "Errore AI"
@@ -128,20 +137,27 @@ async def crea_valutazione(p: ValutazioneIn, bg: BackgroundTasks):
         "gommone": p.gommone.model_dump() if p.gommone else None,
         "risultato": None,
         "stato": "in_corso",
+        "n_foto": len((p.foto_motore or [])[:4]) + len((p.foto_gommone or [])[:4]),
+        "foto_motore": (p.foto_motore or [])[:4],
+        "foto_gommone": (p.foto_gommone or [])[:4],
     }
     await db.valutazioni.insert_one({**doc})
     bg.add_task(_elabora, doc["id"], p)
+    doc["foto_motore"], doc["foto_gommone"] = len(doc["foto_motore"]), len(doc["foto_gommone"])
     return doc
+
+
+_PROJ = {"_id": 0, "foto_motore": 0, "foto_gommone": 0}
 
 
 @router.get("")
 async def lista_valutazioni(limit: int = 100):
-    return await db.valutazioni.find({}, {"_id": 0}).sort("created_at", -1).to_list(limit)
+    return await db.valutazioni.find({}, _PROJ).sort("created_at", -1).to_list(limit)
 
 
 @router.get("/{vid}")
 async def get_valutazione(vid: str):
-    d = await db.valutazioni.find_one({"id": vid}, {"_id": 0})
+    d = await db.valutazioni.find_one({"id": vid}, _PROJ)
     if not d:
         raise HTTPException(404, "Valutazione non trovata")
     return d
@@ -153,10 +169,19 @@ async def riprova_valutazione(vid: str, bg: BackgroundTasks):
     if not d:
         raise HTTPException(404, "Valutazione non trovata")
     p = ValutazioneIn(cliente=d.get("cliente"), telefono=d.get("telefono"), note=d.get("note"),
-                      motore=MotoreIn(**d["motore"]) if d.get("motore") else None, gommone=GommoneIn(**d["gommone"]) if d.get("gommone") else None)
+                      motore=MotoreIn(**d["motore"]) if d.get("motore") else None, gommone=GommoneIn(**d["gommone"]) if d.get("gommone") else None,
+                      foto_motore=d.get("foto_motore") or [], foto_gommone=d.get("foto_gommone") or [])
     await db.valutazioni.update_one({"id": vid}, {"$set": {"stato": "in_corso", "errore": ""}})
     bg.add_task(_elabora, vid, p)
     return {"ok": True}
+
+
+@router.get("/{vid}/foto")
+async def foto_valutazione(vid: str):
+    d = await db.valutazioni.find_one({"id": vid}, {"_id": 0, "foto_motore": 1, "foto_gommone": 1})
+    if not d:
+        raise HTTPException(404, "Valutazione non trovata")
+    return {"foto_motore": d.get("foto_motore") or [], "foto_gommone": d.get("foto_gommone") or []}
 
 
 @router.delete("/{vid}")
@@ -181,6 +206,7 @@ async def pdf_valutazione(vid: str):
         raise HTTPException(404, "Valutazione non trovata")
     if not d.get("risultato"):
         raise HTTPException(400, "Valutazione non ancora pronta")
+    n_foto = len(d.get("foto_motore") or []) + len(d.get("foto_gommone") or [])
     cant = await db.cantiere.find_one({"id": "default"}, {"_id": 0}) or {}
     r = d.get("risultato") or {}
     blocchi = []
@@ -211,8 +237,9 @@ async def pdf_valutazione(vid: str):
             righe.append(f"{lab}: {rr['note']}")
     if r.get("commento"):
         righe.append(r["commento"])
-    righe.append("Valutazione indicativa elaborata con il supporto di intelligenza artificiale sulla base dei dati dichiarati e dei valori medi di mercato dell'usato nautico; non costituisce perizia. "
-                 "Il valore definitivo è soggetto a verifica diretta del mezzo.")
+    righe.append(("Valutazione indicativa elaborata con il supporto di intelligenza artificiale sulla base dei dati dichiarati" + (f" e di {n_foto} foto del mezzo" if n_foto else "") +
+                  " e dei valori medi di mercato dell'usato nautico; non costituisce perizia. ")
+                 + "Il valore definitivo è soggetto a verifica diretta del mezzo.")
     pdf = build_documento_servizio_pdf(cant, "VALUTAZIONE USATO", blocchi, testo="\n".join(righe))
     nome = (d.get("cliente") or (d.get("gommone") or {}).get("modello") or (d.get("motore") or {}).get("modello") or "usato").replace(" ", "_")
     return StreamingResponse(io.BytesIO(pdf), media_type="application/pdf",

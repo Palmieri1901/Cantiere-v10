@@ -1106,3 +1106,6 @@ Backend spezzato in moduli (`server.py` ora 112 righe, prima 2761):
 
 ## 2026-10-31 — PDF valutazioni: simbolo euro
 - Importi formattati "4.700 €" (simbolo dopo la cifra) per evitare la sovrapposizione del glifo € in Helvetica-Bold.
+
+## 2026-10-31 — Valutazioni: foto del mezzo
+- Fino a 4 foto per motore e 4 per gommone (compresse client-side a 1280px JPEG, FotoPicker.jsx). Backend usa `vision()` (Gemini) quando ci sono foto, salva le foto nel doc (escluse dalle liste), espone `n_foto`, `/{id}/foto`; PDF cita il numero di foto analizzate.

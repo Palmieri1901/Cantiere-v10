@@ -26,6 +26,7 @@ export function ValutazioneCard({ v, actions }) {
           <div className="text-xs text-muted-foreground mt-1 flex flex-wrap gap-x-3">
             {v.motore && <span>Motore {v.motore.anno} · {Number(v.motore.ore || 0)} h · {v.motore.stato}</span>}
             {v.gommone && <span>Gommone {v.gommone.anno} · {v.gommone.stato} · tubolari {v.gommone.tubolari_nuovi ? `rifatti${v.gommone.tubolari_anni != null ? ` da ${v.gommone.tubolari_anni} anni` : ""}` : "originali"}</span>}
+            {(v.n_foto || 0) > 0 && <span data-testid={`val-nfoto-${v.id}`}>{v.n_foto} foto analizzate</span>}
           </div>
           {r.commento && <p className="text-sm mt-2 leading-snug">{r.commento}</p>}
         </div>
