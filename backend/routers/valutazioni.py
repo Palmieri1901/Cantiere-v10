@@ -6,7 +6,7 @@ import uuid
 from datetime import datetime, timezone
 from typing import Optional
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, BackgroundTasks, HTTPException
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
@@ -71,19 +71,27 @@ def _parse(raw: str) -> dict:
     m = re.search(r"\{.*\}", s, re.S)
     if not m:
         raise HTTPException(502, "Risposta AI non valida")
-    try:
-        return json.loads(m.group(0))
-    except Exception:
-        raise HTTPException(502, "Risposta AI non interpretabile")
+    cand = m.group(0)
+    for fix in (lambda x: x, lambda x: re.sub(r",\s*([}\]])", r"\1", x), lambda x: re.sub(r",\s*([}\]])", r"\1", x.replace("\u20ac", "EUR").replace("\n", " "))):
+        try:
+            return json.loads(fix(cand))
+        except Exception:
+            continue
+    raise HTTPException(502, "Risposta AI non interpretabile")
 
 
-@router.post("")
-async def crea_valutazione(p: ValutazioneIn):
-    if not p.motore and not p.gommone:
-        raise HTTPException(400, "Indica almeno un motore o un gommone")
-    for s in [p.motore and p.motore.stato, p.gommone and p.gommone.stato]:
-        if s and s not in STATI:
-            raise HTTPException(400, "Stato non valido (ottimo/buono/pessimo)")
+async def _chiedi(prompt: str) -> dict:
+    ultimo = None
+    for tentativo in range(3):
+        try:
+            extra = "" if tentativo == 0 else "\nATTENZIONE: la risposta precedente non era JSON valido. Rispondi ESCLUSIVAMENTE con un oggetto JSON valido, senza markdown, senza commenti, stringhe senza virgolette interne."
+            return _parse(await testo(SYSTEM, prompt + extra))
+        except Exception as e:
+            ultimo = e
+    raise ultimo
+
+
+async def _elabora(vid: str, p: ValutazioneIn):
     anno = datetime.now().year
     schema = {
         "motore": {"valore_min": 0, "valore_max": 0, "valore_consigliato": 0, "prezzo_nuovo_stimato": 0, "fattori": ["..."], "note": "..."},
@@ -93,10 +101,23 @@ async def crea_valutazione(p: ValutazioneIn):
     }
     prompt = (
         f"Anno corrente: {anno}.\n{_descr(p)}\n\n"
-        f"Restituisci JSON con questo schema (ometti la chiave 'motore' o 'gommone' se non presente, valori interi in euro): {json.dumps(schema, ensure_ascii=False)}"
+        f"Restituisci JSON con questo schema (ometti la chiave 'motore' o 'gommone' se non presente, valori interi in euro, massimo 5 fattori brevi, note e commento concisi): {json.dumps(schema, ensure_ascii=False)}"
     )
-    raw = await testo(SYSTEM, prompt)
-    res = _parse(raw)
+    try:
+        res = await _chiedi(prompt)
+        await db.valutazioni.update_one({"id": vid}, {"$set": {"risultato": res, "stato": "pronta"}})
+    except Exception as e:
+        msg = getattr(e, "detail", None) or str(e) or "Errore AI"
+        await db.valutazioni.update_one({"id": vid}, {"$set": {"stato": "errore", "errore": str(msg)[:300]}})
+
+
+@router.post("")
+async def crea_valutazione(p: ValutazioneIn, bg: BackgroundTasks):
+    if not p.motore and not p.gommone:
+        raise HTTPException(400, "Indica almeno un motore o un gommone")
+    for s in [p.motore and p.motore.stato, p.gommone and p.gommone.stato]:
+        if s and s not in STATI:
+            raise HTTPException(400, "Stato non valido (ottimo/buono/pessimo)")
     doc = {
         "id": str(uuid.uuid4()),
         "created_at": datetime.now(timezone.utc).isoformat(),
@@ -105,16 +126,37 @@ async def crea_valutazione(p: ValutazioneIn):
         "note": (p.note or "").strip(),
         "motore": p.motore.model_dump() if p.motore else None,
         "gommone": p.gommone.model_dump() if p.gommone else None,
-        "risultato": res,
+        "risultato": None,
+        "stato": "in_corso",
     }
     await db.valutazioni.insert_one({**doc})
-    doc.pop("_id", None)
+    bg.add_task(_elabora, doc["id"], p)
     return doc
 
 
 @router.get("")
 async def lista_valutazioni(limit: int = 100):
     return await db.valutazioni.find({}, {"_id": 0}).sort("created_at", -1).to_list(limit)
+
+
+@router.get("/{vid}")
+async def get_valutazione(vid: str):
+    d = await db.valutazioni.find_one({"id": vid}, {"_id": 0})
+    if not d:
+        raise HTTPException(404, "Valutazione non trovata")
+    return d
+
+
+@router.post("/{vid}/riprova")
+async def riprova_valutazione(vid: str, bg: BackgroundTasks):
+    d = await db.valutazioni.find_one({"id": vid}, {"_id": 0})
+    if not d:
+        raise HTTPException(404, "Valutazione non trovata")
+    p = ValutazioneIn(cliente=d.get("cliente"), telefono=d.get("telefono"), note=d.get("note"),
+                      motore=MotoreIn(**d["motore"]) if d.get("motore") else None, gommone=GommoneIn(**d["gommone"]) if d.get("gommone") else None)
+    await db.valutazioni.update_one({"id": vid}, {"$set": {"stato": "in_corso", "errore": ""}})
+    bg.add_task(_elabora, vid, p)
+    return {"ok": True}
 
 
 @router.delete("/{vid}")
@@ -137,6 +179,8 @@ async def pdf_valutazione(vid: str):
     d = await db.valutazioni.find_one({"id": vid}, {"_id": 0})
     if not d:
         raise HTTPException(404, "Valutazione non trovata")
+    if not d.get("risultato"):
+        raise HTTPException(400, "Valutazione non ancora pronta")
     cant = await db.cantiere.find_one({"id": "default"}, {"_id": 0}) or {}
     r = d.get("risultato") or {}
     blocchi = []

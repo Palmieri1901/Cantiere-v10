@@ -36,6 +36,16 @@ export default function ValutazioniUsato() {
   const load = () => api.get("/valutazioni").then((r) => setLista(r.data || [])).catch(() => {});
   useEffect(() => { load(); }, []);
 
+  const attendi = async (id) => {
+    for (let i = 0; i < 60; i++) {
+      await new Promise((r) => setTimeout(r, 3000));
+      const d = (await api.get(`/valutazioni/${id}`)).data;
+      if (d.stato === "pronta") return d;
+      if (d.stato === "errore") throw new Error(d.errore || "Errore AI");
+    }
+    throw new Error("Tempo scaduto: riprova tra poco dall'elenco");
+  };
+
   const valuta = async () => {
     if (!conMotore && !conGommone) { toast.error("Seleziona motore e/o gommone"); return; }
     if (conMotore && !motore.modello.trim()) { toast.error("Indica il modello del motore"); return; }
@@ -48,10 +58,25 @@ export default function ValutazioniUsato() {
         gommone: conGommone ? { ...gommone, anno: Number(gommone.anno), tubolari_anni: gommone.tubolari_nuovi && gommone.tubolari_anni !== "" ? Number(gommone.tubolari_anni) : null } : null,
       };
       const r = await api.post("/valutazioni", body);
-      toast.success("Valutazione pronta");
       setLista((l) => [r.data, ...l]);
-      await apriPdf(r.data);
-    } catch (e) { toast.error(e.response?.data?.detail || "Valutazione non riuscita"); } finally { setBusy(false); }
+      const pronta = await attendi(r.data.id);
+      setLista((l) => l.map((x) => (x.id === pronta.id ? pronta : x)));
+      toast.success("Valutazione pronta");
+      await apriPdf(pronta);
+    } catch (e) {
+      toast.error(e.response?.data?.detail || e.message || "Valutazione non riuscita");
+      load();
+    } finally { setBusy(false); }
+  };
+
+  const riprova = async (v) => {
+    try {
+      await api.post(`/valutazioni/${v.id}/riprova`);
+      setLista((l) => l.map((x) => (x.id === v.id ? { ...x, stato: "in_corso", errore: "" } : x)));
+      const pronta = await attendi(v.id);
+      setLista((l) => l.map((x) => (x.id === pronta.id ? pronta : x)));
+      toast.success("Valutazione pronta");
+    } catch (e) { toast.error(e.response?.data?.detail || e.message || "Riprova non riuscita"); load(); }
   };
 
   const nomeFile = (v) => `Valutazione_${(v.cliente || v.gommone?.modello || v.motore?.modello || "usato").replace(/\s+/g, "_")}.pdf`;
@@ -118,8 +143,12 @@ export default function ValutazioniUsato() {
         {lista.map((v) => (
           <ValutazioneCard key={v.id} v={v} actions={
             <>
-              <Button variant="outline" size="sm" onClick={() => apriPdf(v)} data-testid={`val-pdf-${v.id}`}><FileText className="w-4 h-4 mr-1.5" /> PDF</Button>
-              <WhatsAppPdfButton url={`/valutazioni/${v.id}/pdf`} filename={nomeFile(v)} testo={`Valutazione usato${v.cliente ? ` per ${v.cliente}` : ""} – Cantiere GEB nautica`} testId={`val-wa-${v.id}`} />
+              {v.stato === "in_corso" && <span className="text-xs text-muted-foreground inline-flex items-center gap-1" data-testid={`val-stato-${v.id}`}><Loader2 className="w-3.5 h-3.5 animate-spin" /> Valutazione in corso…</span>}
+              {v.stato === "errore" && <><span className="text-xs text-destructive" data-testid={`val-errore-${v.id}`}>{v.errore || "Errore AI"}</span><Button variant="outline" size="sm" onClick={() => riprova(v)} data-testid={`val-riprova-${v.id}`}>Riprova</Button></>}
+              {v.risultato && <>
+                <Button variant="outline" size="sm" onClick={() => apriPdf(v)} data-testid={`val-pdf-${v.id}`}><FileText className="w-4 h-4 mr-1.5" /> PDF</Button>
+                <WhatsAppPdfButton url={`/valutazioni/${v.id}/pdf`} filename={nomeFile(v)} testo={`Valutazione usato${v.cliente ? ` per ${v.cliente}` : ""} – Cantiere GEB nautica`} testId={`val-wa-${v.id}`} />
+              </>}
               <Button variant="ghost" size="icon" className="text-destructive" onClick={() => elimina(v)} data-testid={`val-del-${v.id}`}><Trash2 className="w-4 h-4" /></Button>
             </>
           } />

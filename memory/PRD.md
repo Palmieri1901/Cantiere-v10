@@ -1097,3 +1097,6 @@ Backend spezzato in moduli (`server.py` ora 112 righe, prima 2761):
 ## 2026-10-31 — Valutazioni usato (nuovo modulo)
 - Backend `routers/valutazioni.py` (`/api/valutazioni` POST/GET/DELETE, `/{id}/pdf`): quotazione AI (Claude via ai_client.testo) di motore (modello, anno, ore, stato) e/o gommone (modello, anno, stato, tubolari rifatti + anni); risultato JSON min/max/consigliato + fattori + commento; salvato in `valutazioni`. PDF su carta intestata via build_documento_servizio_pdf.
 - Frontend `/valutazioni` (ValutazioniUsato.jsx + valutazioni/ValutazioneCard.jsx), tile in Home e voce menu. Anteprima PDF + tasto WhatsApp + elimina con conferma.
+
+## 2026-10-31 — Valutazioni: elaborazione in background
+- POST crea doc stato in_corso e lancia BackgroundTask; GET /{id} per polling; /{id}/riprova; parsing JSON tollerante con fino a 3 tentativi AI. Frontend fa polling ogni 3 s, mostra "in corso"/"errore + Riprova". Risolto errore "Valutazione non riuscita" da timeout 30 s.
