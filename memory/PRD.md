@@ -1137,3 +1137,6 @@ Backend spezzato in moduli (`server.py` ora 112 righe, prima 2761):
 
 ## 2026-11-01 — Fix valore barca 0 nelle valutazioni
 - `_normalizza`: mappa alias chiavi AI (imbarcazione/barca→gommone, motori→motore), ricava il valore mancante da totale − altro mezzo, calcola totale se assente; prompt impone chiavi esatte e valori > 0.
+
+## 2026-11-01 — Valutazioni: cestino anche in app dipendenti
+- DELETE /api/mobile/valutazioni/{id}; tasto cestino (con conferma) visibile anche in modalità mobile.

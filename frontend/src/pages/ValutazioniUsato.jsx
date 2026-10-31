@@ -170,7 +170,7 @@ export default function ValutazioniUsato({ client = api, mobile = false }) {
                 <Button variant="outline" size="sm" onClick={() => apriPdf(v)} data-testid={`val-pdf-${v.id}`}><FileText className="w-4 h-4 mr-1.5" /> PDF</Button>
                 <WhatsAppPdfButton url={`/valutazioni/${v.id}/pdf`} filename={nomeFile(v)} testo={`Valutazione usato${v.cliente ? ` per ${v.cliente}` : ""} – Cantiere GEB nautica`} testId={`val-wa-${v.id}`} client={mobile ? client : undefined} uploadPath={mobile ? "/condividi/pdf" : undefined} />
               </>}
-              {!mobile && <Button variant="ghost" size="icon" className="text-destructive" onClick={() => elimina(v)} data-testid={`val-del-${v.id}`}><Trash2 className="w-4 h-4" /></Button>}
+              <Button variant="ghost" size="icon" className="text-destructive" onClick={() => elimina(v)} data-testid={`val-del-${v.id}`}><Trash2 className="w-4 h-4" /></Button>
             </>
           } />
         ))}
