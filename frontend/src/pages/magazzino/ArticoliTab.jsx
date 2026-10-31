@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { api, API, fmtEuro } from "@/lib/api";
+import { api, API, fmtEuro, prezzoIvato } from "@/lib/api";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -206,7 +206,7 @@ export default function ArticoliTab() {
         <TableCell className="text-sm text-muted-foreground">{fornMap[a.fornitore_id] || "—"}</TableCell>
         <TableCell className="text-right font-mono-num text-muted-foreground">{fmtEuro(pa)}</TableCell>
         <TableCell className="text-right font-mono-num font-semibold">{fmtEuro(pv)}</TableCell>
-        <TableCell className="text-right font-mono-num text-primary" data-testid={`cell-pv-iva-${a.id}`}>{fmtEuro(pv * 1.22)}</TableCell>
+        <TableCell className="text-right font-mono-num text-primary" data-testid={`cell-pv-iva-${a.id}`}>{fmtEuro(prezzoIvato(a))}</TableCell>
         <TableCell className="text-right">
           <RicaricoCell a={a} onSaved={load} />
         </TableCell>
@@ -375,7 +375,7 @@ export default function ArticoliTab() {
                 <TableHead>Fornitore</TableHead>
                 <TableHead className="text-right">Prezzo acquisto + IVA</TableHead>
                 <TableHead className="text-right">Prezzo vendita + IVA</TableHead>
-                <TableHead className="text-right" title="Prezzo di vendita + IVA 22%">Vendita IVA inc.</TableHead>
+                <TableHead className="text-right" title="Prezzo di vendita + IVA del fornitore">Vendita IVA inc.</TableHead>
                 <TableHead className="text-right">Ricarico</TableHead>
                 <TableHead className="text-right w-[80px]">Giacenza</TableHead>
                 <TableHead className="text-right w-[170px]" title="Digita la quantità: ↑ carica (entrata), ↓ scarica (uscita). Invio = scarico">Carica / Scarica</TableHead>

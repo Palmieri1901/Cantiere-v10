@@ -73,11 +73,11 @@ export default function FornitoreForm({ open, onOpenChange, value, onSaved }) {
               </button>
             </div>
           </FormField>
-          <FormField label="Ricarico % predefinito" full>
+          <FormField label="Ricarico % predefinito">
             <div className="relative">
               <Input
                 type="number" step="0.1"
-                placeholder="Lascia vuoto per usare quello di categoria"
+                placeholder="es. 30"
                 value={form.ricarico_default_percent ?? ""}
                 onChange={(e) => set("ricarico_default_percent", e.target.value === "" ? null : Number(e.target.value))}
                 className="pr-8 font-mono-num"
@@ -85,10 +85,22 @@ export default function FornitoreForm({ open, onOpenChange, value, onSaved }) {
               />
               <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">%</span>
             </div>
-            <div className="text-[11px] text-muted-foreground mt-1">
-              Applicato ai nuovi articoli di questo fornitore importati da DDT e al ricalcolo del listino. Se una categoria ha un ricarico specifico, quello vince; gli articoli con ricarico impostato a mano non vengono toccati.
+          </FormField>
+          <FormField label="IVA %">
+            <div className="relative">
+              <Input
+                type="number" step="1" min="0"
+                value={form.iva_percent ?? 22}
+                onChange={(e) => set("iva_percent", e.target.value === "" ? 22 : Number(e.target.value))}
+                className="pr-8 font-mono-num"
+                data-testid="forn-input-iva"
+              />
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">%</span>
             </div>
           </FormField>
+          <div className="text-[11px] text-muted-foreground col-span-2 -mt-1" data-testid="forn-hint-ricarico">
+            Prezzo vendita = acquisto × (1 + ricarico%) · Prezzo IVA inclusa = vendita × (1 + IVA%). Il ricarico è applicato ai nuovi articoli da DDT e al ricalcolo del listino; gli articoli con ricarico impostato a mano non vengono toccati.
+          </div>
           <FormField label="Note" full><Textarea rows={2} value={form.note || ""} onChange={(e) => set("note", e.target.value)} /></FormField>
         </div>
         <DialogFooter>

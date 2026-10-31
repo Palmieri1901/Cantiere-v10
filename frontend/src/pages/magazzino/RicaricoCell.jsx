@@ -41,7 +41,7 @@ export function RicaricoCell({ a, onSaved }) {
         </div>
         <label className="block text-xs text-muted-foreground">Ricarico %
           <div className="relative mt-1"><Input type="number" step="1" value={perc} onChange={(e) => { setPerc(e.target.value); setPrezzo(""); }} className="pr-7 font-mono-num" disabled={pa <= 0} data-testid={`ricarico-perc-${a.id}`} /><Percent className="w-3.5 h-3.5 absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" /></div>
-          {anteprima !== null && <div className="text-[11px] mt-1">→ listino {fmtEuro(anteprima)} · IVA incl. {fmtEuro(anteprima * 1.22)}</div>}
+          {anteprima !== null && <div className="text-[11px] mt-1">→ listino {fmtEuro(anteprima)} · IVA incl. {fmtEuro(anteprima * (1 + (a.iva_percent ?? 22) / 100))}</div>}
         </label>
         <label className="block text-xs text-muted-foreground">oppure prezzo di listino (IVA esclusa)
           <Input type="number" step="0.01" value={prezzo} onChange={(e) => { setPrezzo(e.target.value); setPerc(""); }} className="mt-1 font-mono-num" data-testid={`ricarico-prezzo-${a.id}`} />

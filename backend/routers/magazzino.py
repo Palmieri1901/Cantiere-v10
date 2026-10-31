@@ -11,6 +11,7 @@ from fastapi import APIRouter, HTTPException, Query
 from fastapi.responses import StreamingResponse
 
 from database import db
+from iva_utils import iva_fornitori, prezzo_ivato
 from pdf_builders import listino_riferimento, listino_nota_finale
 from models import (
     Articolo, ArticoloCreate,
@@ -173,6 +174,9 @@ async def list_articoli(
         rx = {"$regex": re.escape(q), "$options": "i"}
         query["$or"] = [{"codice": rx}, {"barcode": rx}, {"nome": rx}, {"descrizione": rx}]
     docs = await db.articoli.find(query, {"_id": 0}).sort("nome", 1).to_list(5000)
+    iva_map = await iva_fornitori()
+    for d in docs:
+        d["iva_percent"] = iva_map.get(d.get("fornitore_id") or "", 22.0)
     articoli = [Articolo(**_to_dt(d)) for d in docs]
     if sotto_scorta:
         articoli = [a for a in articoli if a.quantita <= a.scorta_minima]
@@ -1002,6 +1006,7 @@ async def listino_pdf(
     # Mappa fornitori per sigla (fallback su nome se sigla non impostata)
     fornitori_list = await db.fornitori.find({}, {"_id": 0, "id": 1, "nome": 1, "abbreviazione": 1}).to_list(1000)
     forn_map = {f["id"]: (f.get("abbreviazione") or f.get("nome", "")) for f in fornitori_list}
+    iva_map = await iva_fornitori()
 
     headers = ["Codice", "Forn.", "Descrizione", "U.M.", "Prezzo € (IVA inc.)"]
     data = [headers]
@@ -1013,7 +1018,7 @@ async def listino_pdf(
             forn_map.get(d.get("fornitore_id"), "") or "—",
             testo[:110],
             d.get("unita_misura", "pz") or "pz",
-            f"{float(d.get('prezzo_listino', 0)) * 1.22:.2f}",
+            f"{prezzo_ivato(d, iva_map):.2f}",
         ])
     table = Table(data, colWidths=[22*mm, 14*mm, 105*mm, 12*mm, 27*mm], repeatRows=1)
     table.setStyle(TableStyle([

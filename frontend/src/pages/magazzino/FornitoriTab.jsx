@@ -75,6 +75,7 @@ export default function FornitoriTab() {
               <TableHead>User</TableHead>
               <TableHead>Password</TableHead>
               <TableHead className="text-right" title="Ricarico % predefinito applicato agli articoli di questo fornitore">Ricarico %</TableHead>
+              <TableHead className="text-right" title="Aliquota IVA applicata ai prezzi di vendita di questo fornitore">IVA %</TableHead>
               <TableHead className="text-right w-[140px]">Azioni</TableHead>
             </TableRow>
           </TableHeader>
@@ -92,6 +93,7 @@ export default function FornitoriTab() {
                     ? <span className="text-primary font-semibold">+{Number(f.ricarico_default_percent).toFixed(1)}%</span>
                     : <span className="text-muted-foreground">—</span>}
                 </TableCell>
+                <TableCell className="text-right font-mono-num text-sm" data-testid={`forn-iva-${f.id}`}>{Number(f.iva_percent ?? 22).toFixed(0)}%</TableCell>
                 <TableCell className="text-right">
                   <Button variant="ghost" size="icon" onClick={() => setApplyMarkup({ fornitore: f, reason: "manual" })} disabled={f.ricarico_default_percent == null} title={f.ricarico_default_percent == null ? "Imposta prima un ricarico %" : `Applica +${Number(f.ricarico_default_percent).toFixed(1)}% a tutti gli articoli`} data-testid={`btn-applica-ricarico-${f.id}`}>
                     <Percent className="w-3.5 h-3.5 text-primary" />

@@ -22,6 +22,7 @@ export default function ArticoloForm({ open, onOpenChange, value, fornitori, onS
 
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
   const [ricDefault, setRicDefault] = useState(null);
+  const ivaForn = Number(fornitori.find((f) => f.id === form.fornitore_id)?.iva_percent ?? 22);
   useEffect(() => {
     if (!open) return;
     api.get("/magazzino/ricarico-default", { params: { fornitore_id: form.fornitore_id || "", categoria: form.categoria || "" } })
@@ -172,12 +173,12 @@ export default function ArticoloForm({ open, onOpenChange, value, fornitori, onS
           <FormField label={`Prezzo vendita + IVA € / ${form.unita_misura || "pz"}`}>
             <Input type="number" step="0.01" value={form.prezzo_listino} onChange={(e) => set("prezzo_listino", e.target.value)} data-testid="input-prezzo-listino" />
           </FormField>
-          <FormField label={`Prezzo vendita IVA inc. (22%) € / ${form.unita_misura || "pz"}`} full>
+          <FormField label={`Prezzo vendita IVA inc. (${ivaForn}%) € / ${form.unita_misura || "pz"}`} full>
             <Input
               type="text"
               readOnly
               tabIndex={-1}
-              value={(Number(form.prezzo_listino || 0) * 1.22).toFixed(2)}
+              value={(Number(form.prezzo_listino || 0) * (1 + ivaForn / 100)).toFixed(2)}
               className="bg-muted/40 font-mono-num text-primary font-semibold cursor-not-allowed"
               data-testid="input-prezzo-listino-iva"
             />

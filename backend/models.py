@@ -499,6 +499,7 @@ class Fornitore(BaseModel):
     password: Optional[str] = ""
     note: Optional[str] = ""
     ricarico_default_percent: Optional[float] = None
+    iva_percent: Optional[float] = 22.0
     # Campi legacy mantenuti per compatibilità (non più mostrati in UI)
     referente: Optional[str] = ""
     telefono: Optional[str] = ""
@@ -515,6 +516,7 @@ class FornitoreCreate(BaseModel):
     password: Optional[str] = ""
     note: Optional[str] = ""
     ricarico_default_percent: Optional[float] = None
+    iva_percent: Optional[float] = 22.0
     referente: Optional[str] = ""
     telefono: Optional[str] = ""
     email: Optional[str] = ""
@@ -534,6 +536,7 @@ class Articolo(BaseModel):
     prezzo_acquisto: float = 0.0
     prezzo_listino: float = 0.0
     ricarico_manuale: Optional[bool] = False
+    iva_percent: Optional[float] = None  # calcolato dal fornitore in lettura
     quantita: float = 0.0
     scorta_minima: float = 0.0
     unita_misura: Optional[str] = "pz"

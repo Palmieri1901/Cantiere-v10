@@ -7,11 +7,7 @@ from fastapi import APIRouter, HTTPException
 from database import db
 from models import Lavoro, LavoroCreate, MovimentoMagazzino
 from helpers import serialize
-
-
-def prezzo_ivato(art: dict) -> float:
-    """Prezzo di vendita IVA inclusa di un articolo di magazzino."""
-    return round(float(art.get("prezzo_listino_ivato") or 0) or float(art.get("prezzo_listino") or 0) * 1.22, 2)
+from iva_utils import iva_fornitori, prezzo_ivato
 
 router = APIRouter()
 
@@ -51,7 +47,7 @@ async def _scarica_articoli_magazzino(articoli: list, cliente: dict, lavoro_id: 
         if not art:
             raise HTTPException(400, f"Articolo {aid} non trovato in magazzino")
 
-        prezzo_unit = float(item.get("prezzo_unitario") or prezzo_ivato(art) or 0)
+        prezzo_unit = float(item.get("prezzo_unitario") or prezzo_ivato(art, await iva_fornitori()) or 0)
         nuova_giacenza = float(art.get("quantita", 0)) - qt
 
         await db.articoli.update_one(
@@ -252,7 +248,7 @@ async def update_lavoro(lavoro_id: str, payload: LavoroCreate):
                 await db.movimenti_magazzino.insert_one(mv.model_dump())
 
             if new_q > 0:
-                prezzo_unit = float(prezzo_map.get(aid) or prezzo_ivato(art or {}) or 0)
+                prezzo_unit = float(prezzo_map.get(aid) or prezzo_ivato(art or {}, await iva_fornitori()) or 0)
                 snapshot_finale.append({
                     "articolo_id": aid,
                     "codice": (art or {}).get("codice", "") or "",

@@ -27,7 +27,7 @@ api.interceptors.response.use(
   }
 );
 
-export const prezzoIvato = (a) => +(Number(a?.prezzo_listino_ivato || 0) || Number(a?.prezzo_listino || 0) * 1.22).toFixed(2);
+export const prezzoIvato = (a) => +(Number(a?.prezzo_listino || 0) * (1 + (a?.iva_percent ?? 22) / 100)).toFixed(2);
 
 export const fmtEuro = (n) =>
   new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR" }).format(n || 0);
