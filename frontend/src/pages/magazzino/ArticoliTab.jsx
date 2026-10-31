@@ -373,8 +373,8 @@ export default function ArticoliTab() {
                 <TableHead>Articolo</TableHead>
                 <TableHead>Categoria</TableHead>
                 <TableHead>Fornitore</TableHead>
-                <TableHead className="text-right">Prezzo acquisto</TableHead>
-                <TableHead className="text-right">Prezzo vendita</TableHead>
+                <TableHead className="text-right">Prezzo acquisto + IVA</TableHead>
+                <TableHead className="text-right">Prezzo vendita + IVA</TableHead>
                 <TableHead className="text-right" title="Prezzo di vendita + IVA 22%">Vendita IVA inc.</TableHead>
                 <TableHead className="text-right">Ricarico</TableHead>
                 <TableHead className="text-right w-[80px]">Giacenza</TableHead>

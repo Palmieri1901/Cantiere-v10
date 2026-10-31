@@ -1078,3 +1078,6 @@ Backend spezzato in moduli (`server.py` ora 112 righe, prima 2761):
 
 ## 2026-10-31 — PDF Stima dei costi: riga totale
 - Accanto al totale "IVA inclusa"; rimosso il totale ore lavorate.
+
+## 2026-10-31 — Magazzino: etichette prezzi
+- Colonne tabella e campi form: "Prezzo acquisto + IVA", "Prezzo vendita + IVA".
