@@ -10,6 +10,8 @@ import { Percent, Lock, Unlock } from "lucide-react";
 export function RicaricoCell({ a, onSaved }) {
   const pa = Number(a.prezzo_acquisto || 0), pv = Number(a.prezzo_listino || 0);
   const rk = pa > 0 && pv > 0 ? ((pv - pa) / pa) * 100 : null;
+  const ivaP = Number(a.iva_percent ?? 22);
+  const totale = rk !== null ? ((1 + rk / 100) * (1 + ivaP / 100) - 1) * 100 : null;
   const [open, setOpen] = useState(false);
   const [perc, setPerc] = useState("");
   const [prezzo, setPrezzo] = useState("");
@@ -29,21 +31,21 @@ export function RicaricoCell({ a, onSaved }) {
   return (
     <Popover open={open} onOpenChange={apri}>
       <PopoverTrigger asChild>
-        <button type="button" className={`inline-flex items-center gap-1 rounded px-1.5 py-0.5 hover:bg-muted font-mono-num text-xs ${rk === null ? "text-muted-foreground" : rk < 0 ? "text-destructive" : rk >= 20 ? "text-primary" : "text-muted-foreground"}`} title="Modifica ricarico di questo articolo" data-testid={`btn-ricarico-${a.id}`}>
-          {rk !== null ? `${rk >= 0 ? "+" : ""}${rk.toFixed(0)}%` : "—"}
-          {a.ricarico_manuale && <Lock className="w-3 h-3 text-amber-600" />}
+        <button type="button" className={`inline-flex flex-col items-end rounded px-1.5 py-0.5 hover:bg-muted font-mono-num text-xs leading-tight ${rk === null ? "text-muted-foreground" : rk < 0 ? "text-destructive" : rk >= 20 ? "text-primary" : "text-muted-foreground"}`} title="Ricarico fornitore · IVA · ricarico totale — clic per modificare" data-testid={`btn-ricarico-${a.id}`}>
+          <span className="inline-flex items-center gap-1">{rk !== null ? `${rk >= 0 ? "+" : ""}${rk.toFixed(0)}%` : "—"}{a.ricarico_manuale && <Lock className="w-3 h-3 text-amber-600" />}</span>
+          {rk !== null && <span className="text-[10px] text-muted-foreground" data-testid={`ricarico-tot-${a.id}`}>IVA {ivaP}% · tot +{totale.toFixed(0)}%</span>}
         </button>
       </PopoverTrigger>
       <PopoverContent align="end" className="w-72 space-y-3" data-testid={`ricarico-pop-${a.id}`}>
         <div>
           <div className="font-medium text-sm truncate">{a.nome}</div>
-          <div className="text-xs text-muted-foreground">Acquisto {fmtEuro(pa)} · listino attuale {fmtEuro(pv)}</div>
+          <div className="text-xs text-muted-foreground">Acquisto netto {fmtEuro(pa)} · vendita netto {fmtEuro(pv)} · finito {fmtEuro(pv * (1 + ivaP / 100))}</div>
         </div>
-        <label className="block text-xs text-muted-foreground">Ricarico %
+        <label className="block text-xs text-muted-foreground">Ricarico fornitore % (IVA {ivaP}% aggiunta dopo)
           <div className="relative mt-1"><Input type="number" step="1" value={perc} onChange={(e) => { setPerc(e.target.value); setPrezzo(""); }} className="pr-7 font-mono-num" disabled={pa <= 0} data-testid={`ricarico-perc-${a.id}`} /><Percent className="w-3.5 h-3.5 absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" /></div>
-          {anteprima !== null && <div className="text-[11px] mt-1">→ listino {fmtEuro(anteprima)} · IVA incl. {fmtEuro(anteprima * (1 + (a.iva_percent ?? 22) / 100))}</div>}
+          {anteprima !== null && <div className="text-[11px] mt-1 font-mono-num">{fmtEuro(pa)} + {Number(perc)}% = {fmtEuro(anteprima)} · + IVA {ivaP}% = <b>{fmtEuro(anteprima * (1 + ivaP / 100))}</b> (tot +{(((1 + Number(perc) / 100) * (1 + ivaP / 100) - 1) * 100).toFixed(0)}%)</div>}
         </label>
-        <label className="block text-xs text-muted-foreground">oppure prezzo di listino (IVA esclusa)
+        <label className="block text-xs text-muted-foreground">oppure prezzo vendita netto (IVA esclusa)
           <Input type="number" step="0.01" value={prezzo} onChange={(e) => { setPrezzo(e.target.value); setPerc(""); }} className="mt-1 font-mono-num" data-testid={`ricarico-prezzo-${a.id}`} />
         </label>
         <div className="flex items-center gap-2">

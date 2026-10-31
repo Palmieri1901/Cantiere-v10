@@ -1090,3 +1090,6 @@ Backend spezzato in moduli (`server.py` ora 112 righe, prima 2761):
 
 ## 2026-10-31 — Fornitori: ricarico in due valori con anteprima
 - Form fornitore: Ricarico % + IVA % con esempio live (100 → ricaricato → finito, ricarico totale). Tabella fornitori: colonna "Totale (ric.+IVA)". Etichette articoli: Acquisto netto / Vendita netto / Prezzo finito IVA inc.
+
+## 2026-10-31 — Magazzino: colonna Ricarico / IVA / Tot.
+- RicaricoCell mostra ricarico fornitore, IVA fornitore e ricarico totale; popover e form articolo mostrano la catena acquisto netto + ricarico = vendita netto + IVA = prezzo al pubblico.

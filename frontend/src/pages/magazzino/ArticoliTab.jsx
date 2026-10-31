@@ -376,7 +376,7 @@ export default function ArticoliTab() {
                 <TableHead className="text-right" title="Prezzo di acquisto netto, IVA esclusa">Acquisto netto</TableHead>
                 <TableHead className="text-right" title="Acquisto netto + ricarico fornitore, IVA esclusa">Vendita netto</TableHead>
                 <TableHead className="text-right" title="Prezzo finito: vendita netto + IVA del fornitore">Prezzo finito IVA inc.</TableHead>
-                <TableHead className="text-right">Ricarico</TableHead>
+                <TableHead className="text-right" title="Ricarico fornitore · IVA · ricarico totale">Ricarico / IVA / Tot.</TableHead>
                 <TableHead className="text-right w-[80px]">Giacenza</TableHead>
                 <TableHead className="text-right w-[170px]" title="Digita la quantità: ↑ carica (entrata), ↓ scarica (uscita). Invio = scarico">Carica / Scarica</TableHead>
                 <TableHead className="text-right w-[100px] sticky right-0 bg-muted/40 backdrop-blur">Azioni</TableHead>

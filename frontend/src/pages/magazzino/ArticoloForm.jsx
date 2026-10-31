@@ -183,7 +183,7 @@ export default function ArticoloForm({ open, onOpenChange, value, fornitori, onS
               data-testid="input-prezzo-listino-iva"
             />
           </FormField>
-          <FormField label="Ricarico % (modificabile)" full>
+          <FormField label={`Ricarico fornitore % (IVA ${ivaForn}% aggiunta dopo)`} full>
             {(() => {
               const pa = Number(form.prezzo_acquisto || 0);
               const pv = Number(form.prezzo_listino || 0);
@@ -212,6 +212,7 @@ export default function ArticoloForm({ open, onOpenChange, value, fornitori, onS
                     data-testid="input-ricarico"
                   />
                   <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">%</span>
+                  {calcolato !== null && <div className="text-[11px] text-muted-foreground mt-1 font-mono-num" data-testid="hint-ricarico-totale">{fmtEuro(pa)} + {calcolato.toFixed(1)}% = {fmtEuro(pv)} · + IVA {ivaForn}% = <b>{fmtEuro(pv * (1 + ivaForn / 100))}</b> al pubblico (ricarico totale +{(((1 + calcolato / 100) * (1 + ivaForn / 100) - 1) * 100).toFixed(1)}%)</div>}
                 </div>
               );
             })()}
