@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { api, fmtEuro } from "@/lib/api";
+import { api, fmtEuro, prezzoIvato } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -37,7 +37,7 @@ export default function PreventivoEsternoDialog({ esterno, preventivo, open, onC
   const setRiga = (i, k, v) => set("righe", f.righe.map((r, j) => j === i ? { ...r, [k]: v } : r));
   const addRiga = (r) => set("righe", [...f.righe, { ...r, _k: nextKey() }]);
 
-  const scorpora = (lordo) => +(Number(lordo || 0) / (1 + (Number(f.iva_pct) || 0) / 100)).toFixed(2);
+  const prezzoArticolo = (a) => (Number(f.iva_pct) > 0 ? +(Number(a.prezzo_listino || 0)).toFixed(2) : prezzoIvato(a));
 
   const trovati = useMemo(() => {
     const s = q.trim().toLowerCase();
@@ -86,13 +86,13 @@ export default function PreventivoEsternoDialog({ esterno, preventivo, open, onC
           </div>
           <div className="relative">
             <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-            <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Cerca ricambio in magazzino (codice o nome)… i prezzi di listino vengono scorporati dell'IVA" className="pl-9" data-testid="prev-cerca-articolo" />
+            <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Cerca ricambio in magazzino (codice o nome)…" className="pl-9" data-testid="prev-cerca-articolo" />
             {q.trim().length >= 2 && (
               <div className="absolute z-30 left-0 right-0 mt-1 bg-card border rounded-md shadow-lg divide-y max-h-64 overflow-y-auto">
                 {trovati.map((a) => (
-                  <button key={a.id} onClick={() => { addRiga({ tipo: "articolo", articolo_id: a.id, codice: a.codice, descrizione: a.nome, quantita: 1, prezzo_unitario: scorpora(a.prezzo_listino) }); setQ(""); }} className="w-full text-left px-3 py-2 hover:bg-muted text-sm flex justify-between gap-3" data-testid={`prev-art-${a.id}`}>
+                  <button key={a.id} onClick={() => { addRiga({ tipo: "articolo", articolo_id: a.id, codice: a.codice, descrizione: a.nome, quantita: 1, prezzo_unitario: prezzoArticolo(a) }); setQ(""); }} className="w-full text-left px-3 py-2 hover:bg-muted text-sm flex justify-between gap-3" data-testid={`prev-art-${a.id}`}>
                     <span className="font-medium text-base leading-tight whitespace-normal"><Package className="w-3.5 h-3.5 inline mr-1.5 text-primary" />{a.nome}</span>
-                    <span className="font-mono-num text-xs text-muted-foreground shrink-0">{fmtEuro(scorpora(a.prezzo_listino))} netto ({fmtEuro(a.prezzo_listino || 0)} ivato)</span>
+                    <span className="font-mono-num text-xs text-muted-foreground shrink-0">{Number(f.iva_pct) > 0 ? `${fmtEuro(a.prezzo_listino || 0)} + IVA (${fmtEuro(prezzoIvato(a))} IVA inc.)` : `${fmtEuro(prezzoIvato(a))} IVA inc.`}</span>
                   </button>
                 ))}
                 <button onClick={() => { addRiga({ tipo: "articolo", articolo_id: null, codice: "", descrizione: q.trim(), quantita: 1, prezzo_unitario: 0 }); setQ(""); }} className="w-full text-left px-3 py-2 hover:bg-muted text-sm text-primary" data-testid="prev-art-nuovo">

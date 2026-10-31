@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { api, fmtEuro } from "@/lib/api";
+import { api, fmtEuro, prezzoIvato } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -126,7 +126,7 @@ export default function ApprovaDialog({ item, onClose, onDone }) {
                 const art = articoli.find((x) => x.id === a.articolo_id);
                 return (
                   <div key={a.articolo_id} className="flex items-center gap-2 text-sm" data-testid={`approva-art-${a.articolo_id}`}>
-                    <span className="flex-1 min-w-0 truncate">{art?.nome || a.nome || a.articolo_id}{art && <span className="text-[11px] text-muted-foreground ml-1">· {fmtEuro(art.prezzo_listino || 0)} · giac. {Number(art.quantita)}</span>}</span>
+                    <span className="flex-1 min-w-0 truncate">{art?.nome || a.nome || a.articolo_id}{art && <span className="text-[11px] text-muted-foreground ml-1">· {fmtEuro(prezzoIvato(art))} IVA inc. · giac. {Number(art.quantita)}</span>}</span>
                     <Input type="number" min="0" step="0.5" value={a.quantita} onChange={(e) => setArt(i, e.target.value)} className="w-16 h-8 font-mono-num shrink-0" data-testid={`approva-art-qta-${a.articolo_id}`} />
                     <button type="button" onClick={async () => { if (await confirmDialog("Rimuovere questo articolo dal lavoro?", { okLabel: "Rimuovi" })) set("articoli_magazzino", f.articoli_magazzino.filter((_, j) => j !== i)); }} data-testid={`approva-art-rimuovi-${a.articolo_id}`}><X className="w-4 h-4 text-destructive" /></button>
                   </div>

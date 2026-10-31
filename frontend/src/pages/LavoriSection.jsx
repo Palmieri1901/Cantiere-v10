@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { confirmDialog } from "@/components/ConfirmDialog";
-import { api, fmtEuro } from "@/lib/api";
+import { api, fmtEuro, prezzoIvato } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { ArticoloPicker } from "@/components/ArticoloPicker";
 import { Input } from "@/components/ui/input";
@@ -125,7 +125,7 @@ export default function LavoriSection({ clienteId, editLavoroId }) {
     if (!a) return;
     setArtSelezionati((s) => [...s, {
       articolo_id: a.id, codice: a.codice, nome: a.nome,
-      quantita: 1, prezzo_unitario: a.prezzo_listino || 0,
+      quantita: 1, prezzo_unitario: prezzoIvato(a),
       giacenza: a.quantita,
     }]);
   };

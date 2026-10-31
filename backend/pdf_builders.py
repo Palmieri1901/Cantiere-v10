@@ -677,7 +677,6 @@ def build_conto_esterno_pdf(est: dict, lavori: list, cantiere_doc: dict, anno=No
     elems.append(Paragraph("DETTAGLIO LAVORI", h2))
     rows = [["DATA", "DESCRIZIONE", "Q.TÀ", "PREZZO", "IMPORTO"]]
     totale = 0.0
-    ore_tot = 0.0
     for l in lavori:
         testo_extra = ""
         if l.get("dipendente"):
@@ -685,7 +684,6 @@ def build_conto_esterno_pdf(est: dict, lavori: list, cantiere_doc: dict, anno=No
         if l.get("materiali"):
             testo_extra += f"<br/><font size=7 color='#5B6478'>Materiali: {l['materiali']}</font>"
         totale += float(l.get("costo") or 0)
-        ore_tot += float(l.get("ore") or 0)
         for titolo, qta, pu, imp, hdr in righe_lavoro(l):
             if hdr:
                 rows.append([l.get("data", ""), Paragraph(f"<b>{titolo}</b>{testo_extra}", body), "", "", ""])
@@ -693,7 +691,7 @@ def build_conto_esterno_pdf(est: dict, lavori: list, cantiere_doc: dict, anno=No
                 rows.append(["", Paragraph(f"<font color='#5B6478'>· {titolo}</font>", body), qta, _euro(pu) if pu else "", _euro(imp)])
     if len(rows) == 1:
         rows.append(["—", Paragraph("Nessun lavoro registrato", body), "", "", _euro(0)])
-    rows.append(["", Paragraph("<b>TOTALE</b>", body), f"{ore_tot:g} h" if ore_tot else "", "", _euro(totale)])
+    rows.append(["", Paragraph("<b>TOTALE</b>", body), "", Paragraph("<para align=right><font size=7>IVA inclusa</font></para>", body), _euro(totale)])
     tbl = Table(rows, colWidths=[20*mm, 90*mm, 20*mm, 26*mm, 30*mm], repeatRows=1)
     tbl.setStyle(TableStyle([
         ("BACKGROUND", (0, 0), (-1, 0), NAVY), ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),

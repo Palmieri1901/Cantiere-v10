@@ -1072,3 +1072,9 @@ Backend spezzato in moduli (`server.py` ora 112 righe, prima 2761):
 
 ## 2026-10-30 — Magazzino: ordinamento
 - Selettore "Ordina per nome / per codice" nella barra filtri articoli (persistito in localStorage `mag_ordina`); ordinamento alfabetico naturale, vale anche dentro i gruppi per categoria.
+
+## 2026-10-31 — Articoli da magazzino: prezzo IVA inclusa
+- Helper `prezzoIvato` (frontend lib/api.js) e `prezzo_ivato` (backend lavori.py): lavori cantiere, approvazione report, stima costi usano il prezzo vendita IVA inclusa. Preventivi esterni: se IVA% > 0 prezzo netto (IVA aggiunta nel totale), altrimenti IVA inclusa. App dipendente già usava l'ivato.
+
+## 2026-10-31 — PDF Stima dei costi: riga totale
+- Accanto al totale "IVA inclusa"; rimosso il totale ore lavorate.
