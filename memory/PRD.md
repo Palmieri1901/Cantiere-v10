@@ -1103,3 +1103,6 @@ Backend spezzato in moduli (`server.py` ora 112 righe, prima 2761):
 
 ## 2026-10-31 — Fix anteprima PDF valutazioni
 - Bug: setter wrapper passava una funzione updater come URL; ora stato separato previewUrl/previewOpen/previewName come nelle altre pagine.
+
+## 2026-10-31 — PDF valutazioni: simbolo euro
+- Importi formattati "4.700 €" (simbolo dopo la cifra) per evitare la sovrapposizione del glifo € in Helvetica-Bold.

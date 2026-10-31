@@ -169,7 +169,7 @@ async def elimina_valutazione(vid: str):
 
 def _eur(v) -> str:
     try:
-        return f"€ {float(v or 0):,.0f}".replace(",", ".")
+        return f"{float(v or 0):,.0f}".replace(",", ".") + " €"
     except Exception:
         return "—"
 
