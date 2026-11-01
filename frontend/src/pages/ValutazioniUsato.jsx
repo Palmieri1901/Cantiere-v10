@@ -28,7 +28,7 @@ export default function ValutazioniUsato({ client = api, mobile = false }) {
   const [conMotore, setConMotore] = useState(true);
   const [conGommone, setConGommone] = useState(true);
   const [cliente, setCliente] = useState({ cliente: "", telefono: "", note: "" });
-  const [motore, setMotore] = useState({ modello: "", anno: anno - 5, ore: "", stato: "buono", numero: 1 });
+  const [motore, setMotore] = useState({ modello: "", anno: anno - 5, ore: "", stato: "buono", numero: 1, tipo: "fuoribordo" });
   const [gommone, setGommone] = useState({ modello: "", anno: anno - 5, stato: "buono", tipo: "gommone", tubolari_nuovi: false, tubolari_anni: "" });
   const [fotoMotore, setFotoMotore] = useState([]);
   const [fotoGommone, setFotoGommone] = useState([]);
@@ -104,7 +104,7 @@ export default function ValutazioniUsato({ client = api, mobile = false }) {
       <div>
         <div className="flex items-center gap-2 text-xs uppercase tracking-widest text-muted-foreground"><BadgeEuro className="w-4 h-4" /> Valutazioni usato</div>
         <h1 className={`font-serif mt-1 ${mobile ? "text-2xl" : "text-3xl sm:text-4xl"}`}>Quotazione usato AI</h1>
-        <p className="text-muted-foreground text-sm mt-1">Valore di mercato stile Eurotax di imbarcazione (gommone o barca) e/o motori fuoribordo. Report PDF su carta intestata, inviabile su WhatsApp.</p>
+        <p className="text-muted-foreground text-sm mt-1">Valore di mercato stile Eurotax di imbarcazione (gommone o barca) e/o motori (fuoribordo, entrobordo, entrofuoribordo). Report PDF su carta intestata, inviabile su WhatsApp.</p>
       </div>
 
       <Card className="p-4 sm:p-6 space-y-5">
@@ -116,9 +116,21 @@ export default function ValutazioniUsato({ client = api, mobile = false }) {
 
         <div className="grid lg:grid-cols-2 gap-4">
           <div className={`rounded-lg border p-4 space-y-3 ${conMotore ? "" : "opacity-60"}`}>
-            <div className="flex items-center justify-between"><div className="font-semibold">Motore fuoribordo</div><Switch checked={conMotore} onCheckedChange={setConMotore} data-testid="val-switch-motore" /></div>
+            <div className="flex items-center justify-between"><div className="font-semibold">Motore</div><Switch checked={conMotore} onCheckedChange={setConMotore} data-testid="val-switch-motore" /></div>
             {conMotore && <>
-              <div className="space-y-1.5"><L>Modello</L><Input value={motore.modello} onChange={(e) => setMotore({ ...motore, modello: e.target.value })} placeholder="es. Suzuki DF140A" data-testid="val-motore-modello" /></div>
+              <div className="grid grid-cols-3 gap-3">
+                <div className="space-y-1.5"><L>Tipo</L>
+                  <Select value={motore.tipo} onValueChange={(v) => setMotore({ ...motore, tipo: v })}>
+                    <SelectTrigger data-testid="val-motore-tipo"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="fuoribordo">Fuoribordo</SelectItem>
+                      <SelectItem value="entrobordo">Entrobordo</SelectItem>
+                      <SelectItem value="efb">Entrofuoribordo (piede poppiero)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="col-span-2 space-y-1.5"><L>Modello</L><Input value={motore.modello} onChange={(e) => setMotore({ ...motore, modello: e.target.value })} placeholder={motore.tipo === "fuoribordo" ? "es. Suzuki DF140A" : motore.tipo === "efb" ? "es. Volvo Penta D4-300 DPH" : "es. Yanmar 4JH4"} data-testid="val-motore-modello" /></div>
+              </div>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 <div className="space-y-1.5"><L>N° motori</L><Input type="number" min="1" max="4" value={motore.numero} onChange={(e) => setMotore({ ...motore, numero: e.target.value })} className="font-mono-num" data-testid="val-motore-numero" /></div>
                 <div className="space-y-1.5"><L>Anno</L><Input type="number" value={motore.anno} onChange={(e) => setMotore({ ...motore, anno: e.target.value })} className="font-mono-num" data-testid="val-motore-anno" /></div>

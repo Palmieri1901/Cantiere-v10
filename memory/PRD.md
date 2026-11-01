@@ -1140,3 +1140,6 @@ Backend spezzato in moduli (`server.py` ora 112 righe, prima 2761):
 
 ## 2026-11-01 — Valutazioni: cestino anche in app dipendenti
 - DELETE /api/mobile/valutazioni/{id}; tasto cestino (con conferma) visibile anche in modalità mobile.
+
+## 2026-11-01 — Valutazioni: tipo motore
+- MotoreIn.tipo fuoribordo|entrobordo|efb (TIPI_MOTORE); prompt/PDF/card aggiornati; select Tipo nel form.

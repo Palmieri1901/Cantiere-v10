@@ -25,6 +25,10 @@ class MotoreIn(BaseModel):
     ore: Optional[float] = 0
     numero: Optional[int] = 1
     stato: str = "buono"
+    tipo: str = "fuoribordo"  # fuoribordo | entrobordo | efb (entrofuoribordo con piede poppiero)
+
+
+TIPI_MOTORE = {"fuoribordo": "Fuoribordo", "entrobordo": "Entrobordo", "efb": "Entrofuoribordo con piede poppiero"}
 
 
 class GommoneIn(BaseModel):
@@ -47,7 +51,7 @@ class ValutazioneIn(BaseModel):
 
 
 SYSTEM = (
-    "Sei un perito nautico italiano esperto di usato (gommoni e fuoribordo), con conoscenza dei listini tipo Eurotax/Nautica usato. "
+    "Sei un perito nautico italiano esperto di usato (gommoni, barche a motore e motorizzazioni fuoribordo, entrobordo ed entrofuoribordo con piede poppiero), con conoscenza dei listini tipo Eurotax/Nautica usato. "
     "Fornisci quotazioni realistiche in euro per il mercato italiano dell'anno corrente, stimando valore minimo, massimo e consigliato "
     "per vendita tra privati/permuta in cantiere. Considera anno, ore moto, stato generale, prezzo di listino del nuovo, deprezzamento tipico, "
     "tubolari rifatti (per i gommoni). Scala degli stati dichiarati: ottimo > buono > usurato (funzionante ma con segni evidenti di usura, interventi necessari a breve) > pessimo. "
@@ -60,8 +64,10 @@ def _descr(p: ValutazioneIn) -> str:
     if p.motore:
         m = p.motore
         n = int(m.numero or 1)
-        parti.append(f"MOTORE: {'n. ' + str(n) + ' motori identici' if n > 1 else 'singolo motore'} modello {m.modello}, anno {m.anno}, ore moto {m.ore or 0:g} ciascuno, stato generale {m.stato}."
-                     + (" La quotazione del motore deve riferirsi all'insieme dei motori." if n > 1 else ""))
+        tm = TIPI_MOTORE.get(m.tipo, "Fuoribordo").lower()
+        parti.append(f"MOTORE ({tm}): {'n. ' + str(n) + ' motori identici' if n > 1 else 'singolo motore'} modello {m.modello}, anno {m.anno}, ore moto {m.ore or 0:g} ciascuno, stato generale {m.stato}."
+                     + (" La quotazione del motore deve riferirsi all'insieme dei motori." if n > 1 else "")
+                     + (" Per entrobordo/entrofuoribordo considera anche piede poppiero, invertitore e trasmissione nella valutazione." if m.tipo != "fuoribordo" else ""))
     if p.gommone:
         g = p.gommone
         if g.tipo == "barca":
@@ -245,8 +251,8 @@ async def pdf_valutazione(vid: str):
         blocchi.append(("Cliente", [("Nominativo", d.get("cliente") or "—"), ("Telefono", d.get("telefono") or "—")]))
     if d.get("motore"):
         m, rm = d["motore"], r.get("motore") or {}
-        blocchi.append((f"Motore fuoribordo{' (n. ' + str(m.get('numero')) + ')' if int(m.get('numero') or 1) > 1 else ''}", [
-            ("Modello", m["modello"]), ("N° motori", str(int(m.get("numero") or 1))), ("Anno", str(m["anno"])), ("Ore moto", f"{float(m.get('ore') or 0):g} h"), ("Stato generale", str(m.get("stato", "")).capitalize()),
+        blocchi.append((f"Motore {TIPI_MOTORE.get(m.get('tipo'), 'Fuoribordo').lower()}{' (n. ' + str(m.get('numero')) + ')' if int(m.get('numero') or 1) > 1 else ''}", [
+            ("Modello", m["modello"]), ("Tipo", TIPI_MOTORE.get(m.get("tipo"), "Fuoribordo")), ("N° motori", str(int(m.get("numero") or 1))), ("Anno", str(m["anno"])), ("Ore moto", f"{float(m.get('ore') or 0):g} h"), ("Stato generale", str(m.get("stato", "")).capitalize()),
             ("Quotazione", f"{_eur(rm.get('valore_min'))} – {_eur(rm.get('valore_max'))}"), ("Valore consigliato", _eur(rm.get("valore_consigliato"))),
         ]))
     if d.get("gommone"):

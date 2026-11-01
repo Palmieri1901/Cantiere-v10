@@ -24,7 +24,7 @@ export function ValutazioneCard({ v, actions }) {
           <div className="font-semibold truncate">{titolo || "Valutazione"}</div>
           <div className="text-xs text-muted-foreground">{data}{v.cliente ? ` · ${v.cliente}` : ""}{v.telefono ? ` · ${v.telefono}` : ""}</div>
           <div className="text-xs text-muted-foreground mt-1 flex flex-wrap gap-x-3">
-            {v.motore && <span>Motore{Number(v.motore.numero || 1) > 1 ? ` ×${v.motore.numero}` : ""} {v.motore.anno} · {Number(v.motore.ore || 0)} h · {v.motore.stato}</span>}
+            {v.motore && <span>{v.motore.tipo === "entrobordo" ? "Entrobordo" : v.motore.tipo === "efb" ? "Entrofuoribordo" : "Fuoribordo"}{Number(v.motore.numero || 1) > 1 ? ` ×${v.motore.numero}` : ""} {v.motore.anno} · {Number(v.motore.ore || 0)} h · {v.motore.stato}</span>}
             {v.gommone && <span>{v.gommone.tipo === "barca" ? "Barca" : "Gommone"} {v.gommone.anno} · {v.gommone.stato}{v.gommone.tipo !== "barca" ? ` · tubolari ${v.gommone.tubolari_nuovi ? `rifatti${v.gommone.tubolari_anni != null ? ` da ${v.gommone.tubolari_anni} anni` : ""}` : "originali"}` : ""}</span>}
             {(v.n_foto || 0) > 0 && <span data-testid={`val-nfoto-${v.id}`}>{v.n_foto} foto analizzate</span>}
           </div>
