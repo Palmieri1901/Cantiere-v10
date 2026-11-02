@@ -7,7 +7,7 @@ from datetime import datetime, timedelta, timezone
 from bson import ObjectId
 from fastapi import APIRouter, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import StreamingResponse
-from motor.motor_asyncio import AsyncIOMotorGridFSBucket
+from gridfs_sync import SyncBucket
 
 from database import db
 
@@ -16,8 +16,8 @@ public_router = APIRouter()
 GIORNI_VALIDITA = 30
 
 
-def _bucket() -> AsyncIOMotorGridFSBucket:
-    return AsyncIOMotorGridFSBucket(db, bucket_name="pdf_condivisi")
+def _bucket() -> SyncBucket:
+    return SyncBucket(db, "pdf_condivisi")
 
 
 def _base_url(request: Request) -> str:

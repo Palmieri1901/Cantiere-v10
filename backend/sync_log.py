@@ -6,6 +6,7 @@ I documenti sono identificati dal campo applicativo `id` (uuid); quelli senza `i
 """
 import contextvars
 import time
+
 from motor.motor_asyncio import AsyncIOMotorCollection
 
 ESCLUSE = {"_sync_log", "_sync_state", "fs.files", "fs.chunks"}
@@ -28,8 +29,22 @@ def _ids_from_filter(flt) -> list | None:
     return None
 
 
+def is_file_coll(name: str) -> bool:
+    return name.endswith(".files")
+
+
+def _esclusa(name: str) -> bool:
+    return name in ESCLUSE or name.endswith(".chunks")
+
+
+async def _file_ids(coll, flt) -> list:
+    if isinstance(flt, dict) and flt.get("_id") is not None and not isinstance(flt["_id"], dict):
+        return [str(flt["_id"])]
+    return [str(d["_id"]) for d in await coll.find(flt or {}, {"_id": 1}).to_list(10000)]
+
+
 async def _log(coll: AsyncIOMotorCollection, ids: list, op: str, ts: float):
-    if not ids or coll.name in ESCLUSE:
+    if not ids or _esclusa(coll.name):
         return
     log = coll.database["_sync_log"]
     for i in ids:
@@ -45,6 +60,8 @@ def _with_ts(update, ts: float):
 
 
 async def _resolve_ids(coll, flt, multi: bool) -> list:
+    if is_file_coll(coll.name):
+        return await _file_ids(coll, flt)
     ids = _ids_from_filter(flt)
     if ids is not None:
         return ids
@@ -64,17 +81,19 @@ def install():
 
     async def insert_one(self, doc, *a, **k):
         ts = now_ts()
-        if self.name not in ESCLUSE and isinstance(doc, dict):
+        if not _esclusa(self.name) and isinstance(doc, dict):
             doc["_sync_ts"] = ts
         r = await o_insert_one(self, doc, *a, **k)
         if isinstance(doc, dict) and doc.get("id"):
             await _log(self, [doc["id"]], "upsert", ts)
+        elif is_file_coll(self.name) and isinstance(doc, dict) and doc.get("_id") is not None:
+            await _log(self, [str(doc["_id"])], "upsert", ts)
         return r
 
     async def insert_many(self, docs, *a, **k):
         ts = now_ts()
         docs = list(docs)
-        if self.name not in ESCLUSE:
+        if not _esclusa(self.name):
             for d in docs:
                 if isinstance(d, dict):
                     d["_sync_ts"] = ts
@@ -85,7 +104,7 @@ def install():
     def _mk_update(orig, multi):
         async def f(self, flt, update, *a, **k):
             ts = now_ts()
-            if self.name in ESCLUSE:
+            if _esclusa(self.name) or is_file_coll(self.name):
                 return await orig(self, flt, update, *a, **k)
             r = await orig(self, flt, _with_ts(update, ts), *a, **k)
             ids = await _resolve_ids(self, flt, multi)
@@ -97,7 +116,7 @@ def install():
 
     async def replace_one(self, flt, doc, *a, **k):
         ts = now_ts()
-        if self.name not in ESCLUSE and isinstance(doc, dict):
+        if not _esclusa(self.name) and isinstance(doc, dict):
             doc["_sync_ts"] = ts
         r = await o_replace_one(self, flt, doc, *a, **k)
         ids = await _resolve_ids(self, flt, False) or ([doc["id"]] if isinstance(doc, dict) and doc.get("id") else [])
@@ -106,7 +125,7 @@ def install():
 
     def _mk_delete(orig, multi):
         async def f(self, flt, *a, **k):
-            if self.name in ESCLUSE:
+            if _esclusa(self.name):
                 return await orig(self, flt, *a, **k)
             ids = await _resolve_ids(self, flt, multi)
             r = await orig(self, flt, *a, **k)
@@ -116,7 +135,7 @@ def install():
 
     async def find_one_and_update(self, flt, update, *a, **k):
         ts = now_ts()
-        if self.name in ESCLUSE:
+        if _esclusa(self.name) or is_file_coll(self.name):
             return await o_fou(self, flt, update, *a, **k)
         r = await o_fou(self, flt, _with_ts(update, ts), *a, **k)
         ids = await _resolve_ids(self, flt, False) or ([r["id"]] if isinstance(r, dict) and r.get("id") else [])

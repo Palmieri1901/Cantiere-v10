@@ -10,7 +10,7 @@ from typing import Dict, List
 from bson import ObjectId
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
-from motor.motor_asyncio import AsyncIOMotorGridFSBucket
+from gridfs_sync import SyncBucket
 from pydantic import BaseModel, ConfigDict
 
 from database import db
@@ -42,7 +42,7 @@ def _is_gridfs(name: str) -> bool:
 
 
 async def _dump_gridfs(bucket_name: str) -> List[dict]:
-    bucket = AsyncIOMotorGridFSBucket(db, bucket_name=bucket_name)
+    bucket = SyncBucket(db, bucket_name)
     out = []
     async for f in bucket.find({}):
         stream = await bucket.open_download_stream(f._id)
@@ -132,7 +132,7 @@ async def restore_data(payload: RestorePayload):
     for bucket_name, files in (payload.files or {}).items():
         if bucket_name not in GRIDFS_BUCKETS or not isinstance(files, list):
             continue
-        bucket = AsyncIOMotorGridFSBucket(db, bucket_name=bucket_name)
+        bucket = SyncBucket(db, bucket_name)
         await db[f"{bucket_name}.files"].delete_many({})
         await db[f"{bucket_name}.chunks"].delete_many({})
         n = 0

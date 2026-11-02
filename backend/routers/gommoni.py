@@ -8,7 +8,7 @@ from typing import List, Optional, Dict
 from fastapi import APIRouter, HTTPException, UploadFile, File
 from fastapi.responses import StreamingResponse
 from bson import ObjectId
-from motor.motor_asyncio import AsyncIOMotorGridFSBucket
+from gridfs_sync import SyncBucket
 
 from database import db
 from pdf_builders import listino_riferimento, listino_nota_finale, banca_markup
@@ -81,8 +81,8 @@ async def delete_modello(mid: str):
 # ---------------------------------------------------------------------------
 # OMOLOGAZIONE PDF (GridFS)
 # ---------------------------------------------------------------------------
-def _bucket() -> AsyncIOMotorGridFSBucket:
-    return AsyncIOMotorGridFSBucket(db, bucket_name="gommoni_omologazioni")
+def _bucket() -> SyncBucket:
+    return SyncBucket(db, "gommoni_omologazioni")
 
 
 async def _delete_gridfs(fid: str):

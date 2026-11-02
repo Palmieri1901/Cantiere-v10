@@ -1145,4 +1145,7 @@ Backend spezzato in moduli (`server.py` ora 112 righe, prima 2761):
 - MotoreIn.tipo fuoribordo|entrobordo|efb (TIPI_MOTORE); prompt/PDF/card aggiornati; select Tipo nel form.
 
 ## 2026-11-02 — Sincronizzazione bidirezionale PC locale ↔ online
-- Vedi /app/memory/SYNC_INSTALLAZIONE_LOCALE.md. sync_log.py (registro modifiche + _sync_ts), routers/sync.py (peer endpoints con SYNC_TOKEN, client loop con SYNC_PEER_URL, LWW, primo allineamento snapshot, coda offline), SyncCard in Impostazioni. Testato con seconda istanza locale: allineamento iniziale, create/modifiche/cancellazioni in entrambe le direzioni, recupero dopo spegnimento. Limite: file GridFS non sincronizzati.
+- Vedi /app/memory/SYNC_INSTALLAZIONE_LOCALE.md. sync_log.py (registro modifiche + _sync_ts), routers/sync.py (peer endpoints con SYNC_TOKEN, client loop con SYNC_PEER_URL, LWW, primo allineamento snapshot, coda offline), SyncCard in Impostazioni. Testato con seconda istanza locale: allineamento iniziale, create/modifiche/cancellazioni in entrambe le direzioni, recupero dopo spegnimento. (File GridFS: vedi 2026-11-02 sotto.)
+
+## 2026-11-02 — Sync dei file (cataloghi, video, PDF)
+- gridfs_sync.py (SyncBucket) sostituisce AsyncIOMotorGridFSBucket in gommoni/share/condividi/backup e registra upload/delete in _sync_log; routers/sync.py: GET/PUT /api/sync/file, pull/push file nel loop, cancellazioni via /apply, snapshot dei bucket al primo allineamento. Testato con seconda istanza: upload PC→online, download, delete online→PC, upload online→PC, delete PC→online.
