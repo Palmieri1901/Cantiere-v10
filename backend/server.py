@@ -11,6 +11,7 @@ L'app è organizzata in moduli:
                         report, anni)
 """
 import os
+import asyncio
 from fastapi import FastAPI, APIRouter
 from starlette.middleware.cors import CORSMiddleware
 
@@ -21,7 +22,7 @@ from routers import (
     tariffe, clienti, lavori, stats, export,
     cantiere, backup, preventivo, report, anni, contratti, magazzino, tubolari, suzuki, gommoni, ddt,
     dipendenti, mobile, esterni, servizio, capitaneria, mezzi, aggiornamenti, calendario, assistente, unisci, anagrafica, officina, officina_siti, fatturazione, webauthn_lock, lavagna, laser,
-    share, valutazioni,
+    share, valutazioni, sync,
 )
 
 
@@ -43,6 +44,7 @@ api_router.include_router(share.router)
 api_router.include_router(officina.router)
 api_router.include_router(officina_siti.router)
 api_router.include_router(valutazioni.router)
+api_router.include_router(sync.router)
 api_router.include_router(webauthn_lock.router)
 api_router.include_router(fatturazione.router)
 api_router.include_router(lavori.router)
@@ -82,6 +84,7 @@ app.include_router(lavagna.mobile_router)
 app.include_router(webauthn_lock.mobile_router)
 app.include_router(valutazioni.mobile_router)
 app.include_router(share.mobile_router)
+app.include_router(sync.peer_router)
 app.include_router(calendario.mobile_router)
 app.include_router(ddt.mobile_router)
 app.include_router(capitaneria.public_router)
@@ -104,6 +107,10 @@ app.add_middleware(
 @app.on_event("startup")
 async def _startup():
     await db.users.create_index("email", unique=True)
+    await db["_sync_log"].create_index([("coll", 1), ("doc_id", 1)], unique=True)
+    await db["_sync_log"].create_index("ts")
+    if os.environ.get("SYNC_PEER_URL"):
+        asyncio.create_task(sync.sync_loop())
     await officina.ensure_indexes()
     try:
         await gommoni.migra_presentazioni_pdf()

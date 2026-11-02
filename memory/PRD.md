@@ -1143,3 +1143,6 @@ Backend spezzato in moduli (`server.py` ora 112 righe, prima 2761):
 
 ## 2026-11-01 — Valutazioni: tipo motore
 - MotoreIn.tipo fuoribordo|entrobordo|efb (TIPI_MOTORE); prompt/PDF/card aggiornati; select Tipo nel form.
+
+## 2026-11-02 — Sincronizzazione bidirezionale PC locale ↔ online
+- Vedi /app/memory/SYNC_INSTALLAZIONE_LOCALE.md. sync_log.py (registro modifiche + _sync_ts), routers/sync.py (peer endpoints con SYNC_TOKEN, client loop con SYNC_PEER_URL, LWW, primo allineamento snapshot, coda offline), SyncCard in Impostazioni. Testato con seconda istanza locale: allineamento iniziale, create/modifiche/cancellazioni in entrambe le direzioni, recupero dopo spegnimento. Limite: file GridFS non sincronizzati.
