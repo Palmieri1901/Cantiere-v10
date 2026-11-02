@@ -1149,3 +1149,6 @@ Backend spezzato in moduli (`server.py` ora 112 righe, prima 2761):
 
 ## 2026-11-02 — Sync dei file (cataloghi, video, PDF)
 - gridfs_sync.py (SyncBucket) sostituisce AsyncIOMotorGridFSBucket in gommoni/share/condividi/backup e registra upload/delete in _sync_log; routers/sync.py: GET/PUT /api/sync/file, pull/push file nel loop, cancellazioni via /apply, snapshot dei bucket al primo allineamento. Testato con seconda istanza: upload PC→online, download, delete online→PC, upload online→PC, delete PC→online.
+
+## 2026-11-02 — Manuale d uso aggiornato (v2026.11)
+- manuale.py: nuove sezioni 11 Valutazioni usato, 16 Installazione PC + sync; aggiornati Magazzino (ricarico/IVA), Stima dei costi, App dipendenti (funzioni per dipendente, listini pubblici), Gommoni (file reali), Fatturazione (cliente esistente), Impostazioni (dati bancari, sync); scheda chiavi con SYNC_TOKEN.

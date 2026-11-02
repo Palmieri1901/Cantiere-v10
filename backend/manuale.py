@@ -10,8 +10,8 @@ from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.lib.units import mm
 from reportlab.platypus import KeepTogether, PageBreak, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
 
-VERSIONE = "2026.10"
-DATA_VERSIONE = "18/10/2026"
+VERSIONE = "2026.11"
+DATA_VERSIONE = "02/11/2026"
 
 # Ogni sezione: (titolo, [paragrafo | ("-", voce) | ("!", nota) | ("#", sottotitolo) | ("1", passo numerato)])
 SEZIONI = [
@@ -22,7 +22,8 @@ SEZIONI = [
         ("1", "Inserisci la password del cantiere (minimo 5 caratteri) e premi Entra. Da PC la password viene richiesta a ogni apertura del browser; da telefono l'accesso resta memorizzato ma a ogni apertura viene richiesto lo sblocco biometrico (impronta, volto o codice del telefono), attivato al primo accesso. I telefoni registrati si gestiscono in Impostazioni → Sblocco biometrico."),
         ("1", "Password dimenticata: dalla pagina di accesso premi Recupero con PIN, inserisci il PIN di recupero master e una nuova password; si entra subito."),
         ("#", "Struttura delle schermate"),
-        ("-", "Home: riquadri dei moduli con i numeri chiave (clienti dell'anno, articoli, lavori da approvare, clienti esterni, preventivi, modelli). Premendo un riquadro si apre il modulo."),
+        ("-", "Home: riquadri dei moduli con i numeri chiave (clienti dell'anno, articoli, lavori da approvare, clienti esterni, preventivi, modelli, valutazioni usato). Premendo un riquadro si apre il modulo."),
+        ("!", "Prima di cancellare qualunque cosa (clienti, articoli, preventivi, valutazioni, documenti) il programma chiede sempre conferma."),
         ("-", "Menu laterale (computer) / barra inferiore scorrevole (telefono): Home, Rimessaggio, Anagrafica, Magazzino, Lavori dal cantiere, Lavorazioni esterne, Assistente officina, Tubolari, Suzuki, Gommoni, DDT, Calendario, Report, Impostazioni."),
         ("-", "Anno di lavoro: selettore in alto a sinistra. Clienti, posti barca, conti e statistiche si riferiscono sempre all'anno scelto. Da Impostazioni rimessaggio si crea un nuovo anno copiando i clienti da quello precedente."),
         ("-", "Assistente vocale GEB: pulsante rotondo con microfono. Si trascina dove non dà fastidio. Si attiva dicendo \"GEB\" oppure premendolo; risponde a voce e chiede sempre conferma prima di modificare dati."),
@@ -41,6 +42,7 @@ SEZIONI = [
         ("#", "Icone sulla scheda cliente (da sinistra)"),
         ("-", "Spunta verde / X rossa: segna Pagato o Non pagato."),
         ("-", "Occhio: dettaglio completo del cliente (dati, costi, storico lavori per anno con righe separate, lavorazioni extra, PDF, Invia a fatturazione)."),
+        ("-", "Stima dei costi (ex \"Conto\"): PDF con titolo e data in marrone, solo il nome della barca, totale con dicitura IVA inclusa (senza somma delle ore) e in alto a destra le coordinate bancarie per il bonifico, lette da Impostazioni → Dati bancari."),
         ("-", "Foglio: Preventivo PDF (anteprima, stampa, condivisione)."),
         ("-", "Foglio con firma (colorato): Preventivo + Contratto in un unico PDF, con il testo del contratto impostato in Contratti."),
         ("-", "Nota adesiva: memo sul cliente (es. \"portare batteria\"); visibile anche in Calendario e nell'app dipendenti. Diventa gialla quando c'è un memo."),
@@ -67,7 +69,11 @@ SEZIONI = [
         ("-", "Da anagrafica: nelle pagine Rimessaggio ed Esterni precompila il nuovo cliente scegliendo un contatto dall'elenco con ricerca."),
     ]),
     ("5. Magazzino", [
-        "Articoli con codice, codice a barre EAN, descrizione, fornitore, giacenza, prezzo di acquisto e di vendita, unità di misura. Ricerca per nome, codice o fornitore.",
+        "Articoli con codice, codice a barre EAN, descrizione, fornitore, giacenza, prezzo di acquisto e di vendita (entrambi indicati + IVA), unità di misura. Ricerca per nome, codice o fornitore; elenco ordinabile per nome articolo o per codice.",
+        ("#", "Ricarico e IVA"),
+        ("-", "Per ogni fornitore (e per singolo articolo) si impostano due valori: Ricarico fornitore % e IVA %. Il programma mostra anche il Ricarico totale risultante."),
+        ("-", "Prezzo di vendita al pubblico = prezzo di acquisto netto + ricarico fornitore + IVA. Esempio: acquisto 10 €, ricarico 50%, IVA 22% → 15 € + IVA = 18,30 €."),
+        ("-", "Quando un articolo viene richiamato dal magazzino (lavori, stime, preventivi esterni) viene sempre preso il prezzo IVA inclusa; nei preventivi esterni la voce \"+ IVA\" usa l'aliquota del fornitore. I listini PDF riportano il prezzo finale calcolato."),
         ("#", "Operazioni"),
         ("1", "Nuovo articolo: compila i campi o premi Scansiona per leggere il codice a barre con la fotocamera del telefono."),
         ("1", "Carico: aumenta la giacenza (arrivo merce) indicando quantità e fornitore."),
@@ -89,8 +95,12 @@ SEZIONI = [
         ("1", "Gestionale → Dipendenti → Nuovo dipendente: nome e, se vuoi, tariffa oraria."),
         ("1", "Premi Genera chiave: compare una chiave da comunicare al dipendente (si può rigenerare in qualsiasi momento; la vecchia smette di funzionare)."),
         ("1", "Il dipendente apre /app-dipendente, inserisce la chiave e resta collegato; a ogni apertura l'app chiede impronta/volto (attivato al primo accesso)."),
+        ("#", "Funzioni attivabili per ogni dipendente"),
+        "Nella pagina Dipendenti, con il tasto Funzioni app, il titolare sceglie per ciascun dipendente quali sezioni dell'app sono visibili: lavori, listino magazzino, assistente officina, Capitaneria, Quotazione usato, Listino motori Suzuki, Listino gommoni, DDT destinazione, Calendario. Le funzioni disattivate non sono raggiungibili neppure via collegamento diretto.",
+        ("!", "I dipendenti non possono mai modificare prezzi: vedono soltanto i listini al pubblico (Suzuki, gommoni, magazzino) in PDF."),
         ("#", "Cosa può fare il dipendente"),
         ("-", "Home con saluto e tasto Aggiungi lavoro."),
+        ("-", "Quotazione usato: stessa valutazione AI del gestionale (sezione 11), con PDF e invio WhatsApp; Calendario del cantiere; Foglio DDT destinazione; Listini Suzuki e gommoni in PDF."),
         ("-", "Nuovo lavoro: cliente (ricerca tra rimessaggio ed esterni o nome nuovo), descrizione, ore, articoli dal magazzino (anche con scanner), voci dal Listino con calcolo per unità (mq = lunghezza × larghezza), note."),
         ("-", "I miei lavori: elenco dei lavori inviati con stato (in attesa / approvato)."),
         ("-", "Listino magazzino con ricerca; memo dei clienti; Assistente officina (stesse schede e codici del gestionale)."),
@@ -126,16 +136,27 @@ SEZIONI = [
     ("10. Vendita: Tubolari, Fuoribordo Suzuki, Gommoni GEB", [
         ("-", "Tubolari: preventivi di rifacimento tubolari con misure, materiale, accessori; PDF per il cliente; elenco con ricerca."),
         ("-", "Fuoribordo Suzuki: catalogo motori con potenze e prezzi (aggiornabile), preventivo con permuta/accessori e PDF."),
-        ("-", "Gommoni GEB: modelli, dotazioni, accessori; preventivo gommone + motore e PDF."),
+        ("-", "Gommoni GEB: modelli, dotazioni, accessori; preventivo gommone + motore e PDF. Per ogni modello si caricano Omologazione (PDF), Catalogo (PDF) e Real (video): quando si condividono con WhatsApp vengono inviati i file veri, non un collegamento."),
+        ("-", "Tutti i preventivi (esterni, Suzuki, gommoni) riportano in alto a destra le coordinate bancarie impostate in Impostazioni → Dati bancari."),
+        ("-", "Tutti i listini PDF indicano mese/anno e la nota \"I prezzi sono soggetti a variazioni senza preavviso\"."),
     ]),
-    ("11. Documenti, Calendario, Report", [
+    ("11. Valutazioni usato (AI)", [
+        "Da Home → Valutazioni usato. Calcola una quotazione di mercato (stile Eurotax) di un motore, di un'imbarcazione o di entrambi insieme usando l'intelligenza artificiale. Disponibile anche nell'app dipendenti se la funzione Quotazione è attiva.",
+        ("1", "Motore: numero di motori, tipologia (fuoribordo, entrobordo, entrofuoribordo con piede poppiero), modello, anno, ore di moto, stato generale (ottimo, buono, usurato, pessimo)."),
+        ("1", "Imbarcazione: scelta Barca o Gommone, modello, anno, stato; per il gommone anche se i tubolari sono nuovi e di quanti anni."),
+        ("1", "Foto (facoltative ma consigliate): dal telefono si scattano con la fotocamera o si scelgono dalla galleria, sia del motore sia dell'imbarcazione. L'AI le analizza (corrosione, usura, danni) e corregge stato e valore."),
+        ("1", "Premi Valuta: la valutazione viene elaborata in pochi secondi (stato In corso → Pronta). Il risultato mostra valore minimo, massimo e consigliato con motivazione."),
+        ("-", "Report PDF su carta intestata del cantiere, con Condividi su WhatsApp (viene inviato il PDF). Cestino per eliminare una valutazione, con conferma."),
+        ("!", "La quotazione è indicativa e va sempre verificata di persona sul mezzo."),
+    ]),
+    ("12. Documenti, Calendario, Report", [
         ("-", "DDT & Destinazione: documenti di trasporto con mittente, destinatario, colli, causale; numerazione e PDF."),
         ("-", "Contratti: testo del contratto di rimessaggio con segnaposto (nome cliente, barca, anno, importi) che viene stampato insieme al preventivo."),
         ("-", "Documenti di servizio, Capitaneria, Mezzi: moduli dedicati con stampa PDF (dichiarazioni, comunicazioni, elenco mezzi del cantiere)."),
         ("-", "Calendario: vista annuale e mensile. Appuntamenti con tipologia (alaggio, varo, consegna, …) modificabile da Impostazioni rimessaggio; memo dei clienti; dettaglio del giorno con modifica ed eliminazione."),
         ("-", "Report ed Export: incassi per anno, pagati/non pagati, esportazione dati."),
     ]),
-    ("12. Fatturazione con Fatture in Cloud", [
+    ("13. Fatturazione con Fatture in Cloud", [
         "Il gestionale non emette fatture: le prepara come BOZZE su Fatture in Cloud, dove si controllano e si emettono.",
         ("#", "Collegamento (una sola volta)"),
         ("1", "Su Fatture in Cloud: Impostazioni → Applicazioni e integrazioni → Autenticazione manuale → crea un token con permessi su Clienti, Fatture e Proforma (lettura/scrittura). Copialo."),
@@ -145,11 +166,13 @@ SEZIONI = [
         ("#", "Inviare un documento"),
         ("1", "Premi Invia a fatturazione sul dettaglio del cliente in Rimessaggio, sulla riga del cliente esterno (per l'anno scelto) o su un preventivo esterno."),
         ("1", "Controllo dati: il documento parte solo se il cliente è completo. Privato: nome, cognome, indirizzo, codice fiscale. Azienda: ragione sociale, indirizzo, P.IVA, codice SDI. Se manca qualcosa (o il contatto non è in Anagrafica generale) si apre la finestra per completare i dati, con la spunta \"Registra in Anagrafica generale\" già attiva."),
-        ("1", "Conferma: il cliente viene creato o aggiornato su Fatture in Cloud (P.IVA, CF, SDI, PEC) e viene creata una fattura PROFORMA con tutte le righe separate; la fattura definitiva si genera poi da Fatture in Cloud (Trasforma in fattura)."),
+        ("1", "Conferma: se il cliente è già presente in Fatture in Cloud (stesso codice fiscale o P.IVA) viene riutilizzato senza crearne un doppione; altrimenti viene creato o aggiornato (P.IVA, CF, SDI, PEC). Poi viene creata una fattura PROFORMA con tutte le righe separate; la fattura definitiva si genera poi da Fatture in Cloud (Trasforma in fattura)."),
         ("1", "Accanto al tasto compare Proforma emessa · data con il link \"apri\"; il tasto diventa Reinvia (crea una nuova proforma)."),
     ]),
-    ("13. Impostazioni", [
+    ("14. Impostazioni", [
         ("-", "Cantiere: logo, denominazione, dati fiscali, indirizzo, contatti: compaiono in tutti i PDF."),
+        ("-", "Dati bancari: intestatario, banca, IBAN; compaiono in alto a destra su stime dei costi e preventivi. Se cambiano, tutti i PDF successivi li aggiornano da soli."),
+        ("-", "Sincronizzazione PC ↔ online: stato dell'ultimo allineamento, modifiche in attesa di invio e tasto Sincronizza ora (vedi sezione 16)."),
         ("-", "Sicurezza: cambio password del gestionale (serve quella attuale)."),
         ("-", "PIN di recupero master: cambio del PIN usato per reimpostare la password."),
         ("-", "Backup & Ripristino: Scarica backup salva un file JSON con tutti i dati; Ripristina da file lo ricarica (sostituisce i dati attuali, con conferma). Fai un backup prima di ogni aggiornamento e almeno una volta al mese."),
@@ -157,12 +180,26 @@ SEZIONI = [
         ("-", "Fatturazione: collegamento Fatture in Cloud."),
         ("-", "Aggiornamenti (solo installazione sul proprio server): mostra versione installata e disponibile con elenco novità; Aggiorna esegue backup automatico, scarica e ricostruisce; Ripristina torna alla versione precedente."),
     ]),
-    ("14. Installazione sul proprio server e aggiornamenti", [
+    ("15. Installazione sul proprio server e aggiornamenti", [
         "Il programma gira su un server (es. Oracle Cloud) in contenitori Docker: frontend, backend, database MongoDB, Caddy (HTTPS automatico) e updater. Le istruzioni complete sono nel file deploy/INSTALLAZIONE.md del repository.",
-        ("1", "Sul server: git clone del repository GitHub (salvato da Emergent con \"Save to GitHub\"), poi cd deploy, cp .env.example .env, nano .env per compilare dominio, password iniziale, PIN, chiavi (vedi sezione 15)."),
+        ("1", "Sul server: git clone del repository GitHub (salvato da Emergent con \"Save to GitHub\"), poi cd deploy, cp .env.example .env, nano .env per compilare dominio, password iniziale, PIN, chiavi (vedi sezione 17)."),
         ("1", "Avvio: APP_COMMIT=$(git rev-parse --short HEAD) docker compose up -d --build. Al primo avvio Caddy ottiene il certificato HTTPS per il dominio."),
         ("1", "Aggiornamenti: da Emergent premi Save to GitHub; sul gestionale vai in Impostazioni → Aggiornamenti → Aggiorna. Backup automatico, pull e ricostruzione; in caso di problemi Ripristina."),
-        ("!", "I file .env e i backup non vengono mai pubblicati su GitHub: conservane una copia (anche su questo manuale, sezione 15)."),
+        ("!", "I file .env e i backup non vengono mai pubblicati su GitHub: conservane una copia (anche su questo manuale, sezione 17)."),
+    ]),
+    ("16. Installazione sul PC (Ubuntu) e sincronizzazione con la versione online", [
+        "Il gestionale può girare anche sul PC del cantiere (installazione da terminale su Ubuntu) e tenersi allineato con la versione online: le due copie contengono sempre gli stessi dati e gli stessi file (cataloghi, video, PDF).",
+        ("#", "Come funziona"),
+        ("-", "Ogni 30 secondi il PC riceve le novità fatte online e invia le proprie. Si lavora indifferentemente su una o sull'altra."),
+        ("-", "Senza internet il PC continua a funzionare in tutto e per tutto; le modifiche restano in coda e partono da sole appena torna la connessione."),
+        ("-", "Se il PC è spento mentre si lavora online, all'accensione recupera subito tutto quello che è stato fatto nel frattempo."),
+        ("-", "Se lo stesso dato viene modificato su entrambi i lati, vince l'ultima modifica in ordine di tempo."),
+        ("#", "Configurazione (una sola volta)"),
+        ("1", "Online (Emergent): aggiungere il segreto SYNC_TOKEN (una stringa lunga a piacere, es. openssl rand -hex 24) e ripubblicare."),
+        ("1", "Sul PC, nel file backend/.env: SYNC_TOKEN=(lo stesso valore dell'online), SYNC_PEER_URL=https://(indirizzo del gestionale online), SYNC_INTERVAL=30. Riavviare il backend."),
+        ("1", "Al primo avvio il PC scarica l'intero archivio online (dati e file); da quel momento lavora in modo incrementale."),
+        ("1", "Controllo: Impostazioni → Sincronizzazione PC ↔ online mostra ultima sincronizzazione, eventuale errore, modifiche in attesa e il tasto Sincronizza ora."),
+        ("!", "Il token è una password condivisa tra le due installazioni: non comunicarlo a nessuno. Dopo ogni aggiornamento del programma aggiornare entrambe le copie."),
     ]),
 ]
 
@@ -180,6 +217,7 @@ CHIAVI = [
     ("Repository GitHub", "deploy/.env → UPDATE_REPO (e UPDATE_BRANCH=main)", "Creato da Emergent con Save to GitHub"),
     ("Token updater", "deploy/.env → UPDATER_TOKEN", "Stringa casuale: openssl rand -hex 24"),
     ("Segreto JWT", "deploy/.env → JWT_SECRET", "Stringa casuale lunga; cambiarla scollega tutti i dispositivi"),
+    ("Token sincronizzazione PC ↔ online", "Online: segreto SYNC_TOKEN su Emergent; PC: backend/.env → SYNC_TOKEN e SYNC_PEER_URL", "Stesso valore sui due lati: openssl rand -hex 24"),
     ("Accesso al server (Oracle)", "Console Oracle Cloud → istanza; accesso SSH con chiave privata", "IP pubblico, utente (es. ubuntu), percorso della chiave .pem"),
     ("Account Emergent", "app.emergent.sh", "Email e metodo di accesso"),
 ]
@@ -227,7 +265,7 @@ def build_manuale_pdf(cantiere_doc: dict) -> bytes:
                               ("LINEBELOW", (0, 0), (-1, -1), 0.3, LINE), ("BOTTOMPADDING", (0, 0), (-1, -1), 5), ("TOPPADDING", (0, 0), (-1, -1), 5)]))
     el += [info, Spacer(1, 12 * mm), Paragraph("Indice", h1)]
     el += [Paragraph(t, toc) for t, _ in SEZIONI]
-    el.append(Paragraph("15. Chiavi, password e accessi (da compilare a penna)", toc))
+    el.append(Paragraph("17. Chiavi, password e accessi (da compilare a penna)", toc))
     el.append(PageBreak())
     for titolo, voci in SEZIONI:
         el.append(Paragraph(titolo, h1))
@@ -248,7 +286,7 @@ def build_manuale_pdf(cantiere_doc: dict) -> bytes:
                 el.append(Paragraph(f"<b>Nota.</b> {x[1]}", nota))
 
     el.append(PageBreak())
-    el.append(Paragraph("15. Chiavi, password e accessi (da compilare a penna)", h1))
+    el.append(Paragraph("17. Chiavi, password e accessi (da compilare a penna)", h1))
     el.append(Paragraph("Per ogni chiave: dove si imposta nel programma, dove si ottiene, e un riquadro vuoto per scriverla a penna. Conserva questo foglio in un luogo sicuro: le chiavi non sono salvate su GitHub e non si possono recuperare dal programma.", body))
     el.append(Spacer(1, 3 * mm))
     W = A4[0] - 36 * mm
