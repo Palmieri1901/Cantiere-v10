@@ -30,12 +30,13 @@ export default function Home() {
         toast.success(`Backup salvato in "${r.folder}" · ${r.kept} copie conservate${r.deleted ? ` · ${r.deleted} vecchie eliminate` : ""}`);
       } else {
         toast.success(`Backup salvato: ${r.filename}`);
-        if (r.mode === "download") toast.info("Il browser non permette di scegliere la cartella: file scaricato nella cartella Download.");
+        if (r.mode === "download") toast.info("Questo browser (es. Firefox) non permette di scegliere la cartella: il file è nella cartella Download. Per scegliere dove salvare usa Chrome/Chromium oppure in Firefox attiva \"Chiedi sempre dove salvare i file\".", { duration: 12000 });
       }
       api.get("/backup/ultimo").then((x) => setBackupInfo(x.data)).catch(() => {});
     } catch (e) {
       if (e?.name === "AbortError") return;
-      toast.error(e?.response?.data?.detail || e?.message || "Errore durante il backup");
+      const msg = e?.response?.data?.detail || e?.message || "Errore durante il backup";
+      toast.error(/timeout/i.test(msg) ? "Il backup sta impiegando troppo: riprova; se il problema persiste aggiorna il programma sul PC (nuova versione senza limite di tempo)." : msg);
     } finally { setBackingUp(false); }
   };
   const currentYear = new Date().getFullYear();

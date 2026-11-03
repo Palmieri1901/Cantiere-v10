@@ -1155,3 +1155,6 @@ Backend spezzato in moduli (`server.py` ora 112 righe, prima 2761):
 
 ## 2026-11-03 — Fix backup "timeout of 30000ms exceeded"
 - backupFolder.js: download senza timeout axios; routers/backup.py: export in streaming (JSON generato progressivamente, nessun dump in memoria), esclusi _sync_log/_sync_state dal backup.
+
+## 2026-11-03 — Backup: scelta cartella prima del download
+- backupFolder.js: picker cartella/file aperto subito al click (gesto utente), poi download senza timeout; Impostazioni "Scarica backup" usa la stessa funzione; messaggio chiaro per Firefox (cartella Download).

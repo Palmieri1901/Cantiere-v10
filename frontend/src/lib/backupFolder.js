@@ -23,9 +23,10 @@ const pruneOld = async (dir) => {
 };
 
 export async function salvaBackupInCartella() {
-  const { blob, filename } = await fetchBackup();
+  // La scelta della cartella/file va fatta SUBITO (serve il gesto dell'utente), prima del download che può durare minuti
   if (typeof window.showDirectoryPicker === "function") {
     const dir = await window.showDirectoryPicker({ mode: "readwrite", id: "geb-backup", startIn: "documents" });
+    const { blob, filename } = await fetchBackup();
     const fh = await dir.getFileHandle(filename, { create: true });
     const w = await fh.createWritable();
     await w.write(blob);
@@ -34,12 +35,14 @@ export async function salvaBackupInCartella() {
     return { mode: "folder", filename, folder: dir.name, kept, deleted };
   }
   if (typeof window.showSaveFilePicker === "function") {
-    const fh = await window.showSaveFilePicker({ suggestedName: filename, types: [{ description: "Backup JSON", accept: { "application/json": [".json"] } }] });
+    const fh = await window.showSaveFilePicker({ suggestedName: `${PREFIX}${new Date().toISOString().slice(0, 10)}.json`, types: [{ description: "Backup JSON", accept: { "application/json": [".json"] } }] });
+    const { blob } = await fetchBackup();
     const w = await fh.createWritable();
     await w.write(blob);
     await w.close();
-    return { mode: "file", filename };
+    return { mode: "file", filename: fh.name };
   }
+  const { blob, filename } = await fetchBackup();
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url; a.download = filename; a.click();

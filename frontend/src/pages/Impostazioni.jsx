@@ -14,8 +14,8 @@ import SyncCard from "@/pages/impostazioni/SyncCard";
 import ManualeCard from "@/pages/impostazioni/ManualeCard";
 import BiometriaCard from "@/pages/impostazioni/BiometriaCard";
 import { toast } from "sonner";
+import { salvaBackupInCartella } from "@/lib/backupFolder";
 import { Building2, Upload, Save, RefreshCw, Trash2, ImageIcon, Download, Database, AlertTriangle, FileText, FileSignature, KeyRound, Lock } from "lucide-react";
-import { API } from "@/lib/api";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle
@@ -41,6 +41,18 @@ export default function Impostazioni() {
   const restoreRef = useRef(null);
   const [restoreData, setRestoreData] = useState(null);
   const [restoring, setRestoring] = useState(false);
+  const [backingUp, setBackingUp] = useState(false);
+  const doBackup = async () => {
+    setBackingUp(true);
+    try {
+      const r = await salvaBackupInCartella();
+      if (r.mode === "folder") toast.success(`Backup salvato in "${r.folder}" · ${r.kept} copie conservate`);
+      else toast.success(`Backup salvato: ${r.filename}${r.mode === "download" ? " (cartella Download del browser)" : ""}`);
+    } catch (e) {
+      if (e?.name === "AbortError") return;
+      toast.error(e?.response?.data?.detail || e?.message || "Errore durante il backup");
+    } finally { setBackingUp(false); }
+  };
   const [pwOld, setPwOld] = useState("");
   const [pwNew, setPwNew] = useState("");
   const [pwNew2, setPwNew2] = useState("");
@@ -393,11 +405,9 @@ export default function Impostazioni() {
             </p>
           </div>
           <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto shrink-0">
-            <Button asChild variant="outline" className="w-full sm:w-auto" data-testid="btn-backup-download">
-              <a href={`${API}/backup`} download>
-                <Download className="w-4 h-4 mr-2" />
-                Scarica backup
-              </a>
+            <Button variant="outline" className="w-full sm:w-auto" disabled={backingUp} onClick={doBackup} data-testid="btn-backup-download">
+              <Download className="w-4 h-4 mr-2" />
+              {backingUp ? "Salvataggio…" : "Scarica backup"}
             </Button>
             <input ref={restoreRef} type="file" accept="application/json,.json" hidden onChange={onRestoreSelected} data-testid="input-restore-file" />
             <Button variant="outline" className="w-full sm:w-auto" onClick={() => restoreRef.current?.click()} data-testid="btn-restore-open">
