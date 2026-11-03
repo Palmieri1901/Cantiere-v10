@@ -18,7 +18,7 @@ from database import db
 router = APIRouter()
 
 BACKUP_VERSION = 3
-EXCLUDED = {"users", "password_reset_tokens"}
+EXCLUDED = {"users", "password_reset_tokens", "_sync_log", "_sync_state"}
 GRIDFS_BUCKETS = {"gommoni_omologazioni": "PDF omologazione gommoni"}
 
 SETTORI: Dict[str, List[str]] = {
@@ -41,15 +41,6 @@ def _is_gridfs(name: str) -> bool:
     return any(name.startswith(b + ".") for b in GRIDFS_BUCKETS)
 
 
-async def _dump_gridfs(bucket_name: str) -> List[dict]:
-    bucket = SyncBucket(db, bucket_name)
-    out = []
-    async for f in bucket.find({}):
-        stream = await bucket.open_download_stream(f._id)
-        data = await stream.read()
-        out.append({"_id": str(f._id), "filename": f.filename, "metadata": f.metadata or {}, "data_b64": base64.b64encode(data).decode("ascii")})
-    return out
-
 
 @router.get("/backup/ultimo")
 async def ultimo_backup():
@@ -70,26 +61,36 @@ async def ultimo_backup():
 
 @router.get("/backup")
 async def backup_data():
-    """Esporta TUTTE le collezioni (tranne credenziali) + file GridFS in un unico JSON."""
-    names = [n for n in await db.list_collection_names() if n not in EXCLUDED and not _is_gridfs(n)]
-    collections: Dict[str, list] = {}
-    for n in sorted(names):
-        collections[n] = await db[n].find({}, {"_id": 0}).to_list(500000)
-    files = {b: await _dump_gridfs(b) for b in GRIDFS_BUCKETS}
-    payload = {
-        "version": BACKUP_VERSION,
-        "generated_at": datetime.now(timezone.utc).isoformat(),
-        "app": "GEB Cantiere Nautico",
-        "settori": SETTORI,
-        "counts": {n: len(v) for n, v in collections.items()},
-        "files_counts": {b: len(v) for b, v in files.items()},
-        "collections": collections,
-        "files": files,
-    }
-    body = _json.dumps(payload, ensure_ascii=False, default=str)
-    await db.app_settings.update_one({"id": "backup_info"}, {"$set": {"ultimo_backup": payload["generated_at"]}}, upsert=True)
+    """Esporta TUTTE le collezioni (tranne credenziali) + file GridFS in un unico JSON, in streaming."""
+    names = sorted(n for n in await db.list_collection_names() if n not in EXCLUDED and not _is_gridfs(n))
+    generated_at = datetime.now(timezone.utc).isoformat()
+    await db.app_settings.update_one({"id": "backup_info"}, {"$set": {"ultimo_backup": generated_at}}, upsert=True)
+
+    async def gen():
+        head = {"version": BACKUP_VERSION, "generated_at": generated_at, "app": "GEB Cantiere Nautico", "settori": SETTORI}
+        yield _json.dumps(head, ensure_ascii=False)[:-1] + ', "collections": {'
+        for i, n in enumerate(names):
+            yield ("," if i else "") + _json.dumps(n) + ": ["
+            first = True
+            async for d in db[n].find({}, {"_id": 0}):
+                yield ("" if first else ",") + _json.dumps(d, ensure_ascii=False, default=str)
+                first = False
+            yield "]"
+        yield '}, "files": {'
+        for i, b in enumerate(GRIDFS_BUCKETS):
+            yield ("," if i else "") + _json.dumps(b) + ": ["
+            bucket = SyncBucket(db, b)
+            first = True
+            async for f in bucket.find({}):
+                data = await (await bucket.open_download_stream(f._id)).read()
+                item = {"_id": str(f._id), "filename": f.filename, "metadata": f.metadata or {}, "data_b64": base64.b64encode(data).decode("ascii")}
+                yield ("" if first else ",") + _json.dumps(item, ensure_ascii=False)
+                first = False
+            yield "]"
+        yield "}}"
+
     filename = f"backup_geb_completo_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
-    return StreamingResponse(iter([body]), media_type="application/json",
+    return StreamingResponse(gen(), media_type="application/json",
                              headers={"Content-Disposition": f"attachment; filename={filename}"})
 
 

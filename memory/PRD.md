@@ -1152,3 +1152,6 @@ Backend spezzato in moduli (`server.py` ora 112 righe, prima 2761):
 
 ## 2026-11-02 — Manuale d uso aggiornato (v2026.11)
 - manuale.py: nuove sezioni 11 Valutazioni usato, 16 Installazione PC + sync; aggiornati Magazzino (ricarico/IVA), Stima dei costi, App dipendenti (funzioni per dipendente, listini pubblici), Gommoni (file reali), Fatturazione (cliente esistente), Impostazioni (dati bancari, sync); scheda chiavi con SYNC_TOKEN.
+
+## 2026-11-03 — Fix backup "timeout of 30000ms exceeded"
+- backupFolder.js: download senza timeout axios; routers/backup.py: export in streaming (JSON generato progressivamente, nessun dump in memoria), esclusi _sync_log/_sync_state dal backup.

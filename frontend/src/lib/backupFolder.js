@@ -4,7 +4,7 @@ const PREFIX = "backup_geb_completo_";
 const MAX_COPIE = 3;
 
 const fetchBackup = async () => {
-  const res = await api.get("/backup", { responseType: "blob" });
+  const res = await api.get("/backup", { responseType: "blob", timeout: 0 });
   const cd = res.headers?.["content-disposition"] || "";
   const m = cd.match(/filename=([^;]+)/);
   const filename = (m ? m[1].trim().replace(/"/g, "") : `${PREFIX}${Date.now()}.json`);
