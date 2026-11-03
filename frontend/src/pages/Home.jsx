@@ -30,7 +30,7 @@ export default function Home() {
         toast.success(`Backup salvato in "${r.folder}" · ${r.kept} copie conservate${r.deleted ? ` · ${r.deleted} vecchie eliminate` : ""}`);
       } else {
         toast.success(`Backup salvato: ${r.filename}`);
-        if (r.mode === "download") toast.info("Questo browser (es. Firefox) non permette di scegliere la cartella: il file è nella cartella Download. Per scegliere dove salvare usa Chrome/Chromium oppure in Firefox attiva \"Chiedi sempre dove salvare i file\".", { duration: 12000 });
+        if (r.mode === "download") toast.info("Su questo browser/dispositivo non è possibile scegliere la cartella: il file è stato salvato nella cartella Download.", { duration: 8000 });
       }
       api.get("/backup/ultimo").then((x) => setBackupInfo(x.data)).catch(() => {});
     } catch (e) {

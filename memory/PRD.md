@@ -1158,3 +1158,6 @@ Backend spezzato in moduli (`server.py` ora 112 righe, prima 2761):
 
 ## 2026-11-03 — Backup: scelta cartella prima del download
 - backupFolder.js: picker cartella/file aperto subito al click (gesto utente), poi download senza timeout; Impostazioni "Scarica backup" usa la stessa funzione; messaggio chiaro per Firefox (cartella Download).
+
+## 2026-11-03 — Backup: fallback se il picker fallisce
+- backupFolder.js: se showDirectoryPicker lancia errore (gesto utente scaduto / non supportato su telefono) si passa al download normale invece di mostrare errore.
