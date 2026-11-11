@@ -1164,3 +1164,6 @@ Backend spezzato in moduli (`server.py` ora 112 righe, prima 2761):
 
 ## 2026-11-11 — LaserLogo: unione/separazione punti e forme
 - contourEdit.js: snapExcluding, coincidentPoints, mergeShapes, splitShape, detachPoint, addIntersections. LaserLogo.jsx: barra "Magnete / Punti d incrocio / Unisci forme / Dividi forma / Stacca punto" (testid laser-*), trascinamento con aggancio magnetico, evidenza punti agganciati. Testato e2e via Playwright.
+
+## 2026-11-11 — LaserLogo: Cancella tratto
+- contourEdit.deleteBetween + bottone laser-cancella-tratto (due click: 1° punto, 2° punto; elimina i punti interni sul lato più corto). Testato e2e: 32→25 punti.

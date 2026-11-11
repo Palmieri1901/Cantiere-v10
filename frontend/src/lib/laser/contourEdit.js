@@ -181,3 +181,17 @@ export function addIntersections(paths, index) {
   }));
   return { paths: out, count };
 }
+
+export function deleteBetween(paths, a, b) {
+  const path = paths[a.p];
+  if (!path || a.p !== b.p || a.i === b.i) return paths;
+  const n = path.length;
+  const fwd = (b.i - a.i + n) % n - 1, back = (a.i - b.i + n) % n - 1; // punti interni ai due archi
+  if (fwd <= 0 && back <= 0) return paths;
+  const useFwd = fwd <= back;
+  const start = useFwd ? a.i : b.i, count = useFwd ? fwd : back;
+  const drop = new Set(Array.from({ length: count }, (_, k) => (start + 1 + k) % n));
+  const kept = path.filter((_, i) => !drop.has(i));
+  if (kept.length < 3) return paths;
+  return paths.map((p, i) => (i === a.p ? kept : p));
+}

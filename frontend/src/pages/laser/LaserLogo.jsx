@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import { confirmDialog } from "@/components/ConfirmDialog";
 import { fileToCanvases, deletePhoto, loadPhotos, savePhotos, urlToCanvas, download } from "@/lib/laser/files";
 import { trace, toDXF, toSVG, sogliaAutomatica } from "@/lib/laser/vectorize";
-import { appendContour, insertNearestPoint, boxBounds, isInsideBox, movePoint, rotateShapes, refineContours, countPointsInBox, deletePointsInBox, snapToPoint, pointInBox, snapExcluding, coincidentPoints, mergeShapes, splitShape, detachPoint, addIntersections } from "@/lib/laser/contourEdit";
+import { appendContour, insertNearestPoint, boxBounds, isInsideBox, movePoint, rotateShapes, refineContours, countPointsInBox, deletePointsInBox, snapToPoint, pointInBox, snapExcluding, coincidentPoints, mergeShapes, splitShape, detachPoint, addIntersections, deleteBetween } from "@/lib/laser/contourEdit";
 import { Panel, Slider, Check, Foto, Dimensione, BarraArea } from "./LaserPannelli";
 import { RaddrizzaDialog } from "./RaddrizzaDialog";
 
@@ -42,6 +42,7 @@ export default function LaserLogo() {
   const [notice, setNotice] = useState(null);
   const [raddrizza, setRaddrizza] = useState(false);
   const [magnete, setMagnete] = useState(true);
+  const [cutStart, setCutStart] = useState(null);
 
   function aggiungiCanvas(canvas, name) {
     const nuovo = { id: crypto.randomUUID(), name, canvas, url: canvas.toDataURL("image/jpeg", 0.85) };
@@ -209,6 +210,18 @@ export default function LaserLogo() {
     if (result === paths) { setNotice("La forma non può essere divisa qui: serve un punto che la forma tocca due volte (giunzione)."); return; }
     snapshot(paths); setPaths(result); setSel(null); setNotice("Forma divisa in due contorni.");
   }
+  function cancellaTratto() {
+    if (!sel) return;
+    if (!cutStart || cutStart.p !== sel.p || !paths[cutStart.p]?.[cutStart.i]) {
+      setCutStart(sel); setNotice("Primo punto scelto: ora seleziona il secondo punto sulla stessa forma e premi di nuovo «Cancella tratto».");
+      return;
+    }
+    const result = deleteBetween(paths, cutStart, sel);
+    if (result === paths) { setNotice("Nessun punto da eliminare tra i due punti scelti."); setCutStart(null); return; }
+    const removed = paths[sel.p].length - result[sel.p].length;
+    snapshot(paths); setPaths(result); setSel(null); setCutStart(null); setSelectedShapes([sel.p]);
+    setNotice(`${removed} punti eliminati tra i due punti scelti (lato più corto).`);
+  }
   function staccaPunto() { if (!sel) return; commit((ps) => detachPoint(ps, sel, r * 4)); }
   function intersezioni() {
     if (!sel) return;
@@ -370,6 +383,9 @@ export default function LaserLogo() {
             <Button variant="outline" size="sm" disabled={!joinedOther || Boolean(drawingMode)} onClick={uniciForme} title="Unisce la forma selezionata con l'altra che passa per questo punto" data-testid="laser-unisci-forme">Unisci forme</Button>
             <Button variant="outline" size="sm" disabled={!joinedSame || Boolean(drawingMode)} onClick={dividiForma} title="Divide la forma in due nel punto di giunzione" data-testid="laser-dividi-forma">Dividi forma</Button>
             <Button variant="outline" size="sm" disabled={!joined.length || Boolean(drawingMode)} onClick={staccaPunto} title="Allontana il punto selezionato da quello su cui è agganciato" data-testid="laser-stacca-punto">Stacca punto</Button>
+            <span className="mx-1 h-6 w-px bg-border" />
+            <Button variant={cutStart ? "default" : "outline"} size="sm" disabled={!sel || Boolean(drawingMode)} onClick={cancellaTratto} title="Scegli due punti sulla stessa forma: elimina tutti i punti in mezzo" data-testid="laser-cancella-tratto">{cutStart ? "Cancella tratto: 2° punto" : "Cancella tratto"}</Button>
+            {cutStart && <Button variant="outline" className={ib} title="Annulla scelta" onClick={() => setCutStart(null)} data-testid="laser-cancella-tratto-annulla"><X className="w-4 h-4" /></Button>}
             {sel && joined.length > 0 && <output className="text-xs text-muted-foreground" data-testid="laser-punto-unito">punto agganciato ({joined.length})</output>}
           </div>
           {notice && <p role="status" className="rounded-md border border-border bg-card px-3 py-2 text-xs text-muted-foreground" data-testid="laser-notice">{notice}</p>}
@@ -422,7 +438,7 @@ export default function LaserLogo() {
                             onPointerDown={(e) => { e.stopPropagation(); setSelectedShapes([]); setSel({ p: pi, i }); }} onDoubleClick={(e) => insertPoint(pi, i, e)} />;
                         })}
                         {editable && p.map((q, i) => {
-                          const on = sel?.p === pi && sel.i === i;
+                          const on = (sel?.p === pi && sel.i === i) || (cutStart?.p === pi && cutStart.i === i);
                           return <circle key={"c" + i} cx={q.x} cy={q.y} r={on ? r * 1.4 : r} fill={on ? "hsl(var(--primary))" : area && pointInBox(q, area) ? "hsl(var(--destructive))" : sel && joined.some((j) => j.p === pi && j.i === i) ? "hsl(var(--accent))" : "hsl(var(--background))"} stroke="hsl(var(--primary))" strokeWidth={r * 0.35} style={{ cursor: "grab" }}
                             onPointerDown={(e) => {
                               e.stopPropagation(); setSelectedShapes([]);
