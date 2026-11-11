@@ -115,7 +115,7 @@ export function trace(canvas, opts) {
 export function toSVG(paths, w, h, widthMm) {
   const k = widthMm / w;
   const hMm = h * k;
-  const d = paths.map((p) => "M" + p.map((q) => `${(q.x * k).toFixed(3)},${(q.y * k).toFixed(3)}`).join(" L") + " Z").join(" ");
+  const d = paths.map((p) => "M" + p.map((q) => `${(q.x * k).toFixed(3)},${(q.y * k).toFixed(3)}`).join(" L") + (p.open ? "" : " Z")).join(" ");
   return `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="${widthMm.toFixed(2)}mm" height="${hMm.toFixed(2)}mm" viewBox="0 0 ${widthMm.toFixed(3)} ${hMm.toFixed(3)}">
 <path d="${d}" fill="none" stroke="#ff0000" stroke-width="0.1" fill-rule="evenodd"/>
@@ -127,7 +127,7 @@ export function toDXF(paths, w, h, widthMm) {
   const hMm = h * k;
   const L = ["0", "SECTION", "2", "HEADER", "9", "$INSUNITS", "70", "4", "0", "ENDSEC", "0", "SECTION", "2", "ENTITIES"];
   for (const p of paths) {
-    L.push("0", "LWPOLYLINE", "8", "TAGLIO", "90", String(p.length), "70", "1");
+    L.push("0", "LWPOLYLINE", "8", "TAGLIO", "90", String(p.length), "70", p.open ? "0" : "1");
     for (const q of p) L.push("10", (q.x * k).toFixed(3), "20", (hMm - q.y * k).toFixed(3));
   }
   L.push("0", "ENDSEC", "0", "EOF");

@@ -1167,3 +1167,6 @@ Backend spezzato in moduli (`server.py` ora 112 righe, prima 2761):
 
 ## 2026-11-11 — LaserLogo: Cancella tratto
 - contourEdit.deleteBetween + bottone laser-cancella-tratto (due click: 1° punto, 2° punto; elimina i punti interni sul lato più corto). Testato e2e: 32→25 punti.
+
+## 2026-11-11 — Fix Cancella tratto + forme aperte
+- Bug: condizione adiacenza errata (fwd&&back). Ora due punti adiacenti → segmento rimosso e forma aperta (flag open sull array, conservato da keepOpen/copyPaths in tutte le operazioni); render polyline; export SVG senza Z, DXF LWPOLYLINE 70=0. Testato e2e.

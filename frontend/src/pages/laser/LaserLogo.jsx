@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import { confirmDialog } from "@/components/ConfirmDialog";
 import { fileToCanvases, deletePhoto, loadPhotos, savePhotos, urlToCanvas, download } from "@/lib/laser/files";
 import { trace, toDXF, toSVG, sogliaAutomatica } from "@/lib/laser/vectorize";
-import { appendContour, insertNearestPoint, boxBounds, isInsideBox, movePoint, rotateShapes, refineContours, countPointsInBox, deletePointsInBox, snapToPoint, pointInBox, snapExcluding, coincidentPoints, mergeShapes, splitShape, detachPoint, addIntersections, deleteBetween } from "@/lib/laser/contourEdit";
+import { appendContour, insertNearestPoint, boxBounds, isInsideBox, movePoint, rotateShapes, refineContours, countPointsInBox, deletePointsInBox, snapToPoint, pointInBox, snapExcluding, coincidentPoints, mergeShapes, splitShape, detachPoint, addIntersections, deleteBetween, copyPaths, keepOpen } from "@/lib/laser/contourEdit";
 import { Panel, Slider, Check, Foto, Dimensione, BarraArea } from "./LaserPannelli";
 import { RaddrizzaDialog } from "./RaddrizzaDialog";
 
@@ -104,21 +104,21 @@ export default function LaserLogo() {
     if (active === id) setPaths([]);
   }
 
-  function snapshot(prev) { past.current = [...past.current.slice(-49), prev.map((p) => p.slice())]; future.current = []; setHist({ u: past.current.length, r: 0 }); }
+  function snapshot(prev) { past.current = [...past.current.slice(-49), copyPaths(prev)]; future.current = []; setHist({ u: past.current.length, r: 0 }); }
   function commit(update) { snapshot(paths); setPaths(update(paths)); }
   function undo() {
     if (draft.length) { setDraft((p) => p.slice(0, -1)); return; }
     clearDrawing();
     const prev = past.current.pop();
     if (!prev) return;
-    future.current = [paths.map((p) => p.slice()), ...future.current].slice(0, 50);
+    future.current = [copyPaths(paths), ...future.current].slice(0, 50);
     setPaths(prev); setHist({ u: past.current.length, r: future.current.length }); setSel(null); clearArea();
   }
   function redo() {
     clearDrawing();
     const next = future.current.shift();
     if (!next) return;
-    past.current = [...past.current, paths.map((p) => p.slice())].slice(-50);
+    past.current = [...past.current, copyPaths(paths)].slice(-50);
     setPaths(next); setHist({ u: past.current.length, r: future.current.length }); setSel(null); clearArea();
   }
 
@@ -192,7 +192,7 @@ export default function LaserLogo() {
     if (!q) return;
     if (dragBase.current) { snapshot(dragBase.current); dragBase.current = null; }
     const target = magnete ? snapExcluding(paths, d, q, r * 3) : q;
-    setPaths((ps) => ps.map((p, pi) => (pi !== d.p ? p : p.map((pt, i) => (i === d.i ? target : pt)))));
+    setPaths((ps) => ps.map((p, pi) => (pi !== d.p ? p : keepOpen(p, p.map((pt, i) => (i === d.i ? target : pt))))));
   }
 
   const joined = sel ? coincidentPoints(paths, sel) : [];
@@ -217,10 +217,10 @@ export default function LaserLogo() {
       return;
     }
     const result = deleteBetween(paths, cutStart, sel);
-    if (result === paths) { setNotice("Nessun punto da eliminare tra i due punti scelti."); setCutStart(null); return; }
+    if (result === paths) { setNotice("Nessun tratto da eliminare tra i due punti scelti."); setCutStart(null); return; }
     const removed = paths[sel.p].length - result[sel.p].length;
     snapshot(paths); setPaths(result); setSel(null); setCutStart(null); setSelectedShapes([sel.p]);
-    setNotice(`${removed} punti eliminati tra i due punti scelti (lato più corto).`);
+    setNotice(removed ? `${removed} punti eliminati tra i due punti scelti (lato più corto).` : "Linea tra i due punti eliminata: la forma ora è aperta (verrà tagliata come linea, non come sagoma chiusa).");
   }
   function staccaPunto() { if (!sel) return; commit((ps) => detachPoint(ps, sel, r * 4)); }
   function intersezioni() {
@@ -235,10 +235,10 @@ export default function LaserLogo() {
     e.stopPropagation();
     const q = toLocal(e);
     if (!q) return;
-    commit((ps) => ps.map((p, k) => (k !== pi ? p : [...p.slice(0, i + 1), q, ...p.slice(i + 1)])));
+    commit((ps) => ps.map((p, k) => (k !== pi ? p : keepOpen(p, [...p.slice(0, i + 1), q, ...p.slice(i + 1)]))));
     setSel({ p: pi, i: i + 1 });
   }
-  function deleteSel() { if (!sel) return; setSelectedShapes([]); commit((ps) => ps.map((p, k) => (k !== sel.p ? p : p.filter((_, i) => i !== sel.i))).filter((p) => p.length >= 3)); setSel(null); }
+  function deleteSel() { if (!sel) return; setSelectedShapes([]); commit((ps) => ps.map((p, k) => (k !== sel.p ? p : keepOpen(p, p.filter((_, i) => i !== sel.i)))).filter((p) => p.length >= (p.open ? 2 : 3))); setSel(null); }
   function deleteShape() { if (!sel) return; setSelectedShapes([]); commit((ps) => ps.filter((_, k) => k !== sel.p)); setSel(null); }
 
   const enclosedCount = area ? countPointsInBox(paths, area) : 0;
@@ -429,10 +429,13 @@ export default function LaserLogo() {
                     const editable = pointCount <= 1500 || sel?.p === pi;
                     return (
                       <g key={pi} data-path-index={pi}>
-                        <polygon points={p.map((q) => `${q.x},${q.y}`).join(" ")} fill="none" fillRule="evenodd"
+                        {p.open
+                          ? <polyline points={p.map((q) => `${q.x},${q.y}`).join(" ")} fill="none" stroke={area && isInsideBox(p, area) ? "hsl(var(--destructive))" : "hsl(var(--primary))"} strokeWidth={r * (rotationSelection.includes(pi) ? 0.9 : 0.45)} onPointerDown={(e) => { e.stopPropagation(); setSelectedShapes([]); setSel({ p: pi, i: 0 }); }} />
+                          : <polygon points={p.map((q) => `${q.x},${q.y}`).join(" ")} fill="none" fillRule="evenodd"
                           stroke={area && isInsideBox(p, area) ? "hsl(var(--destructive))" : "hsl(var(--primary))"} strokeWidth={r * (rotationSelection.includes(pi) ? 0.9 : 0.45)}
-                          onPointerDown={(e) => { e.stopPropagation(); setSelectedShapes([]); setSel({ p: pi, i: 0 }); }} />
+                          onPointerDown={(e) => { e.stopPropagation(); setSelectedShapes([]); setSel({ p: pi, i: 0 }); }} />}
                         {editable && p.map((q, i) => {
+                          if (p.open && i === p.length - 1) return null;
                           const n = p[(i + 1) % p.length];
                           return <line key={"l" + i} x1={q.x} y1={q.y} x2={n.x} y2={n.y} stroke="transparent" strokeWidth={r * 2.5} style={{ cursor: "copy" }}
                             onPointerDown={(e) => { e.stopPropagation(); setSelectedShapes([]); setSel({ p: pi, i }); }} onDoubleClick={(e) => insertPoint(pi, i, e)} />;
@@ -445,7 +448,7 @@ export default function LaserLogo() {
                               e.target.setPointerCapture?.(e.pointerId);
                               const multi = pointers.current.size > 1;
                               drag.current = multi ? null : { p: pi, i };
-                              dragBase.current = multi ? null : paths.map((pp) => pp.slice());
+                              dragBase.current = multi ? null : copyPaths(paths);
                               setSel({ p: pi, i });
                             }} />;
                         })}

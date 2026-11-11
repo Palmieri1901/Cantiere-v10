@@ -1,6 +1,10 @@
 import simplify from "simplify-js";
 import { MAX_POINTS } from "./vectorize";
 
+// Una forma "aperta" (linea non chiusa) porta il flag `open` sull'array: va conservato ad ogni copia
+export const keepOpen = (src, arr) => (src?.open && arr !== src ? Object.assign(arr, { open: true }) : arr);
+export const copyPaths = (paths) => paths.map((p) => keepOpen(p, p.slice()));
+
 export function insertNearestPoint(paths, index, point) {
   const path = paths[index];
   if (!path?.length) return paths;
@@ -14,7 +18,7 @@ export function insertNearestPoint(paths, index, point) {
     const d = (point.x - a.x - t * dx) ** 2 + (point.y - a.y - t * dy) ** 2;
     if (d < distance) { distance = d; nearest = i; }
   });
-  return paths.map((p, i) => (i === index ? [...p.slice(0, nearest + 1), { ...point }, ...p.slice(nearest + 1)] : p));
+  return paths.map((p, i) => (i === index ? keepOpen(p, [...p.slice(0, nearest + 1), { ...point }, ...p.slice(nearest + 1)]) : p));
 }
 
 export function appendContour(paths, draft) {
@@ -43,7 +47,7 @@ export function countPointsInBox(paths, box) {
 
 // Elimina i punti dentro l'area; le forme rimaste con meno di 3 punti spariscono
 export function deletePointsInBox(paths, box) {
-  return paths.map((p) => p.filter((pt) => !pointInBox(pt, box))).filter((p) => p.length >= 3);
+  return paths.map((p) => keepOpen(p, p.filter((pt) => !pointInBox(pt, box)))).filter((p) => p.length >= (p.open ? 2 : 3));
 }
 
 // Punto esistente più vicino entro `radius` (aggancio nel contorno manuale)
@@ -56,7 +60,7 @@ export function snapToPoint(paths, draft, q, radius) {
 }
 
 export function movePoint(paths, selected, dx, dy) {
-  return paths.map((path, p) => (p !== selected.p ? path : path.map((pt, i) => (i !== selected.i ? pt : { x: pt.x + dx, y: pt.y + dy }))));
+  return paths.map((path, p) => (p !== selected.p ? path : keepOpen(path, path.map((pt, i) => (i !== selected.i ? pt : { x: pt.x + dx, y: pt.y + dy })))));
 }
 
 export function rotateShapes(paths, selected, degrees) {
@@ -68,7 +72,7 @@ export function rotateShapes(paths, selected, degrees) {
   const cx = (minX + maxX) / 2, cy = (minY + maxY) / 2;
   const angle = (degrees * Math.PI) / 180;
   const cos = Math.cos(angle), sin = Math.sin(angle);
-  return paths.map((path, i) => (!indices.has(i) ? path : path.map((pt) => ({ x: cx + (pt.x - cx) * cos - (pt.y - cy) * sin, y: cy + (pt.x - cx) * sin + (pt.y - cy) * cos }))));
+  return paths.map((path, i) => (!indices.has(i) ? path : keepOpen(path, path.map((pt) => ({ x: cx + (pt.x - cx) * cos - (pt.y - cy) * sin, y: cy + (pt.x - cx) * sin + (pt.y - cy) * cos })))));
 }
 
 function straighten(path, tolerance) {
@@ -94,7 +98,7 @@ function roundCorners(path, strength) {
 export function refineContours(paths, selected, mode, strength) {
   if (!Number.isFinite(strength) || strength <= 0 || !selected.length) return paths;
   const indices = new Set(selected);
-  const result = paths.map((path, i) => (indices.has(i) ? (mode === "smooth" ? roundCorners(path, Math.min(10, strength)) : straighten(path, strength)) : path));
+  const result = paths.map((path, i) => (indices.has(i) ? keepOpen(path, mode === "smooth" ? roundCorners(path, Math.min(10, strength)) : straighten(path, strength)) : path));
   return result.reduce((n, p) => n + p.length, 0) <= MAX_POINTS ? result : paths;
 }
 
@@ -175,10 +179,10 @@ export function addIntersections(paths, index) {
     });
   });
   if (!count) return { paths, count: 0 };
-  const out = paths.map((p, pi) => p.flatMap((q, i) => {
+  const out = paths.map((p, pi) => keepOpen(p, p.flatMap((q, i) => {
     const extra = (inserts.get(`${pi}:${i}`) || []).sort((m, n) => m.t - n.t).map(({ x, y }) => ({ x, y }));
     return [q, ...extra];
-  }));
+  })));
   return { paths: out, count };
 }
 
@@ -187,11 +191,15 @@ export function deleteBetween(paths, a, b) {
   if (!path || a.p !== b.p || a.i === b.i) return paths;
   const n = path.length;
   const fwd = (b.i - a.i + n) % n - 1, back = (a.i - b.i + n) % n - 1; // punti interni ai due archi
-  if (fwd <= 0 && back <= 0) return paths;
-  const useFwd = fwd <= back;
-  const start = useFwd ? a.i : b.i, count = useFwd ? fwd : back;
+  if (Math.min(fwd, back) <= 0 && !path.open) { // punti adiacenti: si toglie il segmento e la forma resta aperta
+    const start = (b.i - a.i + n) % n === 1 ? b.i : a.i;
+    return paths.map((p, i) => (i === a.p ? Object.assign([...p.slice(start), ...p.slice(0, start)], { open: true }) : p));
+  }
+  const useFwd = path.open ? a.i < b.i : fwd <= back;
+  const start = useFwd ? a.i : b.i, count = path.open ? Math.abs(b.i - a.i) - 1 : useFwd ? fwd : back;
+  if (count <= 0) return paths;
   const drop = new Set(Array.from({ length: count }, (_, k) => (start + 1 + k) % n));
-  const kept = path.filter((_, i) => !drop.has(i));
-  if (kept.length < 3) return paths;
+  const kept = keepOpen(path, path.filter((_, i) => !drop.has(i)));
+  if (kept.length < (path.open ? 2 : 3)) return paths;
   return paths.map((p, i) => (i === a.p ? kept : p));
 }
