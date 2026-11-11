@@ -1161,3 +1161,6 @@ Backend spezzato in moduli (`server.py` ora 112 righe, prima 2761):
 
 ## 2026-11-03 — Backup: fallback se il picker fallisce
 - backupFolder.js: se showDirectoryPicker lancia errore (gesto utente scaduto / non supportato su telefono) si passa al download normale invece di mostrare errore.
+
+## 2026-11-11 — LaserLogo: unione/separazione punti e forme
+- contourEdit.js: snapExcluding, coincidentPoints, mergeShapes, splitShape, detachPoint, addIntersections. LaserLogo.jsx: barra "Magnete / Punti d incrocio / Unisci forme / Dividi forma / Stacca punto" (testid laser-*), trascinamento con aggancio magnetico, evidenza punti agganciati. Testato e2e via Playwright.

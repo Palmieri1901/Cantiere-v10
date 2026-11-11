@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import { confirmDialog } from "@/components/ConfirmDialog";
 import { fileToCanvases, deletePhoto, loadPhotos, savePhotos, urlToCanvas, download } from "@/lib/laser/files";
 import { trace, toDXF, toSVG, sogliaAutomatica } from "@/lib/laser/vectorize";
-import { appendContour, insertNearestPoint, boxBounds, isInsideBox, movePoint, rotateShapes, refineContours, countPointsInBox, deletePointsInBox, snapToPoint, pointInBox } from "@/lib/laser/contourEdit";
+import { appendContour, insertNearestPoint, boxBounds, isInsideBox, movePoint, rotateShapes, refineContours, countPointsInBox, deletePointsInBox, snapToPoint, pointInBox, snapExcluding, coincidentPoints, mergeShapes, splitShape, detachPoint, addIntersections } from "@/lib/laser/contourEdit";
 import { Panel, Slider, Check, Foto, Dimensione, BarraArea } from "./LaserPannelli";
 import { RaddrizzaDialog } from "./RaddrizzaDialog";
 
@@ -41,6 +41,7 @@ export default function LaserLogo() {
   const drawingTap = useRef(null);
   const [notice, setNotice] = useState(null);
   const [raddrizza, setRaddrizza] = useState(false);
+  const [magnete, setMagnete] = useState(true);
 
   function aggiungiCanvas(canvas, name) {
     const nuovo = { id: crypto.randomUUID(), name, canvas, url: canvas.toDataURL("image/jpeg", 0.85) };
@@ -189,7 +190,32 @@ export default function LaserLogo() {
     const q = toLocal(e);
     if (!q) return;
     if (dragBase.current) { snapshot(dragBase.current); dragBase.current = null; }
-    setPaths((ps) => ps.map((p, pi) => (pi !== d.p ? p : p.map((pt, i) => (i === d.i ? q : pt)))));
+    const target = magnete ? snapExcluding(paths, d, q, r * 3) : q;
+    setPaths((ps) => ps.map((p, pi) => (pi !== d.p ? p : p.map((pt, i) => (i === d.i ? target : pt)))));
+  }
+
+  const joined = sel ? coincidentPoints(paths, sel) : [];
+  const joinedOther = joined.find((j) => j.p !== sel?.p);
+  const joinedSame = joined.some((j) => j.p === sel?.p);
+  function uniciForme() {
+    if (!sel || !joinedOther) return;
+    const keep = Math.min(sel.p, joinedOther.p);
+    commit((ps) => mergeShapes(ps, sel, joinedOther)); setSel(null); setSelectedShapes([keep]);
+    setNotice("Forme unite in un unico contorno. Per separarle di nuovo: seleziona il punto di giunzione e premi «Dividi forma».");
+  }
+  function dividiForma() {
+    if (!sel) return;
+    const result = splitShape(paths, sel);
+    if (result === paths) { setNotice("La forma non può essere divisa qui: serve un punto che la forma tocca due volte (giunzione)."); return; }
+    snapshot(paths); setPaths(result); setSel(null); setNotice("Forma divisa in due contorni.");
+  }
+  function staccaPunto() { if (!sel) return; commit((ps) => detachPoint(ps, sel, r * 4)); }
+  function intersezioni() {
+    if (!sel) return;
+    const { paths: result, count } = addIntersections(paths, sel.p);
+    if (!count) { setNotice("Nessuna intersezione tra questa forma e le altre."); return; }
+    snapshot(paths); setPaths(result); setSel(null); setSelectedShapes([sel.p]);
+    setNotice(`${count} punti di intersezione aggiunti su entrambe le forme: selezionane uno e usa «Unisci forme» o «Stacca punto».`);
   }
 
   function insertPoint(pi, i, e) {
@@ -284,7 +310,7 @@ export default function LaserLogo() {
 
         <main className="space-y-2 min-w-0">
           <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-            <span className="hidden sm:inline">Trascina i puntini · Doppio clic su una linea per aggiungere un punto · Seleziona un punto e premi Canc</span>
+            <span className="hidden sm:inline">Trascina i puntini · Doppio clic su una linea per aggiungere un punto · Seleziona un punto e premi Canc · Trascina un punto su un altro per agganciarlo, poi «Unisci forme»</span>
             <div className="ml-auto flex flex-wrap gap-1.5">
               <Button variant="ghost" size="sm" disabled={!hist.u && !draft.length} onClick={undo} title="Annulla (Ctrl+Z)" data-testid="laser-undo"><Undo2 className="w-4 h-4 mr-1" /> Annulla</Button>
               <Button variant="ghost" size="sm" disabled={!hist.r || drawingMode === "manual"} onClick={redo} title="Ripeti (Ctrl+Shift+Z)" data-testid="laser-redo"><Redo2 className="w-4 h-4 mr-1" /> Ripeti</Button>
@@ -334,6 +360,17 @@ export default function LaserLogo() {
               <input type="range" min={1} max={10} step={1} value={refineStrength} onChange={(e) => setRefineStrength(Number(e.target.value))} className="w-24 accent-[hsl(var(--primary))]" data-testid="laser-intensita" />
               <output className="w-4 text-right font-mono-num">{refineStrength}</output>
             </label>
+          </div>
+          <div className="flex flex-wrap items-center gap-2 border-b border-border pb-2" data-testid="laser-barra-unisci">
+            <label className="flex items-center gap-1.5 text-sm" title="Trascinando un punto vicino a un altro, si aggancia su di esso">
+              <input type="checkbox" checked={magnete} onChange={(e) => setMagnete(e.target.checked)} className="accent-[hsl(var(--primary))]" data-testid="laser-magnete" /> Magnete
+            </label>
+            <span className="mx-1 h-6 w-px bg-border" />
+            <Button variant="outline" size="sm" disabled={!sel || Boolean(drawingMode)} onClick={intersezioni} title="Aggiunge un punto dove questa forma incrocia le altre" data-testid="laser-intersezioni">Punti d'incrocio</Button>
+            <Button variant="outline" size="sm" disabled={!joinedOther || Boolean(drawingMode)} onClick={uniciForme} title="Unisce la forma selezionata con l'altra che passa per questo punto" data-testid="laser-unisci-forme">Unisci forme</Button>
+            <Button variant="outline" size="sm" disabled={!joinedSame || Boolean(drawingMode)} onClick={dividiForma} title="Divide la forma in due nel punto di giunzione" data-testid="laser-dividi-forma">Dividi forma</Button>
+            <Button variant="outline" size="sm" disabled={!joined.length || Boolean(drawingMode)} onClick={staccaPunto} title="Allontana il punto selezionato da quello su cui è agganciato" data-testid="laser-stacca-punto">Stacca punto</Button>
+            {sel && joined.length > 0 && <output className="text-xs text-muted-foreground" data-testid="laser-punto-unito">punto agganciato ({joined.length})</output>}
           </div>
           {notice && <p role="status" className="rounded-md border border-border bg-card px-3 py-2 text-xs text-muted-foreground" data-testid="laser-notice">{notice}</p>}
           <div className="laser-checker h-[70vh] overflow-hidden rounded-lg border border-border" data-testid="laser-canvas">
@@ -386,7 +423,7 @@ export default function LaserLogo() {
                         })}
                         {editable && p.map((q, i) => {
                           const on = sel?.p === pi && sel.i === i;
-                          return <circle key={"c" + i} cx={q.x} cy={q.y} r={on ? r * 1.4 : r} fill={on ? "hsl(var(--primary))" : area && pointInBox(q, area) ? "hsl(var(--destructive))" : "hsl(var(--background))"} stroke="hsl(var(--primary))" strokeWidth={r * 0.35} style={{ cursor: "grab" }}
+                          return <circle key={"c" + i} cx={q.x} cy={q.y} r={on ? r * 1.4 : r} fill={on ? "hsl(var(--primary))" : area && pointInBox(q, area) ? "hsl(var(--destructive))" : sel && joined.some((j) => j.p === pi && j.i === i) ? "hsl(var(--accent))" : "hsl(var(--background))"} stroke="hsl(var(--primary))" strokeWidth={r * 0.35} style={{ cursor: "grab" }}
                             onPointerDown={(e) => {
                               e.stopPropagation(); setSelectedShapes([]);
                               e.target.setPointerCapture?.(e.pointerId);

@@ -97,3 +97,87 @@ export function refineContours(paths, selected, mode, strength) {
   const result = paths.map((path, i) => (indices.has(i) ? (mode === "smooth" ? roundCorners(path, Math.min(10, strength)) : straighten(path, strength)) : path));
   return result.reduce((n, p) => n + p.length, 0) <= MAX_POINTS ? result : paths;
 }
+
+const same = (a, b, eps) => Math.abs(a.x - b.x) <= eps && Math.abs(a.y - b.y) <= eps;
+
+export function snapExcluding(paths, sel, q, radius) {
+  let best = null, bd = radius * radius;
+  paths.forEach((p, pi) => p.forEach((pt, i) => {
+    if (pi === sel.p && i === sel.i) return;
+    const d = (pt.x - q.x) ** 2 + (pt.y - q.y) ** 2;
+    if (d < bd) { bd = d; best = pt; }
+  }));
+  return best ? { x: best.x, y: best.y } : q;
+}
+
+export function coincidentPoints(paths, sel, eps = 0.01) {
+  const pt = paths[sel.p]?.[sel.i];
+  if (!pt) return [];
+  const out = [];
+  paths.forEach((p, pi) => p.forEach((q, i) => { if ((pi !== sel.p || i !== sel.i) && same(q, pt, eps)) out.push({ p: pi, i }); }));
+  return out;
+}
+
+const rotate = (path, i) => [...path.slice(i), ...path.slice(0, i)];
+
+export function mergeShapes(paths, a, b) {
+  if (a.p === b.p) return paths;
+  const merged = [...rotate(paths[a.p], a.i), ...rotate(paths[b.p], b.i)].map((q) => ({ ...q }));
+  return paths.flatMap((p, i) => (i === a.p ? [merged] : i === b.p ? [] : [p]));
+}
+
+export function splitShape(paths, sel, eps = 0.01) {
+  const path = paths[sel.p];
+  if (!path) return paths;
+  const j = path.findIndex((q, i) => i !== sel.i && same(q, path[sel.i], eps));
+  if (j < 0) return paths;
+  const lo = Math.min(sel.i, j), hi = Math.max(sel.i, j);
+  const first = path.slice(lo, hi), second = [...path.slice(hi), ...path.slice(0, lo)];
+  if (first.length < 3 || second.length < 3) return paths;
+  return paths.flatMap((p, i) => (i === sel.p ? [first.map((q) => ({ ...q })), second.map((q) => ({ ...q }))] : [p]));
+}
+
+export function detachPoint(paths, sel, dist) {
+  const path = paths[sel.p];
+  const pt = path?.[sel.i];
+  if (!pt) return paths;
+  const prev = path[(sel.i - 1 + path.length) % path.length], next = path[(sel.i + 1) % path.length];
+  const mx = (prev.x + next.x) / 2 - pt.x, my = (prev.y + next.y) / 2 - pt.y;
+  const len = Math.hypot(mx, my) || 1;
+  return movePoint(paths, sel, (mx / len) * dist, (my / len) * dist);
+}
+
+function segmentIntersection(a, b, c, d) {
+  const den = (b.x - a.x) * (d.y - c.y) - (b.y - a.y) * (d.x - c.x);
+  if (Math.abs(den) < 1e-9) return null;
+  const t = ((c.x - a.x) * (d.y - c.y) - (c.y - a.y) * (d.x - c.x)) / den;
+  const u = ((c.x - a.x) * (b.y - a.y) - (c.y - a.y) * (b.x - a.x)) / den;
+  if (t <= 1e-6 || t >= 1 - 1e-6 || u <= 1e-6 || u >= 1 - 1e-6) return null;
+  return { t, u, x: a.x + t * (b.x - a.x), y: a.y + t * (b.y - a.y) };
+}
+
+export function addIntersections(paths, index) {
+  const target = paths[index];
+  if (!target) return { paths, count: 0 };
+  const inserts = new Map(); // "p:i" -> [{t,x,y}]
+  const push = (p, i, t, x, y) => { const k = `${p}:${i}`; if (!inserts.has(k)) inserts.set(k, []); inserts.get(k).push({ t, x, y }); };
+  let count = 0;
+  target.forEach((a, i) => {
+    const b = target[(i + 1) % target.length];
+    paths.forEach((other, pi) => {
+      if (pi === index) return;
+      other.forEach((c, j) => {
+        const d = other[(j + 1) % other.length];
+        const hit = segmentIntersection(a, b, c, d);
+        if (!hit) return;
+        push(index, i, hit.t, hit.x, hit.y); push(pi, j, hit.u, hit.x, hit.y); count++;
+      });
+    });
+  });
+  if (!count) return { paths, count: 0 };
+  const out = paths.map((p, pi) => p.flatMap((q, i) => {
+    const extra = (inserts.get(`${pi}:${i}`) || []).sort((m, n) => m.t - n.t).map(({ x, y }) => ({ x, y }));
+    return [q, ...extra];
+  }));
+  return { paths: out, count };
+}
