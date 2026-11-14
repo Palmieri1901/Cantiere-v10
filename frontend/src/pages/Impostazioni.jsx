@@ -16,6 +16,7 @@ import BiometriaCard from "@/pages/impostazioni/BiometriaCard";
 import { toast } from "sonner";
 import { salvaBackupInCartella } from "@/lib/backupFolder";
 import { CartellaBackupPc } from "@/pages/impostazioni/CartellaBackupPc";
+import { BackupProgress } from "@/components/BackupProgress";
 import { Building2, Upload, Save, RefreshCw, Trash2, ImageIcon, Download, Database, AlertTriangle, FileText, FileSignature, KeyRound, Lock } from "lucide-react";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -43,16 +44,17 @@ export default function Impostazioni() {
   const [restoreData, setRestoreData] = useState(null);
   const [restoring, setRestoring] = useState(false);
   const [backingUp, setBackingUp] = useState(false);
+  const [backupMsg, setBackupMsg] = useState("");
   const doBackup = async () => {
     setBackingUp(true);
     try {
-      const r = await salvaBackupInCartella();
+      const r = await salvaBackupInCartella((msg) => setBackupMsg(msg));
       if (r.mode === "folder" || r.mode === "pc") toast.success(`Backup salvato in "${r.folder}" · ${r.kept} copie conservate`);
       else toast.success(`Backup salvato: ${r.filename}${r.mode === "download" ? " (cartella Download del browser)" : ""}`);
     } catch (e) {
       if (e?.name === "AbortError") return;
       toast.error(e?.response?.data?.detail || e?.message || "Errore durante il backup");
-    } finally { setBackingUp(false); }
+    } finally { setBackingUp(false); setBackupMsg(""); }
   };
   const [pwOld, setPwOld] = useState("");
   const [pwNew, setPwNew] = useState("");
@@ -410,6 +412,7 @@ export default function Impostazioni() {
               <Download className="w-4 h-4 mr-2" />
               {backingUp ? "Salvataggio…" : "Scarica backup"}
             </Button>
+            <BackupProgress msg={backupMsg} />
             <input ref={restoreRef} type="file" accept="application/json,.json" hidden onChange={onRestoreSelected} data-testid="input-restore-file" />
             <Button variant="outline" className="w-full sm:w-auto" onClick={() => restoreRef.current?.click()} data-testid="btn-restore-open">
               <Upload className="w-4 h-4 mr-2" />

@@ -3,8 +3,11 @@ import { api } from "@/lib/api";
 const PREFIX = "backup_geb_completo_";
 const MAX_COPIE = 3;
 
-const fetchBackup = async () => {
-  const res = await api.get("/backup", { responseType: "blob", timeout: 0 });
+const fmtMB = (b) => `${(b / 1048576).toFixed(1).replace(".", ",")} MB`;
+
+const fetchBackup = async (onProgress) => {
+  const res = await api.get("/backup", { responseType: "blob", timeout: 0, onDownloadProgress: (e) => onProgress?.(`Preparazione backup… ${fmtMB(e.loaded)} ricevuti`) });
+  onProgress?.("Salvataggio del file…");
   const cd = res.headers?.["content-disposition"] || "";
   const m = cd.match(/filename=([^;]+)/);
   const filename = (m ? m[1].trim().replace(/"/g, "") : `${PREFIX}${Date.now()}.json`);
@@ -22,11 +25,15 @@ const pruneOld = async (dir) => {
   return { kept: files.length - toDelete.length, deleted: toDelete.length };
 };
 
-export async function salvaBackupInCartella() {
+export async function salvaBackupInCartella(onProgress) {
+  onProgress?.("Preparazione backup…");
   // Sul PC (installazione locale) il backend scrive direttamente nella cartella scelta: funziona con qualunque browser
   const info = (await api.get("/backup/cartella")).data;
   if (info.su_pc && info.cartella) {
-    const r = (await api.post("/backup/su-disco", null, { timeout: 0 })).data;
+    const t0 = Date.now();
+    const timer = setInterval(() => onProgress?.(`Preparazione backup sul PC… ${Math.round((Date.now() - t0) / 1000)} s`), 1000);
+    let r;
+    try { r = (await api.post("/backup/su-disco", null, { timeout: 0 })).data; } finally { clearInterval(timer); }
     return { mode: "pc", filename: r.file, folder: r.cartella, kept: r.copie, deleted: r.eliminati };
   }
   if (info.su_pc) { const e = new Error("Scegli prima la cartella dei backup in Impostazioni → Backup (cartella sul PC)."); e.name = "NoFolder"; throw e; }
@@ -43,7 +50,7 @@ export async function salvaBackupInCartella() {
     if (e?.name === "AbortError") throw e; // l'utente ha annullato
     // picker non disponibile su questo browser/dispositivo: si usa il download normale
   }
-  const { blob, filename } = await fetchBackup();
+  const { blob, filename } = await fetchBackup(onProgress);
   if (dir) {
     const fh = await dir.getFileHandle(filename, { create: true });
     const w = await fh.createWritable();

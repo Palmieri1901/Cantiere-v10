@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { api, API } from "@/lib/api";
 import { salvaBackupInCartella } from "@/lib/backupFolder";
+import { BackupProgress } from "@/components/BackupProgress";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Sailboat, MapPin, Phone, Mail, Clock, ArrowRight, Anchor, Building2, Globe, Database, Download, Upload, AlertTriangle, Settings, Package, Ship, LifeBuoy, Truck, Smartphone, HardHat, Landmark, CalendarDays, Wrench, ClipboardList, Crosshair, BadgeEuro } from "lucide-react";
@@ -19,13 +20,14 @@ export default function Home() {
   const [restoreData, setRestoreData] = useState(null);
   const [restoring, setRestoring] = useState(false);
   const [backingUp, setBackingUp] = useState(false);
+  const [backupMsg, setBackupMsg] = useState("");
   const [backupInfo, setBackupInfo] = useState(null);
   const [r, setR] = useState(null);
 
   const doBackup = async () => {
     setBackingUp(true);
     try {
-      const r = await salvaBackupInCartella();
+      const r = await salvaBackupInCartella((msg) => setBackupMsg(msg));
       if (r.mode === "folder" || r.mode === "pc") {
         toast.success(`Backup salvato in "${r.folder}" · ${r.kept} copie conservate${r.deleted ? ` · ${r.deleted} vecchie eliminate` : ""}`);
       } else {
@@ -37,7 +39,7 @@ export default function Home() {
       if (e?.name === "AbortError") return;
       const msg = e?.response?.data?.detail || e?.message || "Errore durante il backup";
       toast.error(/timeout/i.test(msg) ? "Il backup sta impiegando troppo: riprova; se il problema persiste aggiorna il programma sul PC (nuova versione senza limite di tempo)." : msg);
-    } finally { setBackingUp(false); }
+    } finally { setBackingUp(false); setBackupMsg(""); }
   };
   const currentYear = new Date().getFullYear();
 
@@ -241,6 +243,7 @@ export default function Home() {
                 <Download className="w-4 h-4 mr-2" />
                 {backingUp ? "Salvataggio…" : "Salva backup"}
               </Button>
+              <BackupProgress msg={backupMsg} />
               <input ref={restoreRef} type="file" accept="application/json,.json" hidden onChange={onRestoreSelected} data-testid="input-home-restore-file" />
               <Button variant="outline" size="lg" className="w-full sm:w-auto" onClick={() => restoreRef.current?.click()} data-testid="btn-home-restore-open">
                 <Upload className="w-4 h-4 mr-2" />

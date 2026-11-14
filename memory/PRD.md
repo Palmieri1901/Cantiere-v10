@@ -1176,3 +1176,6 @@ Backend spezzato in moduli (`server.py` ora 112 righe, prima 2761):
 
 ## 2026-11-14 — Backup diretto su cartella del PC
 - backend/routers/backup.py: GET/PUT /api/backup/cartella (app_settings.backup_info.cartella_pc; su_pc = SYNC_PEER_URL presente), POST /api/backup/su-disco (scrive il JSON nella cartella, conserva 3 copie). backupFolder.js: se su_pc e cartella impostata usa il backend; CartellaBackupPc.jsx in Impostazioni. Manuale aggiornato. Testato via curl (rotazione copie, cartella non valida → 400).
+
+## 2026-11-14 — Indicatore avanzamento backup
+- components/BackupProgress.jsx (spinner + barra + messaggio, testid backup-progress); backupFolder.salvaBackupInCartella(onProgress) con MB ricevuti (download) o secondi trascorsi (backup su PC). Usato in Home e Impostazioni. Testato e2e.
