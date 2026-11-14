@@ -199,6 +199,8 @@ SEZIONI = [
         ("1", "Sul PC, nel file backend/.env: SYNC_TOKEN=(lo stesso valore dell'online), SYNC_PEER_URL=https://(indirizzo del gestionale online), SYNC_INTERVAL=30. Riavviare il backend."),
         ("1", "Al primo avvio il PC scarica l'intero archivio online (dati e file); da quel momento lavora in modo incrementale."),
         ("1", "Controllo: Impostazioni → Sincronizzazione PC ↔ online mostra ultima sincronizzazione, eventuale errore, modifiche in attesa e il tasto Sincronizza ora."),
+        ("#", "Backup sul PC"),
+        ("-", "Sul PC, in Impostazioni → Backup compare «Cartella dei backup su questo PC»: scrivi il percorso (es. una cartella in Documenti, oppure una chiavetta o un disco esterno sotto /media) e premi Imposta cartella. Da quel momento «Salva backup» (Home) e «Scarica backup» salvano il file direttamente lì, con qualsiasi browser; restano le ultime 3 copie."),
         ("!", "Il token è una password condivisa tra le due installazioni: non comunicarlo a nessuno. Dopo ogni aggiornamento del programma aggiornare entrambe le copie."),
     ]),
 ]

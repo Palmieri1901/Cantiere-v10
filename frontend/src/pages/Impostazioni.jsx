@@ -15,6 +15,7 @@ import ManualeCard from "@/pages/impostazioni/ManualeCard";
 import BiometriaCard from "@/pages/impostazioni/BiometriaCard";
 import { toast } from "sonner";
 import { salvaBackupInCartella } from "@/lib/backupFolder";
+import { CartellaBackupPc } from "@/pages/impostazioni/CartellaBackupPc";
 import { Building2, Upload, Save, RefreshCw, Trash2, ImageIcon, Download, Database, AlertTriangle, FileText, FileSignature, KeyRound, Lock } from "lucide-react";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -46,7 +47,7 @@ export default function Impostazioni() {
     setBackingUp(true);
     try {
       const r = await salvaBackupInCartella();
-      if (r.mode === "folder") toast.success(`Backup salvato in "${r.folder}" · ${r.kept} copie conservate`);
+      if (r.mode === "folder" || r.mode === "pc") toast.success(`Backup salvato in "${r.folder}" · ${r.kept} copie conservate`);
       else toast.success(`Backup salvato: ${r.filename}${r.mode === "download" ? " (cartella Download del browser)" : ""}`);
     } catch (e) {
       if (e?.name === "AbortError") return;
@@ -416,6 +417,7 @@ export default function Impostazioni() {
             </Button>
           </div>
         </div>
+        <CartellaBackupPc />
       </Card>
 
       <BiometriaCard />

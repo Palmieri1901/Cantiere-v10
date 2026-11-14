@@ -23,6 +23,13 @@ const pruneOld = async (dir) => {
 };
 
 export async function salvaBackupInCartella() {
+  // Sul PC (installazione locale) il backend scrive direttamente nella cartella scelta: funziona con qualunque browser
+  const info = (await api.get("/backup/cartella")).data;
+  if (info.su_pc && info.cartella) {
+    const r = (await api.post("/backup/su-disco", null, { timeout: 0 })).data;
+    return { mode: "pc", filename: r.file, folder: r.cartella, kept: r.copie, deleted: r.eliminati };
+  }
+  if (info.su_pc) { const e = new Error("Scegli prima la cartella dei backup in Impostazioni → Backup (cartella sul PC)."); e.name = "NoFolder"; throw e; }
   // La scelta della cartella/file va fatta SUBITO (serve il gesto dell'utente), prima del download che può durare minuti
   let dir = null;
   let fileHandle = null;

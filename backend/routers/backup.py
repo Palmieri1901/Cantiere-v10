@@ -4,6 +4,7 @@ Le credenziali (users, token) NON sono incluse.
 """
 import base64
 import json as _json
+import os
 from datetime import datetime, timezone
 from typing import Dict, List
 
@@ -62,6 +63,13 @@ async def ultimo_backup():
 @router.get("/backup")
 async def backup_data():
     """Esporta TUTTE le collezioni (tranne credenziali) + file GridFS in un unico JSON, in streaming."""
+    generated_at, gen = await _backup_stream()
+    filename = f"backup_geb_completo_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+    return StreamingResponse(gen(), media_type="application/json",
+                             headers={"Content-Disposition": f"attachment; filename={filename}"})
+
+
+async def _backup_stream():
     names = sorted(n for n in await db.list_collection_names() if n not in EXCLUDED and not _is_gridfs(n))
     generated_at = datetime.now(timezone.utc).isoformat()
     await db.app_settings.update_one({"id": "backup_info"}, {"$set": {"ultimo_backup": generated_at}}, upsert=True)
@@ -89,9 +97,70 @@ async def backup_data():
             yield "]"
         yield "}}"
 
-    filename = f"backup_geb_completo_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
-    return StreamingResponse(gen(), media_type="application/json",
-                             headers={"Content-Disposition": f"attachment; filename={filename}"})
+    return generated_at, gen
+
+
+# --- Backup diretto su una cartella del PC (installazione locale: il backend gira sullo stesso computer) ---
+PREFIX_DISCO = "backup_geb_completo_"
+COPIE_DISCO = 3
+
+
+class CartellaPayload(BaseModel):
+    cartella: str
+
+
+def _su_pc() -> bool:
+    return bool(os.environ.get("SYNC_PEER_URL"))
+
+
+@router.get("/backup/cartella")
+async def backup_cartella():
+    """Cartella del PC configurata per i backup; `su_pc` indica se questa istanza gira sul PC locale."""
+    doc = await db.app_settings.find_one({"id": "backup_info"}, {"_id": 0}) or {}
+    cartella = doc.get("cartella_pc") or ""
+    return {"su_pc": _su_pc(), "cartella": cartella, "esiste": bool(cartella) and os.path.isdir(os.path.expanduser(cartella))}
+
+
+@router.put("/backup/cartella")
+async def imposta_cartella(p: CartellaPayload):
+    cartella = os.path.expanduser(p.cartella.strip())
+    if not cartella:
+        raise HTTPException(400, "Indica la cartella")
+    try:
+        os.makedirs(cartella, exist_ok=True)
+        test = os.path.join(cartella, ".geb_backup_test")
+        with open(test, "w") as fh:
+            fh.write("ok")
+        os.remove(test)
+    except OSError as e:
+        raise HTTPException(400, f"Cartella non utilizzabile: {e.strerror or e}")
+    await db.app_settings.update_one({"id": "backup_info"}, {"$set": {"cartella_pc": cartella}}, upsert=True)
+    return {"cartella": cartella}
+
+
+@router.post("/backup/su-disco")
+async def backup_su_disco():
+    """Scrive il backup direttamente nella cartella del PC e conserva solo le ultime copie."""
+    doc = await db.app_settings.find_one({"id": "backup_info"}, {"_id": 0}) or {}
+    cartella = doc.get("cartella_pc")
+    if not cartella:
+        raise HTTPException(400, "Nessuna cartella impostata: scegli la cartella dei backup in Impostazioni")
+    if not os.path.isdir(cartella):
+        raise HTTPException(400, f"La cartella {cartella} non esiste più (disco scollegato?)")
+    filename = f"{PREFIX_DISCO}{datetime.now().strftime('%Y%m%d_%H%M%S_%f')[:-4]}.json"
+    percorso = os.path.join(cartella, filename)
+    _, gen = await _backup_stream()
+    try:
+        with open(percorso, "w", encoding="utf-8") as fh:
+            async for chunk in gen():
+                fh.write(chunk)
+    except OSError as e:
+        raise HTTPException(500, f"Scrittura non riuscita: {e.strerror or e}")
+    vecchi = sorted(f for f in os.listdir(cartella) if f.startswith(PREFIX_DISCO) and f.endswith(".json"))
+    eliminati = vecchi[:-COPIE_DISCO]
+    for f in eliminati:
+        os.remove(os.path.join(cartella, f))
+    return {"file": filename, "cartella": cartella, "dimensione": os.path.getsize(percorso), "copie": min(len(vecchi), COPIE_DISCO), "eliminati": len(eliminati)}
 
 
 class RestorePayload(BaseModel):

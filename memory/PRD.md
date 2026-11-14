@@ -1173,3 +1173,6 @@ Backend spezzato in moduli (`server.py` ora 112 righe, prima 2761):
 
 ## 2026-11-11 — App dipendenti: invio lavori tutti o singoli
 - Coda.jsx: checkbox per lavoro, "Invia tutti (n)" / "Invia selezionati (n)", icona invio singolo per riga (btn-coda-send-*), Seleziona tutti; QR usa la selezione. AppDipendente.sincronizza(selezionati?). Testato e2e.
+
+## 2026-11-14 — Backup diretto su cartella del PC
+- backend/routers/backup.py: GET/PUT /api/backup/cartella (app_settings.backup_info.cartella_pc; su_pc = SYNC_PEER_URL presente), POST /api/backup/su-disco (scrive il JSON nella cartella, conserva 3 copie). backupFolder.js: se su_pc e cartella impostata usa il backend; CartellaBackupPc.jsx in Impostazioni. Manuale aggiornato. Testato via curl (rotazione copie, cartella non valida → 400).

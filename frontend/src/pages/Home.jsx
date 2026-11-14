@@ -26,7 +26,7 @@ export default function Home() {
     setBackingUp(true);
     try {
       const r = await salvaBackupInCartella();
-      if (r.mode === "folder") {
+      if (r.mode === "folder" || r.mode === "pc") {
         toast.success(`Backup salvato in "${r.folder}" · ${r.kept} copie conservate${r.deleted ? ` · ${r.deleted} vecchie eliminate` : ""}`);
       } else {
         toast.success(`Backup salvato: ${r.filename}`);
