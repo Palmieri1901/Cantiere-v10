@@ -1170,3 +1170,6 @@ Backend spezzato in moduli (`server.py` ora 112 righe, prima 2761):
 
 ## 2026-11-11 — Fix Cancella tratto + forme aperte
 - Bug: condizione adiacenza errata (fwd&&back). Ora due punti adiacenti → segmento rimosso e forma aperta (flag open sull array, conservato da keepOpen/copyPaths in tutte le operazioni); render polyline; export SVG senza Z, DXF LWPOLYLINE 70=0. Testato e2e.
+
+## 2026-11-11 — App dipendenti: invio lavori tutti o singoli
+- Coda.jsx: checkbox per lavoro, "Invia tutti (n)" / "Invia selezionati (n)", icona invio singolo per riga (btn-coda-send-*), Seleziona tutti; QR usa la selezione. AppDipendente.sincronizza(selezionati?). Testato e2e.

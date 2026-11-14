@@ -85,14 +85,15 @@ export default function AppDipendente() {
     mobileStore.logout(); resetSblocco(); setLogged(false);
   };
 
-  const sincronizza = async () => {
-    const daInviare = coda.filter((x) => !x.inviato);
+  const sincronizza = async (selezionati) => {
+    const daInviare = (Array.isArray(selezionati) && selezionati.length ? selezionati : coda).filter((x) => !x.inviato);
     if (daInviare.length === 0) return toast.info("Niente da inviare");
     setSyncing(true);
     try {
       const r = await mobileApi().post("/lavori", { lavori: daInviare });
-      salvaCoda(coda.map((x) => daInviare.includes(x) ? { ...x, inviato: true, inviato_at: new Date().toISOString() } : x));
-      toast.success(`Inviati ${r.data.ricevuti} lavori al cantiere`);
+      const ids = new Set(daInviare.map((x) => x.client_uid));
+      salvaCoda(coda.map((x) => ids.has(x.client_uid) ? { ...x, inviato: true, inviato_at: new Date().toISOString() } : x));
+      toast.success(r.data.ricevuti === 1 ? "Inviato 1 lavoro al cantiere" : `Inviati ${r.data.ricevuti} lavori al cantiere`);
     } catch (e) {
       toast.error(e.response?.status === 401 ? "Chiave non valida" : "Invio fallito: controlla la connessione");
     } finally { setSyncing(false); }
