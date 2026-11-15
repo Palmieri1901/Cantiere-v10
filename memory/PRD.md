@@ -1179,3 +1179,6 @@ Backend spezzato in moduli (`server.py` ora 112 righe, prima 2761):
 
 ## 2026-11-14 — Indicatore avanzamento backup
 - components/BackupProgress.jsx (spinner + barra + messaggio, testid backup-progress); backupFolder.salvaBackupInCartella(onProgress) con MB ricevuti (download) o secondi trascorsi (backup su PC). Usato in Home e Impostazioni. Testato e2e.
+
+## 2026-11-14 — Lavori dal cantiere: no cancellazione prima della visione
+- Backend: DELETE /lavori-pending/{id} → 409 se in_attesa; POST /lavori-pending/elimina salta gli in_attesa (ritorna saltati). ArchivioTab: cestino/checkbox disabilitati per in_attesa con dicitura "in attesa di visione". Testato via curl.

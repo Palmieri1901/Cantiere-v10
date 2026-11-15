@@ -235,7 +235,12 @@ async def rifiuta_pending(pid: str):
 
 @router.delete("/lavori-pending/{pid}")
 async def delete_pending(pid: str):
-    await db.lavori_pending.delete_one({"id": pid})
+    """I lavori inviati dall'app si possono eliminare solo dopo approvazione o rifiuto, mai prima."""
+    r = await db.lavori_pending.delete_one({"id": pid, "stato": {"$ne": "in_attesa"}})
+    if not r.deleted_count:
+        if await db.lavori_pending.count_documents({"id": pid}):
+            raise HTTPException(409, "Lavoro in attesa: va prima approvato o rifiutato")
+        raise HTTPException(404, "Lavoro non trovato")
     return {"ok": True}
 
 
@@ -245,5 +250,6 @@ class EliminaIn(BaseModel):
 
 @router.post("/lavori-pending/elimina")
 async def elimina_pending(payload: EliminaIn):
-    r = await db.lavori_pending.delete_many({"id": {"$in": payload.ids}})
-    return {"ok": True, "eliminati": r.deleted_count}
+    r = await db.lavori_pending.delete_many({"id": {"$in": payload.ids}, "stato": {"$ne": "in_attesa"}})
+    saltati = len(payload.ids) - r.deleted_count
+    return {"ok": True, "eliminati": r.deleted_count, "saltati": saltati}

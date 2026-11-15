@@ -30,12 +30,12 @@ export default function ArchivioTab({ onChange }) {
   const visibili = items.filter((x) => (dip === "tutti" || x.dipendente_nome === dip) && (stato === "tutti" || x.stato === stato));
 
   const toggle = (id) => setSel((s) => s.includes(id) ? s.filter((x) => x !== id) : [...s, id]);
-  const toggleAll = () => setSel(sel.length === visibili.length ? [] : visibili.map((x) => x.id));
+  const toggleAll = () => { const sel_ = visibili.filter((x) => x.stato !== "in_attesa").map((x) => x.id); setSel(sel.length === sel_.length ? [] : sel_); };
 
   const elimina = async (ids) => {
     if (!await confirmDialog(`Eliminare ${ids.length === 1 ? "questo report" : `${ids.length} report`}? I lavori già approvati restano nella scheda cliente.`)) return;
     const r = await api.post("/lavori-pending/elimina", { ids });
-    toast.success(`Eliminati ${r.data.eliminati} report`); load();
+    toast.success(`Eliminati ${r.data.eliminati} report${r.data.saltati ? ` · ${r.data.saltati} in attesa non eliminabili` : ""}`); load();
   };
 
   return (
@@ -67,7 +67,7 @@ export default function ArchivioTab({ onChange }) {
             const s = STATO[p.stato] || STATO.in_attesa;
             return (
               <div key={p.id} className="p-3 flex items-start gap-3 hover:bg-muted/40" data-testid={`archivio-row-${p.id}`}>
-                <Checkbox checked={sel.includes(p.id)} onCheckedChange={() => toggle(p.id)} className="mt-1" data-testid={`check-${p.id}`} />
+                <Checkbox checked={sel.includes(p.id)} disabled={p.stato === "in_attesa"} onCheckedChange={() => toggle(p.id)} className="mt-1" data-testid={`check-${p.id}`} />
                 <div className="w-28 shrink-0">
                   <div className="font-mono-num text-xs">{p.data}</div>
                   <div className="text-[10px] text-muted-foreground">ricevuto {new Date(p.created_at).toLocaleDateString("it-IT")}</div>
@@ -81,7 +81,9 @@ export default function ArchivioTab({ onChange }) {
                 {p.stato === "approvato" && p.lavoro_id && p.cliente_id && (
                   <Button size="sm" variant="outline" className="shrink-0" onClick={() => setModifica(p)} title="Modifica il lavoro approvato nella scheda cliente" data-testid={`btn-modifica-lavoro-${p.id}`}><Pencil className="w-3.5 h-3.5 mr-1" /> Modifica lavoro</Button>
                 )}
-                <Button size="icon" variant="ghost" className="h-8 w-8 shrink-0" onClick={() => elimina([p.id])} data-testid={`btn-elimina-${p.id}`}><Trash2 className="w-3.5 h-3.5 text-destructive" /></Button>
+                {p.stato === "in_attesa"
+                  ? <span className="shrink-0 text-[11px] text-muted-foreground italic" title="Si può eliminare solo dopo approvazione o rifiuto" data-testid={`in-attesa-${p.id}`}>in attesa di visione</span>
+                  : <Button size="icon" variant="ghost" className="h-8 w-8 shrink-0" onClick={() => elimina([p.id])} data-testid={`btn-elimina-${p.id}`}><Trash2 className="w-3.5 h-3.5 text-destructive" /></Button>}
               </div>
             );
           })}
