@@ -4,7 +4,7 @@ import "react-pdf/dist/Page/AnnotationLayer.css";
 import "react-pdf/dist/Page/TextLayer.css";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { FileText, X, Download, ChevronLeft, ChevronRight, ZoomIn, ZoomOut } from "lucide-react";
+import { FileText, X, Download, ChevronLeft, ChevronRight, ZoomIn, ZoomOut, Printer } from "lucide-react";
 import { WhatsAppPdfButton } from "@/components/WhatsAppPdfButton";
 
 // Worker locale (copiato in public/) — nessun download automatico del PDF,
@@ -53,6 +53,20 @@ export function PdfPreviewOverlay({ open, onClose, url, filename }) {
     document.body.appendChild(a);
     a.click();
     setTimeout(() => document.body.removeChild(a), 200);
+  };
+
+  // Stampa: il PDF viene caricato in un iframe nascosto e mandato alla stampante del browser
+  const print = () => {
+    const old = document.getElementById("geb-print-frame");
+    if (old) old.remove();
+    const f = document.createElement("iframe");
+    f.id = "geb-print-frame";
+    f.style.cssText = "position:fixed;right:0;bottom:0;width:0;height:0;border:0;";
+    f.src = url;
+    f.onload = () => {
+      try { f.contentWindow.focus(); f.contentWindow.print(); } catch { window.open(url, "_blank", "noopener"); }
+    };
+    document.body.appendChild(f);
   };
 
   return (
@@ -126,6 +140,9 @@ export function PdfPreviewOverlay({ open, onClose, url, filename }) {
                 <X className="w-4 h-4 mr-1.5" /> Chiudi
               </Button>
               <WhatsAppPdfButton url={url} filename={filename || "documento.pdf"} size="default" testId="btn-whatsapp-preview" />
+              <Button variant="outline" onClick={print} data-testid="btn-print-preview">
+                <Printer className="w-4 h-4 mr-1.5" /> Stampa
+              </Button>
               <Button onClick={download} className="bg-primary hover:bg-primary/90" data-testid="btn-download-preview">
                 <Download className="w-4 h-4 mr-1.5" /> Scarica PDF
               </Button>

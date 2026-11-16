@@ -1185,3 +1185,6 @@ Backend spezzato in moduli (`server.py` ora 112 righe, prima 2761):
 
 ## 2026-11-16 — Anteprima PDF: tutte le pagine
 - PdfPreviewOverlay: render di tutte le pagine in colonna scorrevole; indicatore segue lo scroll, frecce scorrono alla pagina (testid pdf-preview-page-N). Vale per tutti i documenti. Testato con PDF a 3 pagine.
+
+## 2026-11-16 — Anteprima PDF: tasto Stampa
+- PdfPreviewOverlay: bottone Stampa (btn-print-preview) carica il PDF in iframe nascosto e chiama print(); fallback window.open. Verificato caricamento same-origin.
