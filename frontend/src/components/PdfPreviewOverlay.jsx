@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useRef } from "react";
 import { Document, Page, pdfjs } from "react-pdf";
 import "react-pdf/dist/Page/AnnotationLayer.css";
 import "react-pdf/dist/Page/TextLayer.css";
@@ -16,6 +16,7 @@ export function PdfPreviewOverlay({ open, onClose, url, filename }) {
   const [pageNum, setPageNum] = useState(1);
   const [scale, setScale] = useState(() => (typeof window !== "undefined" && window.innerWidth < 640 ? 0.58 : 1.1));
   const [loadErr, setLoadErr] = useState(null);
+  const bodyRef = useRef(null);
 
   const onLoadSuccess = useCallback(({ numPages }) => {
     setNumPages(numPages);
@@ -26,6 +27,21 @@ export function PdfPreviewOverlay({ open, onClose, url, filename }) {
   const onLoadError = useCallback((err) => {
     setLoadErr(err?.message || "Impossibile caricare il PDF");
   }, []);
+
+  // Tutte le pagine sono visibili in colonna: il contatore segue lo scorrimento, le frecce scorrono alla pagina
+  const onScroll = () => {
+    const el = bodyRef.current;
+    if (!el) return;
+    const pages = el.querySelectorAll("[data-pdf-page]");
+    const mid = el.scrollTop + el.clientHeight / 3;
+    let cur = 1;
+    pages.forEach((p, i) => { if (p.offsetTop <= mid) cur = i + 1; });
+    setPageNum(cur);
+  };
+  const goTo = (n) => {
+    const target = bodyRef.current?.querySelector(`[data-pdf-page="${n}"]`);
+    target?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
 
   if (!open || !url) return null;
 
@@ -62,7 +78,7 @@ export function PdfPreviewOverlay({ open, onClose, url, filename }) {
                     variant="ghost"
                     size="icon"
                     className="h-7 w-7"
-                    onClick={() => setPageNum((p) => Math.max(1, p - 1))}
+                    onClick={() => goTo(Math.max(1, pageNum - 1))}
                     disabled={pageNum <= 1}
                     data-testid="btn-preview-prev-page"
                   >
@@ -75,7 +91,7 @@ export function PdfPreviewOverlay({ open, onClose, url, filename }) {
                     variant="ghost"
                     size="icon"
                     className="h-7 w-7"
-                    onClick={() => setPageNum((p) => Math.min(numPages, p + 1))}
+                    onClick={() => goTo(Math.min(numPages, pageNum + 1))}
                     disabled={pageNum >= numPages}
                     data-testid="btn-preview-next-page"
                   >
@@ -116,7 +132,7 @@ export function PdfPreviewOverlay({ open, onClose, url, filename }) {
             </div>
           </div>
         </DialogHeader>
-        <div className="flex-1 overflow-auto bg-muted/40 flex justify-center py-4" data-testid="pdf-preview-body">
+        <div ref={bodyRef} onScroll={onScroll} className="flex-1 overflow-auto bg-muted/40 py-4" data-testid="pdf-preview-body">
           {loadErr ? (
             <div className="text-sm text-destructive p-6">Errore: {loadErr}</div>
           ) : (
@@ -124,16 +140,21 @@ export function PdfPreviewOverlay({ open, onClose, url, filename }) {
               file={url}
               onLoadSuccess={onLoadSuccess}
               onLoadError={onLoadError}
+              className="flex flex-col items-center gap-4"
               loading={<div className="text-sm text-muted-foreground p-6">Caricamento PDF…</div>}
               error={<div className="text-sm text-destructive p-6">Impossibile caricare il PDF.</div>}
             >
-              <Page
-                pageNumber={pageNum}
-                scale={scale}
-                renderAnnotationLayer={false}
-                renderTextLayer={false}
-                className="shadow-lg bg-white"
-              />
+              {Array.from({ length: numPages }, (_, i) => (
+                <div key={i} data-pdf-page={i + 1} data-testid={`pdf-preview-page-${i + 1}`}>
+                  <Page
+                    pageNumber={i + 1}
+                    scale={scale}
+                    renderAnnotationLayer={false}
+                    renderTextLayer={false}
+                    className="shadow-lg bg-white"
+                  />
+                </div>
+              ))}
             </Document>
           )}
         </div>

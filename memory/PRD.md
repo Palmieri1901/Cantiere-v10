@@ -1182,3 +1182,6 @@ Backend spezzato in moduli (`server.py` ora 112 righe, prima 2761):
 
 ## 2026-11-14 — Lavori dal cantiere: no cancellazione prima della visione
 - Backend: DELETE /lavori-pending/{id} → 409 se in_attesa; POST /lavori-pending/elimina salta gli in_attesa (ritorna saltati). ArchivioTab: cestino/checkbox disabilitati per in_attesa con dicitura "in attesa di visione". Testato via curl.
+
+## 2026-11-16 — Anteprima PDF: tutte le pagine
+- PdfPreviewOverlay: render di tutte le pagine in colonna scorrevole; indicatore segue lo scroll, frecce scorrono alla pagina (testid pdf-preview-page-N). Vale per tutti i documenti. Testato con PDF a 3 pagine.
