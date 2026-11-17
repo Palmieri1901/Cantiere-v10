@@ -42,11 +42,14 @@ def validate_password_policy(pw: str) -> None:
 
 
 def verify_master_password(pw: str) -> bool:
+    """Super password: nel .env può essere salvata come hash SHA-256 (64 caratteri esadecimali) o in chiaro."""
     import hashlib, hmac
-    expected = os.environ.get("MASTER_PASSWORD_SHA256", "").strip().lower()
-    if not expected:
+    expected = os.environ.get("MASTER_PASSWORD_SHA256", "").strip()
+    if not expected or not pw:
         return False
-    return hmac.compare_digest(hashlib.sha256((pw or "").encode("utf-8")).hexdigest(), expected)
+    if len(expected) == 64 and all(c in "0123456789abcdefABCDEF" for c in expected):
+        return hmac.compare_digest(hashlib.sha256(pw.encode("utf-8")).hexdigest(), expected.lower())
+    return hmac.compare_digest(pw.encode("utf-8"), expected.encode("utf-8"))
 
 
 def create_access_token(user_id: str, email: str) -> str:

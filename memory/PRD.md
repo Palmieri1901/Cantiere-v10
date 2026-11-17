@@ -1191,3 +1191,6 @@ Backend spezzato in moduli (`server.py` ora 112 righe, prima 2761):
 
 ## 2026-11-16 — Sync: credenziali escluse (bug password online)
 - Causa: la sync replicava users e app_settings.auth (PIN) → l online aveva preso password/PIN del PC. Fix: ESCLUSE += users, password_reset_tokens; DOC_ESCLUSI app_settings {auth, backup_info}; snapshot/apply/log li saltano; pulizia voci log all avvio del loop. Testato con 2 istanze: ciascuna mantiene la propria password e PIN.
+
+## 2026-11-16 — Super password: accetta valore in chiaro o hash
+- auth.verify_master_password: MASTER_PASSWORD_SHA256 può essere hash SHA-256 (64 hex) o password in chiaro. Recupero: /recupero-pin → "Super password".
