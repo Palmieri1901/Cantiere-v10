@@ -15,7 +15,7 @@ from motor.motor_asyncio import AsyncIOMotorGridFSBucket
 from pymongo.errors import DuplicateKeyError
 
 from database import db, logger
-from sync_log import ESCLUSE, is_file_coll, now_ts, set_origin
+from sync_log import DOC_ESCLUSI, ESCLUSE, doc_escluso, is_file_coll, now_ts, set_origin
 
 router = APIRouter(prefix="/sync")  # stato/ora: protetti dal login del gestionale
 peer_router = APIRouter(prefix="/api/sync")  # endpoint tra installazioni: protetti dal solo SYNC_TOKEN
@@ -81,7 +81,7 @@ async def snapshot(coll: str, skip: int = 0, x_sync_token: str = Header(default=
     if is_file_coll(coll):
         docs = [{"id": str(d["_id"]), "_sync_ts": d.get("_sync_ts") or 0} for d in await db[coll].find({}, {"_id": 1, "_sync_ts": 1}).skip(skip).limit(PAGE).to_list(PAGE)]
     else:
-        docs = await db[coll].find({"id": {"$exists": True}}, {"_id": 0}).skip(skip).limit(PAGE).to_list(PAGE)
+        docs = [d for d in await db[coll].find({"id": {"$exists": True}}, {"_id": 0}).skip(skip).limit(PAGE).to_list(PAGE) if not doc_escluso(coll, d.get("id"))]
     return _bson({"docs": docs, "has_more": len(docs) == PAGE})
 
 
@@ -154,7 +154,7 @@ async def apply_changes(changes: list) -> int:
     try:
         for c in changes:
             coll, did, ts = c["coll"], c["doc_id"], float(c.get("ts") or 0)
-            if coll in ESCLUSE or not did:
+            if coll in ESCLUSE or not did or doc_escluso(coll, did):
                 continue
             if is_file_coll(coll):  # i contenuti viaggiano via /file; qui solo le cancellazioni
                 if c["op"] == "delete":
@@ -300,7 +300,14 @@ async def sync_once() -> dict:
     return _stato
 
 
+async def pulisci_log_esclusi():
+    """Rimuove dal registro le voci di collezioni/documenti ora esclusi (installazioni aggiornate)."""
+    filtro = [{"coll": {"$in": list(ESCLUSE)}}] + [{"coll": c, "doc_id": {"$in": list(ids)}} for c, ids in DOC_ESCLUSI.items()]
+    await db["_sync_log"].delete_many({"$or": filtro})
+
+
 async def sync_loop():
+    await pulisci_log_esclusi()
     await asyncio.sleep(5)
     while True:
         await sync_once()

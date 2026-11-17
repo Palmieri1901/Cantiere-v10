@@ -9,7 +9,13 @@ import time
 
 from motor.motor_asyncio import AsyncIOMotorCollection
 
-ESCLUSE = {"_sync_log", "_sync_state", "fs.files", "fs.chunks"}
+ESCLUSE = {"_sync_log", "_sync_state", "fs.files", "fs.chunks", "users", "password_reset_tokens"}
+# Documenti locali a ogni installazione (credenziali, PIN, cartella backup del PC): mai sincronizzati
+DOC_ESCLUSI = {"app_settings": {"auth", "backup_info"}}
+
+
+def doc_escluso(coll: str, doc_id) -> bool:
+    return doc_id in DOC_ESCLUSI.get(coll, ())
 _origin = contextvars.ContextVar("sync_origin", default="local")
 
 
@@ -48,6 +54,8 @@ async def _log(coll: AsyncIOMotorCollection, ids: list, op: str, ts: float):
         return
     log = coll.database["_sync_log"]
     for i in ids:
+        if doc_escluso(coll.name, i):
+            continue
         await log.update_one({"coll": coll.name, "doc_id": i}, {"$set": {"op": op, "ts": ts, "origin": _origin.get()}}, upsert=True)
 
 
