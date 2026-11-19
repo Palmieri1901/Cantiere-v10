@@ -1197,3 +1197,6 @@ Backend spezzato in moduli (`server.py` ora 112 righe, prima 2761):
 
 ## 2026-11-19 — Recupero password via email amministratore
 - Cantiere.email_amministratore (Impostazioni → Dati cantiere). auth: GET /auth/codice-email/stato, POST /auth/codice-email (codice 6 cifre hash in app_settings.recupero_codice, 15 min, rate limit 60s, max 5 tentativi), POST /auth/codice-reset. email_service: build_recovery_code_email, send_email(fallback_proxy=True) → se SMTP fallisce usa proxy Emergent (Resend). RecuperoPin: scheda "Codice via email". recupero_codice escluso dalla sync. Testato: invio email (delivered@resend.dev), reset, login, riuso bloccato.
+
+## 2026-11-19 — Seed credenziali: il cambio dei segreti ADMIN_PASSWORD/RECOVERY_PIN si applica sempre
+- auth.seed_admin memorizza env_password_hash/env_pin_hash: se il segreto cambia, la nuova password/PIN viene applicata anche se erano stati personalizzati dall app. Testato.

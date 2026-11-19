@@ -416,13 +416,17 @@ async def seed_admin():
         })
         logger.info(f"Admin seeded: {admin_email}")
     elif not verify_password(admin_password, existing.get("password_hash", "")):
-        # NOTA: aggiorniamo la password solo se l'utente non l'ha mai cambiata.
-        if not existing.get("password_customized"):
+        # Si applica la password del .env se l'utente non l'ha mai cambiata dall'app
+        # oppure se il titolare ha cambiato il segreto ADMIN_PASSWORD (diverso da quello visto l'ultima volta).
+        env_cambiato = existing.get("env_password_hash") and not verify_password(admin_password, existing["env_password_hash"])
+        if not existing.get("password_customized") or env_cambiato:
             await db.users.update_one(
                 {"email": admin_email},
-                {"$set": {"password_hash": hash_password(admin_password)}}
+                {"$set": {"password_hash": hash_password(admin_password), "password_customized": False}}
             )
             logger.info(f"Admin password aggiornata dal .env: {admin_email}")
+    if existing is not None and not verify_password(admin_password, existing.get("env_password_hash") or ""):
+        await db.users.update_one({"email": admin_email}, {"$set": {"env_password_hash": hash_password(admin_password)}})
 
     # Seed PIN di recupero master (singleton in app_settings)
     recovery_pin = os.environ.get("RECOVERY_PIN", "1985").strip()
@@ -431,17 +435,23 @@ async def seed_admin():
         await db.app_settings.insert_one({
             "id": "auth",
             "recovery_pin_hash": hash_password(recovery_pin),
+            "env_pin_hash": hash_password(recovery_pin),
             "pin_customized": False,
             "created_at": datetime.now(timezone.utc),
             "updated_at": datetime.now(timezone.utc),
         })
         logger.info("Recovery PIN seeded from .env")
-    elif not settings.get("pin_customized") and not verify_password(recovery_pin, settings.get("recovery_pin_hash", "")):
+        return
+    env_cambiato = settings.get("env_pin_hash") and not verify_password(recovery_pin, settings["env_pin_hash"])
+    if (not settings.get("pin_customized") or env_cambiato) and not verify_password(recovery_pin, settings.get("recovery_pin_hash", "")):
         await db.app_settings.update_one(
             {"id": "auth"},
             {"$set": {
                 "recovery_pin_hash": hash_password(recovery_pin),
+                "pin_customized": False,
                 "updated_at": datetime.now(timezone.utc),
             }},
         )
         logger.info("Recovery PIN aggiornato dal .env")
+    if not verify_password(recovery_pin, settings.get("env_pin_hash") or ""):
+        await db.app_settings.update_one({"id": "auth"}, {"$set": {"env_pin_hash": hash_password(recovery_pin)}})
