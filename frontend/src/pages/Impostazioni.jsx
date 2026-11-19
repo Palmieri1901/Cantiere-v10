@@ -32,6 +32,7 @@ const FIELDS = [
   { key: "provincia", label: "Provincia", placeholder: "GE" },
   { key: "telefono", label: "Telefono", placeholder: "+39 010 123 4567" },
   { key: "email", label: "Email", placeholder: "info@cantiere.it" },
+  { key: "email_amministratore", label: "Email amministratore (recupero password)", placeholder: "titolare@cantiere.it" },
   { key: "sito_web", label: "Sito web", placeholder: "www.cantiere.it" },
   { key: "piva", label: "Partita IVA", placeholder: "01234567890" },
 ];

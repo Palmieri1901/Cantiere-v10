@@ -13,7 +13,7 @@ from models import (
     ForgotPasswordRequest, ResetPasswordRequest, ChangePasswordRequest,
     PinResetRequest, ChangePinRequest,
 )
-from email_service import send_email, build_password_reset_email
+from email_service import send_email, build_password_reset_email, build_recovery_code_email
 
 JWT_ALGORITHM = "HS256"
 SESSION_DAYS = 30
@@ -280,6 +280,78 @@ async def forgot_password(payload: ForgotPasswordRequest):
 
     logger.info(f"Reset password inviato a {owner_email} per account {user['email']}")
     return generic_ok
+
+
+CODICE_TTL_MIN = 15
+
+
+def _mask_email(e: str) -> str:
+    nome, _, dom = e.partition("@")
+    return f"{nome[:2]}{'•' * max(1, len(nome) - 2)}@{dom}" if dom else "•••"
+
+
+async def _email_amministratore() -> str:
+    c = await db.cantiere.find_one({"id": "default"}, {"_id": 0, "email_amministratore": 1}) or {}
+    return (c.get("email_amministratore") or os.environ.get("OWNER_EMAIL", "")).strip().lower()
+
+
+@auth_router.get("/codice-email/stato")
+async def codice_email_stato():
+    """Dice se il recupero via email è disponibile (email amministratore impostata), senza rivelare l'indirizzo."""
+    email = await _email_amministratore()
+    return {"disponibile": bool(email), "email_mascherata": _mask_email(email) if email else ""}
+
+
+@auth_router.post("/codice-email")
+async def invia_codice_email():
+    """Invia un codice temporaneo (6 cifre, 15 minuti) all'email dell'amministratore impostata in Impostazioni."""
+    email = await _email_amministratore()
+    if not email:
+        raise HTTPException(400, "Email amministratore non impostata: configurala in Impostazioni → Dati cantiere")
+    now = datetime.now(timezone.utc)
+    prev = await db.app_settings.find_one({"id": "recupero_codice"}, {"_id": 0}) or {}
+    ultimo = prev.get("inviato_at")
+    if isinstance(ultimo, datetime) and (now - (ultimo if ultimo.tzinfo else ultimo.replace(tzinfo=timezone.utc))).total_seconds() < 60:
+        raise HTTPException(429, "Codice già inviato da poco: controlla la posta o riprova tra un minuto")
+    codice = f"{secrets.randbelow(10**6):06d}"
+    await db.app_settings.update_one({"id": "recupero_codice"}, {"$set": {
+        "codice_hash": hash_password(codice), "scade_at": now + timedelta(minutes=CODICE_TTL_MIN),
+        "inviato_at": now, "tentativi": 0, "usato": False}}, upsert=True)
+    subject, html = build_recovery_code_email(codice, CODICE_TTL_MIN)
+    await send_email(to=email, subject=subject, html=html, fallback_proxy=True)
+    logger.info("Codice di recupero inviato all'email amministratore")
+    return {"ok": True, "email_mascherata": _mask_email(email), "minuti": CODICE_TTL_MIN}
+
+
+class CodiceResetRequest(_BM):
+    codice: str
+    new_password: str
+
+
+@auth_router.post("/codice-reset")
+async def codice_reset(payload: CodiceResetRequest, response: Response):
+    rec = await db.app_settings.find_one({"id": "recupero_codice"}, {"_id": 0})
+    if not rec or rec.get("usato"):
+        raise HTTPException(400, "Nessun codice attivo: richiedi un nuovo codice")
+    scade = rec.get("scade_at")
+    if isinstance(scade, datetime) and (scade if scade.tzinfo else scade.replace(tzinfo=timezone.utc)) < datetime.now(timezone.utc):
+        raise HTTPException(400, "Codice scaduto: richiedine uno nuovo")
+    if rec.get("tentativi", 0) >= 5:
+        raise HTTPException(429, "Troppi tentativi: richiedi un nuovo codice")
+    if not verify_password(payload.codice.strip(), rec.get("codice_hash", "")):
+        await db.app_settings.update_one({"id": "recupero_codice"}, {"$inc": {"tentativi": 1}})
+        raise HTTPException(401, "Codice non corretto")
+    validate_password_policy(payload.new_password)
+    admin_email = os.environ.get("ADMIN_EMAIL", "admin@portomare.it").strip().lower()
+    user = await db.users.find_one({"email": admin_email})
+    if not user:
+        raise HTTPException(500, "Utente admin non trovato")
+    await db.users.update_one({"id": user["id"]}, {"$set": {"password_hash": hash_password(payload.new_password), "password_customized": True}})
+    await db.app_settings.update_one({"id": "recupero_codice"}, {"$set": {"usato": True}})
+    logger.info("Password admin reimpostata via codice email")
+    token = create_access_token(user["id"], admin_email)
+    _set_cookie(response, token)
+    return {"ok": True, "id": user["id"], "email": admin_email, "nome": user.get("nome", ""), "role": user.get("role", "user"), "token": token}
 
 
 @auth_router.post("/reset-password")

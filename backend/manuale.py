@@ -172,6 +172,7 @@ SEZIONI = [
     ("14. Impostazioni", [
         ("-", "Cantiere: logo, denominazione, dati fiscali, indirizzo, contatti: compaiono in tutti i PDF."),
         ("-", "Dati bancari: intestatario, banca, IBAN; compaiono in alto a destra su stime dei costi e preventivi. Se cambiano, tutti i PDF successivi li aggiornano da soli."),
+        ("-", "Email amministratore (Dati cantiere): indirizzo a cui viene inviato il codice temporaneo per il recupero password (pagina «Password dimenticata» → «Codice via email», codice a 6 cifre valido 15 minuti). La vecchia password non è mai recuperabile: si imposta sempre una nuova."),
         ("-", "Sincronizzazione PC ↔ online: stato dell'ultimo allineamento, modifiche in attesa di invio e tasto Sincronizza ora (vedi sezione 16)."),
         ("-", "Sicurezza: cambio password del gestionale (serve quella attuale)."),
         ("-", "PIN di recupero master: cambio del PIN usato per reimpostare la password."),

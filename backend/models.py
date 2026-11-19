@@ -295,6 +295,7 @@ class Cantiere(BaseModel):
     provincia: str = ""
     telefono: str = ""
     email: str = ""
+    email_amministratore: str = ""
     piva: str = ""
     sito_web: str = ""
     orari: str = ""
@@ -402,6 +403,7 @@ class CantiereUpdate(BaseModel):
     provincia: Optional[str] = None
     telefono: Optional[str] = None
     email: Optional[str] = None
+    email_amministratore: Optional[str] = None
     piva: Optional[str] = None
     sito_web: Optional[str] = None
     orari: Optional[str] = None

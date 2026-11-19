@@ -1,4 +1,5 @@
 """Invio email: SMTP standard (es. Aruba) oppure, se configurato, proxy Emergent."""
+from html import escape
 import os
 import re
 import base64
@@ -137,23 +138,31 @@ def _send_smtp(cfg: dict, to: str, subject: str, html: str, attachments: list | 
     return msg["Message-ID"] or "smtp"
 
 
-async def send_email(*, to: str, subject: str, html: str, attachments: list | None = None, from_name: str | None = None) -> str | None:
-    """Invia un'email via SMTP (SMTP_HOST) oppure via proxy Emergent (EMERGENT_EMAIL_KEY). attachments: [{filename, bytes}]"""
+def _raise_smtp(e: Exception, cfg: dict):
+    if isinstance(e, smtplib.SMTPAuthenticationError):
+        raise HTTPException(status_code=400, detail="SMTP: utente o password non accettati dal provider (per Gmail serve una password per le app; per Aruba usa l'indirizzo completo come utente e la password della casella)")
+    if isinstance(e, smtplib.SMTPConnectError):
+        raise HTTPException(status_code=400, detail=f"SMTP: connessione rifiutata dal provider: {str(e)[:140]}")
+    if isinstance(e, (TimeoutError, socket.timeout, OSError)):
+        logger.error(f"SMTP connection error: {e}")
+        raise HTTPException(status_code=400, detail=f"SMTP: il server {cfg['host']}:{cfg['port']} non risponde o rifiuta la connessione. Controlla server e porta (Aruba: smtps.aruba.it 465, Gmail: smtp.gmail.com 465)")
+    logger.error(f"SMTP send error: {e}")
+    raise HTTPException(status_code=400, detail=f"Impossibile inviare email (SMTP): {str(e)[:140]}")
+
+
+async def send_email(*, to: str, subject: str, html: str, attachments: list | None = None, from_name: str | None = None, fallback_proxy: bool = False) -> str | None:
+    """Invia un'email via SMTP (SMTP_HOST) oppure via proxy Emergent (EMERGENT_EMAIL_KEY). attachments: [{filename, bytes}]
+    fallback_proxy: se l'SMTP configurato fallisce, ritenta col proxy Emergent (usato per il recupero password)."""
     _assert_safe_email(subject, html)
     cfg = await get_smtp_config()
     if cfg:
         try:
             return await asyncio.to_thread(_send_smtp, cfg, to, subject, html, attachments, from_name)
-        except smtplib.SMTPAuthenticationError:
-            raise HTTPException(status_code=400, detail="SMTP: utente o password non accettati dal provider (per Gmail serve una password per le app; per Aruba usa l'indirizzo completo come utente e la password della casella)")
-        except (TimeoutError, socket.timeout, OSError) as e:
-            logger.error(f"SMTP connection error: {e}")
-            raise HTTPException(status_code=400, detail=f"SMTP: il server {cfg['host']}:{cfg['port']} non risponde o rifiuta la connessione. Controlla server e porta (Aruba: smtps.aruba.it 465, Gmail: smtp.gmail.com 465)")
-        except smtplib.SMTPConnectError as e:
-            raise HTTPException(status_code=400, detail=f"SMTP: connessione rifiutata dal provider: {str(e)[:140]}")
         except Exception as e:
-            logger.error(f"SMTP send error: {e}")
-            raise HTTPException(status_code=400, detail=f"Impossibile inviare email (SMTP): {str(e)[:140]}")
+            if fallback_proxy and os.environ.get("EMERGENT_EMAIL_KEY"):
+                logger.warning(f"SMTP non riuscito ({str(e)[:100]}): invio tramite proxy Emergent")
+            else:
+                _raise_smtp(e, cfg)
     email_key = os.environ.get("EMERGENT_EMAIL_KEY")
     if not email_key:
         raise HTTPException(status_code=500, detail="Email non configurata: imposta SMTP_HOST nel file .env")
@@ -220,6 +229,45 @@ def build_password_reset_email(reset_link: str, requesting_email: str) -> tuple[
         <p style="font-size:11px;color:#94a3b8;line-height:1.5;margin:16px 0 0 0">
           Messaggio automatico inviato da {brand}. Non richiediamo mai la tua
           password né dati bancari via email.
+        </p>
+      </td></tr>
+    </table>
+  </td></tr>
+</table>
+"""
+    return subject, html
+
+
+def build_recovery_code_email(codice: str, minuti: int) -> tuple[str, str]:
+    """(subject, html) del messaggio con il codice temporaneo di recupero password."""
+    brand = escape(os.environ.get("EMAIL_FROM_NAME", "Gestionale GEBnautica"))
+    codice = escape(codice)
+    subject = f"{brand} — Codice di recupero password"
+    html = f"""
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f4f6f8;padding:32px 0;font-family:Arial,Helvetica,sans-serif">
+  <tr><td align="center">
+    <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:8px;padding:32px">
+      <tr><td style="padding-bottom:16px">
+        <div style="font-size:12px;letter-spacing:0.08em;text-transform:uppercase;color:#64748b">Gestionale Cantiere</div>
+        <div style="font-size:22px;font-weight:600;color:#0f172a;margin-top:4px">{brand}</div>
+      </td></tr>
+      <tr><td>
+        <h1 style="font-size:20px;color:#0f172a;margin:0 0 12px 0">Codice di recupero password</h1>
+        <p style="font-size:14px;color:#334155;line-height:1.6;margin:0 0 16px 0">
+          È stato richiesto il recupero della password del gestionale. Inserisci questo codice nella pagina
+          «Password dimenticata» del gestionale per scegliere una nuova password.
+        </p>
+        <p style="text-align:center;margin:24px 0">
+          <span style="display:inline-block;font-size:32px;letter-spacing:0.3em;font-weight:700;color:#0f172a;background:#f1f5f9;padding:14px 24px;border-radius:8px">{codice}</span>
+        </p>
+        <p style="font-size:13px;color:#334155;line-height:1.6;margin:0">
+          Il codice vale <strong>{minuti} minuti</strong> e può essere usato una sola volta.
+          Se non hai richiesto tu il recupero, ignora questa email: la password attuale resta valida.
+        </p>
+      </td></tr>
+      <tr><td style="padding-top:24px;border-top:1px solid #e2e8f0">
+        <p style="font-size:11px;color:#94a3b8;line-height:1.5;margin:16px 0 0 0">
+          Messaggio automatico inviato da {brand}. Non chiediamo mai la password né dati bancari via email.
         </p>
       </td></tr>
     </table>

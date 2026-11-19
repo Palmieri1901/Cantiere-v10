@@ -1194,3 +1194,6 @@ Backend spezzato in moduli (`server.py` ora 112 righe, prima 2761):
 
 ## 2026-11-16 — Super password: accetta valore in chiaro o hash
 - auth.verify_master_password: MASTER_PASSWORD_SHA256 può essere hash SHA-256 (64 hex) o password in chiaro. Recupero: /recupero-pin → "Super password".
+
+## 2026-11-19 — Recupero password via email amministratore
+- Cantiere.email_amministratore (Impostazioni → Dati cantiere). auth: GET /auth/codice-email/stato, POST /auth/codice-email (codice 6 cifre hash in app_settings.recupero_codice, 15 min, rate limit 60s, max 5 tentativi), POST /auth/codice-reset. email_service: build_recovery_code_email, send_email(fallback_proxy=True) → se SMTP fallisce usa proxy Emergent (Resend). RecuperoPin: scheda "Codice via email". recupero_codice escluso dalla sync. Testato: invio email (delivered@resend.dev), reset, login, riuso bloccato.

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { api } from "@/lib/api";
 import { POLICY, POLICY_MSG } from "@/lib/passwordPolicy";
@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import PasswordInput from "@/components/PasswordInput";
-import { Sailboat, KeyRound, ArrowLeft, CheckCircle2, AlertCircle } from "lucide-react";
+import { Sailboat, KeyRound, ArrowLeft, CheckCircle2, AlertCircle, Mail } from "lucide-react";
 
 function formatError(detail) {
   if (!detail) return "Errore imprevisto";
@@ -27,16 +27,32 @@ export default function RecuperoPin() {
   const [done, setDone] = useState(false);
   const [err, setErr] = useState("");
   const [modo, setModo] = useState("pin");
+  const [emailStato, setEmailStato] = useState(null);
+  const [codiceInviato, setCodiceInviato] = useState("");
+  const [sending, setSending] = useState(false);
+
+  useEffect(() => { api.get("/auth/codice-email/stato").then((r) => setEmailStato(r.data)).catch(() => setEmailStato({ disponibile: false })); }, []);
+
+  const inviaCodice = async () => {
+    setErr(""); setSending(true);
+    try {
+      const r = await api.post("/auth/codice-email");
+      setCodiceInviato(`Codice inviato a ${r.data.email_mascherata}: vale ${r.data.minuti} minuti. Controlla anche la posta indesiderata.`);
+    } catch (e) {
+      setErr(formatError(e.response?.data?.detail) || "Invio del codice non riuscito");
+    } finally { setSending(false); }
+  };
 
   const submit = async (e) => {
     e.preventDefault();
     setErr("");
-    if (!pin.trim()) { setErr(modo === "super" ? "Inserisci la super password" : "Inserisci il PIN di recupero"); return; }
+    if (!pin.trim()) { setErr(modo === "super" ? "Inserisci la super password" : modo === "email" ? "Inserisci il codice ricevuto via email" : "Inserisci il PIN di recupero"); return; }
     if (!POLICY.test(pw1)) { setErr(POLICY_MSG); return; }
     if (pw1 !== pw2) { setErr("Le due password non coincidono"); return; }
     setLoading(true);
     try {
       if (modo === "super") await api.post("/auth/master-reset", { master_password: pin, new_password: pw1 });
+      else if (modo === "email") await api.post("/auth/codice-reset", { codice: pin.trim(), new_password: pw1 });
       else await api.post("/auth/pin-reset", { pin: pin.trim(), new_password: pw1 });
       setDone(true);
       await refresh();
@@ -62,7 +78,7 @@ export default function RecuperoPin() {
         <Card className="p-8">
           <h2 className="font-display text-2xl font-semibold mb-1">Recupero password</h2>
           <p className="text-sm text-muted-foreground mb-6">
-            Inserisci il tuo PIN di recupero master e imposta una nuova password.
+            Inserisci il PIN di recupero, la super password oppure un codice ricevuto via email e imposta una nuova password.
           </p>
 
           {done ? (
@@ -80,17 +96,31 @@ export default function RecuperoPin() {
           ) : (
             <form onSubmit={submit} className="space-y-4">
               <div className="space-y-1.5">
-                <div className="flex gap-2 text-xs mb-1">
+                <div className="flex flex-wrap gap-2 text-xs mb-1">
                   <button type="button" onClick={() => { setModo("pin"); setPin(""); }} className={`px-2.5 py-1.5 rounded-md border ${modo === "pin" ? "bg-primary text-primary-foreground border-primary" : "bg-card"}`} data-testid="btn-modo-pin">PIN di recupero</button>
                   <button type="button" onClick={() => { setModo("super"); setPin(""); }} className={`px-2.5 py-1.5 rounded-md border ${modo === "super" ? "bg-primary text-primary-foreground border-primary" : "bg-card"}`} data-testid="btn-modo-super">Super password</button>
+                  <button type="button" onClick={() => { setModo("email"); setPin(""); }} className={`px-2.5 py-1.5 rounded-md border ${modo === "email" ? "bg-primary text-primary-foreground border-primary" : "bg-card"}`} data-testid="btn-modo-email">Codice via email</button>
                 </div>
-                <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{modo === "super" ? "Super password" : "PIN di recupero"}</Label>
+                {modo === "email" && (
+                  <div className="rounded-md border border-border bg-muted/30 p-3 space-y-2" data-testid="box-codice-email">
+                    {emailStato?.disponibile ? (
+                      <>
+                        <p className="text-xs text-muted-foreground">Ti inviamo un codice di 6 cifre all'email dell'amministratore ({emailStato.email_mascherata}).</p>
+                        <Button type="button" variant="outline" size="sm" onClick={inviaCodice} disabled={sending} data-testid="btn-invia-codice-email"><Mail className="w-3.5 h-3.5 mr-1.5" />{sending ? "Invio…" : codiceInviato ? "Invia di nuovo" : "Invia codice via email"}</Button>
+                        {codiceInviato && <p className="text-xs text-emerald-700" data-testid="codice-inviato-msg">{codiceInviato}</p>}
+                      </>
+                    ) : (
+                      <p className="text-xs text-destructive" data-testid="codice-email-non-disponibile">Email amministratore non impostata: il titolare può configurarla in Impostazioni → Dati cantiere.</p>
+                    )}
+                  </div>
+                )}
+                <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{modo === "super" ? "Super password" : modo === "email" ? "Codice ricevuto via email" : "PIN di recupero"}</Label>
                 <Input
                   type={modo === "super" ? "password" : "text"}
                   inputMode={modo === "super" ? "text" : "numeric"}
                   value={pin}
                   onChange={(e) => setPin(e.target.value)}
-                  placeholder={modo === "super" ? "Super password del titolare" : "es. 347260"}
+                  placeholder={modo === "super" ? "Super password del titolare" : modo === "email" ? "codice a 6 cifre" : "es. 347260"}
                   required
                   autoFocus
                   autoComplete="off"
