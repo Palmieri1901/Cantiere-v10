@@ -1200,3 +1200,6 @@ Backend spezzato in moduli (`server.py` ora 112 righe, prima 2761):
 
 ## 2026-11-19 — Seed credenziali: il cambio dei segreti ADMIN_PASSWORD/RECOVERY_PIN si applica sempre
 - auth.seed_admin memorizza env_password_hash/env_pin_hash: se il segreto cambia, la nuova password/PIN viene applicata anche se erano stati personalizzati dall app. Testato.
+
+## 2026-11-19 — Cambio PIN con password di accesso
+- /auth/change-pin accetta current_pin oppure current_password (verificata dal DB). Impostazioni: campo "oppure password di accesso". Testato via curl.

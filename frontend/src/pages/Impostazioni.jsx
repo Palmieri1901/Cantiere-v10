@@ -63,6 +63,7 @@ export default function Impostazioni() {
   const [pwSaving, setPwSaving] = useState(false);
   // PIN di recupero master
   const [pinCurrent, setPinCurrent] = useState("");
+  const [pinPassword, setPinPassword] = useState("");
   const [pinNew, setPinNew] = useState("");
   const [pinSaving, setPinSaving] = useState(false);
 
@@ -83,13 +84,13 @@ export default function Impostazioni() {
   };
 
   const changePin = async () => {
-    if (!pinCurrent.trim()) { toast.error("Inserisci il PIN attuale"); return; }
+    if (!pinCurrent.trim() && !pinPassword) { toast.error("Inserisci il PIN attuale oppure la password di accesso"); return; }
     if (pinNew.trim().length < 4) { toast.error("Il PIN deve avere almeno 4 caratteri"); return; }
     setPinSaving(true);
     try {
-      await api.post("/auth/change-pin", { current_pin: pinCurrent.trim(), new_pin: pinNew.trim() });
+      await api.post("/auth/change-pin", { current_pin: pinCurrent.trim(), current_password: pinPassword, new_pin: pinNew.trim() });
       toast.success("PIN di recupero aggiornato — conservalo in un posto sicuro");
-      setPinCurrent(""); setPinNew("");
+      setPinCurrent(""); setPinNew(""); setPinPassword("");
     } catch (e) {
       const d = e.response?.data?.detail;
       toast.error(typeof d === "string" ? d : "Impossibile aggiornare il PIN");
@@ -350,11 +351,12 @@ export default function Impostazioni() {
         </div>
         <h3 className="font-display text-xl font-semibold mb-1">Cambia il PIN di recupero</h3>
         <p className="text-sm text-muted-foreground mb-4 max-w-2xl">
-          Il PIN ti permette di reimpostare la password se la dimentichi.
+          Il PIN ti permette di reimpostare la password se la dimentichi. Per cambiarlo inserisci il PIN attuale
+          oppure, se non lo ricordi, la tua password di accesso.
           <b> Annotalo in un posto sicuro</b> (es. carta d'identità del cantiere,
           agenda cartacea). Consigliato: almeno 4-6 cifre facili da ricordare.
         </p>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-3xl">
           <div>
             <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">PIN attuale</Label>
             <Input
@@ -363,9 +365,19 @@ export default function Impostazioni() {
               autoComplete="off"
               value={pinCurrent}
               onChange={(e) => setPinCurrent(e.target.value)}
-              placeholder="PIN corrente"
+              placeholder="PIN corrente (se lo conosci)"
               className="mt-1.5 font-mono tracking-widest text-lg"
               data-testid="input-pin-current"
+            />
+          </div>
+          <div>
+            <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">oppure password di accesso</Label>
+            <PasswordInput
+              value={pinPassword}
+              onChange={(e) => setPinPassword(e.target.value)}
+              placeholder="Se non ricordi il PIN"
+              className="mt-1.5"
+              data-testid="input-pin-password"
             />
           </div>
           <div>
@@ -385,7 +397,7 @@ export default function Impostazioni() {
         <div className="mt-4">
           <Button
             onClick={changePin}
-            disabled={pinSaving || !pinCurrent || !pinNew}
+            disabled={pinSaving || (!pinCurrent && !pinPassword) || !pinNew}
             className="bg-primary hover:bg-primary/90"
             data-testid="btn-change-pin"
           >

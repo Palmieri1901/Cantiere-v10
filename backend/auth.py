@@ -197,19 +197,25 @@ async def master_reset(payload: MasterResetRequest, response: Response):
 
 @auth_router.post("/change-pin")
 async def change_pin(payload: ChangePinRequest, user: dict = Depends(get_current_user)):
-    """Cambia il PIN di recupero master: richiede il PIN attuale (non la password)."""
+    """Cambia il PIN di recupero master: richiede il PIN attuale oppure la password di accesso."""
     current_pin = (payload.current_pin or "").strip()
+    current_password = payload.current_password or ""
     new_pin = (payload.new_pin or "").strip()
-    if not current_pin or not new_pin:
-        raise HTTPException(400, "Compila entrambi i campi")
+    if not new_pin or not (current_pin or current_password):
+        raise HTTPException(400, "Inserisci il nuovo PIN e il PIN attuale oppure la password")
     if len(new_pin) < 4:
         raise HTTPException(400, "Il PIN deve contenere almeno 4 caratteri")
 
     settings = await db.app_settings.find_one({"id": "auth"})
-    if not settings or not settings.get("recovery_pin_hash"):
-        raise HTTPException(500, "PIN di recupero non configurato")
-    if not verify_password(current_pin, settings["recovery_pin_hash"]):
-        raise HTTPException(401, "PIN attuale non corretto")
+    if current_password:
+        dbu = await db.users.find_one({"id": user["id"]}, {"password_hash": 1}) or {}
+        if not verify_password(current_password, dbu.get("password_hash", "")):
+            raise HTTPException(401, "Password non corretta")
+    else:
+        if not settings or not settings.get("recovery_pin_hash"):
+            raise HTTPException(500, "PIN di recupero non configurato")
+        if not verify_password(current_pin, settings["recovery_pin_hash"]):
+            raise HTTPException(401, "PIN attuale non corretto")
 
     await db.app_settings.update_one(
         {"id": "auth"},
