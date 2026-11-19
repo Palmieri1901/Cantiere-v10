@@ -41,15 +41,6 @@ def validate_password_policy(pw: str) -> None:
         raise HTTPException(400, PASSWORD_POLICY_MSG)
 
 
-def verify_master_password(pw: str) -> bool:
-    """Super password: nel .env può essere salvata come hash SHA-256 (64 caratteri esadecimali) o in chiaro."""
-    import hashlib, hmac
-    expected = os.environ.get("MASTER_PASSWORD_SHA256", "").strip()
-    if not expected or not pw:
-        return False
-    if len(expected) == 64 and all(c in "0123456789abcdefABCDEF" for c in expected):
-        return hmac.compare_digest(hashlib.sha256(pw.encode("utf-8")).hexdigest(), expected.lower())
-    return hmac.compare_digest(pw.encode("utf-8"), expected.encode("utf-8"))
 
 
 def create_access_token(user_id: str, email: str) -> str:
@@ -173,26 +164,6 @@ async def pin_reset(payload: PinResetRequest, response: Response):
 from pydantic import BaseModel as _BM
 
 
-class MasterResetRequest(_BM):
-    master_password: str
-    new_password: str
-
-
-@auth_router.post("/master-reset")
-async def master_reset(payload: MasterResetRequest, response: Response):
-    """Password dimenticata: la super password (hash in .env) autorizza a impostarne una nuova."""
-    if not verify_master_password(payload.master_password):
-        raise HTTPException(401, "Super password non corretta")
-    validate_password_policy(payload.new_password)
-    admin_email = os.environ.get("ADMIN_EMAIL", "admin@portomare.it").strip().lower()
-    user = await db.users.find_one({"email": admin_email})
-    if not user:
-        raise HTTPException(500, "Utente admin non trovato")
-    await db.users.update_one({"id": user["id"]}, {"$set": {"password_hash": hash_password(payload.new_password), "password_customized": True}})
-    logger.info(f"Password admin reimpostata via super password per {admin_email}")
-    token = create_access_token(user["id"], admin_email)
-    _set_cookie(response, token)
-    return {"ok": True, "id": user["id"], "email": admin_email, "nome": user.get("nome", ""), "role": user.get("role", "user"), "token": token}
 
 
 @auth_router.post("/change-pin")

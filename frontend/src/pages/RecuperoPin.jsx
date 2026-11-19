@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { api } from "@/lib/api";
+import { recuperaConImpronta, supportaBiometria } from "@/lib/passkey";
 import { POLICY, POLICY_MSG } from "@/lib/passwordPolicy";
 import { useAuth } from "@/lib/auth";
 import { Card } from "@/components/ui/card";
@@ -8,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import PasswordInput from "@/components/PasswordInput";
-import { Sailboat, KeyRound, ArrowLeft, CheckCircle2, AlertCircle, Mail } from "lucide-react";
+import { Sailboat, KeyRound, ArrowLeft, CheckCircle2, AlertCircle, Mail, Fingerprint } from "lucide-react";
 
 function formatError(detail) {
   if (!detail) return "Errore imprevisto";
@@ -28,10 +29,14 @@ export default function RecuperoPin() {
   const [err, setErr] = useState("");
   const [modo, setModo] = useState("pin");
   const [emailStato, setEmailStato] = useState(null);
+  const [improntaStato, setImprontaStato] = useState(null);
   const [codiceInviato, setCodiceInviato] = useState("");
   const [sending, setSending] = useState(false);
 
-  useEffect(() => { api.get("/auth/codice-email/stato").then((r) => setEmailStato(r.data)).catch(() => setEmailStato({ disponibile: false })); }, []);
+  useEffect(() => {
+    api.get("/auth/codice-email/stato").then((r) => setEmailStato(r.data)).catch(() => setEmailStato({ disponibile: false }));
+    api.get("/webauthn/recupero/stato").then((r) => setImprontaStato(r.data)).catch(() => setImprontaStato({ disponibile: false }));
+  }, []);
 
   const inviaCodice = async () => {
     setErr(""); setSending(true);
@@ -46,19 +51,19 @@ export default function RecuperoPin() {
   const submit = async (e) => {
     e.preventDefault();
     setErr("");
-    if (!pin.trim()) { setErr(modo === "super" ? "Inserisci la super password" : modo === "email" ? "Inserisci il codice ricevuto via email" : "Inserisci il PIN di recupero"); return; }
+    if (modo !== "impronta" && !pin.trim()) { setErr(modo === "email" ? "Inserisci il codice ricevuto via email" : "Inserisci il PIN di recupero"); return; }
     if (!POLICY.test(pw1)) { setErr(POLICY_MSG); return; }
     if (pw1 !== pw2) { setErr("Le due password non coincidono"); return; }
     setLoading(true);
     try {
-      if (modo === "super") await api.post("/auth/master-reset", { master_password: pin, new_password: pw1 });
+      if (modo === "impronta") await recuperaConImpronta(api, pw1);
       else if (modo === "email") await api.post("/auth/codice-reset", { codice: pin.trim(), new_password: pw1 });
       else await api.post("/auth/pin-reset", { pin: pin.trim(), new_password: pw1 });
       setDone(true);
       await refresh();
       setTimeout(() => nav("/", { replace: true }), 1500);
     } catch (e) {
-      setErr(formatError(e.response?.data?.detail) || "Impossibile aggiornare la password");
+      setErr(formatError(e.response?.data?.detail) || (e.name === "NotAllowedError" ? "Verifica dell'impronta annullata" : "Impossibile aggiornare la password"));
     } finally {
       setLoading(false);
     }
@@ -78,7 +83,7 @@ export default function RecuperoPin() {
         <Card className="p-8">
           <h2 className="font-display text-2xl font-semibold mb-1">Recupero password</h2>
           <p className="text-sm text-muted-foreground mb-6">
-            Inserisci il PIN di recupero, la super password oppure un codice ricevuto via email e imposta una nuova password.
+            Usa il PIN di recupero, un codice ricevuto via email oppure l'impronta digitale e imposta una nuova password.
           </p>
 
           {done ? (
@@ -98,9 +103,16 @@ export default function RecuperoPin() {
               <div className="space-y-1.5">
                 <div className="flex flex-wrap gap-2 text-xs mb-1">
                   <button type="button" onClick={() => { setModo("pin"); setPin(""); }} className={`px-2.5 py-1.5 rounded-md border ${modo === "pin" ? "bg-primary text-primary-foreground border-primary" : "bg-card"}`} data-testid="btn-modo-pin">PIN di recupero</button>
-                  <button type="button" onClick={() => { setModo("super"); setPin(""); }} className={`px-2.5 py-1.5 rounded-md border ${modo === "super" ? "bg-primary text-primary-foreground border-primary" : "bg-card"}`} data-testid="btn-modo-super">Super password</button>
                   <button type="button" onClick={() => { setModo("email"); setPin(""); }} className={`px-2.5 py-1.5 rounded-md border ${modo === "email" ? "bg-primary text-primary-foreground border-primary" : "bg-card"}`} data-testid="btn-modo-email">Codice via email</button>
+                  <button type="button" onClick={() => { setModo("impronta"); setPin(""); }} className={`px-2.5 py-1.5 rounded-md border ${modo === "impronta" ? "bg-primary text-primary-foreground border-primary" : "bg-card"}`} data-testid="btn-modo-impronta"><Fingerprint className="w-3.5 h-3.5 inline mr-1" />Impronta digitale</button>
                 </div>
+                {modo === "impronta" && (
+                  <div className="rounded-md border border-border bg-muted/30 p-3" data-testid="box-impronta">
+                    {improntaStato?.disponibile
+                      ? <p className="text-xs text-muted-foreground">Scegli la nuova password e premi «Reimposta password»: ti verrà chiesta l'impronta (o il volto) registrata in Impostazioni su questo dispositivo.{!supportaBiometria() && " Questo browser non supporta la verifica biometrica."}</p>
+                      : <p className="text-xs text-destructive" data-testid="impronta-non-disponibile">Nessuna impronta registrata: il titolare può registrarle in Impostazioni → Impronte digitali.</p>}
+                  </div>
+                )}
                 {modo === "email" && (
                   <div className="rounded-md border border-border bg-muted/30 p-3 space-y-2" data-testid="box-codice-email">
                     {emailStato?.disponibile ? (
@@ -114,18 +126,18 @@ export default function RecuperoPin() {
                     )}
                   </div>
                 )}
-                <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{modo === "super" ? "Super password" : modo === "email" ? "Codice ricevuto via email" : "PIN di recupero"}</Label>
+                {modo !== "impronta" && <><Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{modo === "email" ? "Codice ricevuto via email" : "PIN di recupero"}</Label>
                 <Input
-                  type={modo === "super" ? "password" : "text"}
-                  inputMode={modo === "super" ? "text" : "numeric"}
+                  type="text"
+                  inputMode="numeric"
                   value={pin}
                   onChange={(e) => setPin(e.target.value)}
-                  placeholder={modo === "super" ? "Super password del titolare" : modo === "email" ? "codice a 6 cifre" : "es. 347260"}
+                  placeholder={modo === "email" ? "codice a 6 cifre" : "es. 347260"}
                   required
                   autoFocus
                   autoComplete="off"
                   data-testid="input-recupero-pin"
-                />
+                /></>}
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Nuova password</Label>

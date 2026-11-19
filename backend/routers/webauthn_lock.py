@@ -6,7 +6,7 @@ import uuid
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from pydantic import BaseModel
 from webauthn import (base64url_to_bytes, generate_authentication_options, generate_registration_options, options_to_json,
                       verify_authentication_response, verify_registration_response)
@@ -19,6 +19,7 @@ from routers.mobile import get_dipendente
 
 router = APIRouter(prefix="/webauthn")
 mobile_router = APIRouter(prefix="/api/mobile/webauthn")
+public_router = APIRouter(prefix="/api/webauthn")  # recupero password con impronta, senza login
 CHALLENGE_TTL = timedelta(minutes=2)
 
 
@@ -170,6 +171,70 @@ async def unlock_complete(body: CredentialBody, request: Request, user: dict = D
 @router.get("/dispositivi")
 async def dispositivi(user: dict = Depends(get_current_user)):
     return await _lista(_acc(user))
+
+
+MAX_IMPRONTE = 4
+
+
+@router.post("/impronte/options")
+async def impronte_options(request: Request, user: dict = Depends(get_current_user)):
+    """Registrazione di un'impronta dalle Impostazioni (massimo 4 per il titolare)."""
+    if await db.webauthn_credentials.count_documents({"account_id": _acc(user)}) >= MAX_IMPRONTE:
+        raise HTTPException(400, f"Hai già {MAX_IMPRONTE} impronte registrate: rimuovine una per aggiungerne un'altra")
+    return await _register_options(_acc(user), request)
+
+
+@router.post("/impronte/complete")
+async def impronte_complete(body: CredentialBody, request: Request, user: dict = Depends(get_current_user)):
+    if await db.webauthn_credentials.count_documents({"account_id": _acc(user)}) >= MAX_IMPRONTE:
+        raise HTTPException(400, f"Hai già {MAX_IMPRONTE} impronte registrate")
+    return await _register_complete(_acc(user), body, request)
+
+
+# ---------- Recupero password con impronta (senza login) ----------
+async def _admin_account() -> str:
+    admin_email = os.environ.get("ADMIN_EMAIL", "admin@portomare.it").strip().lower()
+    u = await db.users.find_one({"email": admin_email}, {"_id": 0, "id": 1})
+    if not u:
+        raise HTTPException(500, "Utente admin non trovato")
+    return f"user:{u['id']}"
+
+
+@public_router.get("/recupero/stato")
+async def recupero_stato():
+    acc = await _admin_account()
+    return {"disponibile": await db.webauthn_credentials.count_documents({"account_id": acc}) > 0}
+
+
+@public_router.post("/recupero/options")
+async def recupero_options(request: Request):
+    """Sfida WebAuthn su tutte le impronte registrate del titolare (qualsiasi dispositivo registrato)."""
+    acc = await _admin_account()
+    try:
+        return await _unlock_options(acc, "", request)
+    except HTTPException as e:
+        if e.status_code == 404:
+            raise HTTPException(404, "Nessuna impronta registrata: il recupero con impronta non è disponibile")
+        raise
+
+
+class RecuperoImprontaBody(CredentialBody):
+    new_password: str = ""
+
+
+@public_router.post("/recupero/complete")
+async def recupero_complete(body: RecuperoImprontaBody, request: Request, response: Response):
+    from auth import _set_cookie, create_access_token, hash_password, validate_password_policy
+    validate_password_policy(body.new_password)
+    acc = await _admin_account()
+    cred_body = CredentialBody(**body.model_dump(exclude={"new_password"}))
+    await _unlock_complete(acc, cred_body, request)
+    admin_email = os.environ.get("ADMIN_EMAIL", "admin@portomare.it").strip().lower()
+    user = await db.users.find_one({"email": admin_email})
+    await db.users.update_one({"id": user["id"]}, {"$set": {"password_hash": hash_password(body.new_password), "password_customized": True}})
+    token = create_access_token(user["id"], admin_email)
+    _set_cookie(response, token)
+    return {"ok": True, "id": user["id"], "email": admin_email, "nome": user.get("nome", ""), "role": user.get("role", "user"), "token": token}
 
 
 @router.delete("/dispositivi/{cid}")

@@ -28,6 +28,20 @@ export async function sbloccaBiometria(client, base = "/webauthn") {
   await client.post(`${base}/unlock/complete`, { ...ass, device_id: deviceId() });
 }
 
+export async function registraImpronta(client, nome) {
+  const o = await client.post("/webauthn/impronte/options");
+  const att = await startRegistration({ optionsJSON: typeof o.data === "string" ? JSON.parse(o.data) : o.data });
+  await client.post("/webauthn/impronte/complete", { ...att, device_id: deviceId(), device_nome: nome || deviceNome() });
+}
+
+// Recupero password con impronta (senza login): restituisce la risposta di login
+export async function recuperaConImpronta(client, newPassword) {
+  const o = await client.post("/webauthn/recupero/options");
+  const ass = await startAuthentication({ optionsJSON: typeof o.data === "string" ? JSON.parse(o.data) : o.data });
+  const r = await client.post("/webauthn/recupero/complete", { ...ass, device_id: deviceId(), new_password: newPassword });
+  return r.data;
+}
+
 const KEY = "geb_sbloccato";
 export const isSbloccato = () => sessionStorage.getItem(KEY) === "1";
 export const segnaSbloccato = () => sessionStorage.setItem(KEY, "1");
