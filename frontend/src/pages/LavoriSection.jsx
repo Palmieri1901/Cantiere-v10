@@ -94,10 +94,15 @@ export default function LavoriSection({ clienteId, editLavoroId }) {
   const openEdit = (l) => {
     setEditing(l);
     loadMagazzino();
-    setForm({ ...l, costo: +(Number(l.costo || 0) - (l.articoli_liberi || []).reduce((s, x) => s + Number(x.totale || 0), 0) - (l.articoli_magazzino || []).reduce((s, x) => s + Number(x.totale || 0), 0)).toFixed(2) });
+    const manodopera = +(Number(l.costo || 0) - (l.articoli_liberi || []).reduce((s, x) => s + Number(x.totale || 0), 0) - (l.articoli_magazzino || []).reduce((s, x) => s + Number(x.totale || 0), 0)).toFixed(2);
+    setForm({ ...l, costo: manodopera });
     setArtLiberi((l.articoli_liberi || []).map((x) => ({ descrizione: x.descrizione || "", quantita: x.quantita, prezzo_unitario: x.prezzo_unitario, unita: x.unita || "", listino_id: x.listino_id, listino_q: x.listino_q, listino_q2: x.listino_q2 })));
-    setCostoManuale(true);
-    api.get("/tariffe").then((t) => setTariffaOraria(Number(t.data.costo_orario_manodopera) || 0)).catch(() => {});
+    // Il costo resta "manuale" solo se diverso da ore × tariffa: così cambiando le ore si ricalcola
+    api.get("/tariffe").then((t) => {
+      const tar = Number(t.data.costo_orario_manodopera) || 0;
+      setTariffaOraria(tar);
+      setCostoManuale(!(tar > 0 && Math.abs(manodopera - (Number(l.ore) || 0) * tar) < 0.01));
+    }).catch(() => setCostoManuale(true));
     // Ripopola gli articoli già scaricati sul lavoro così l'utente può aggiungerne/toglierne
     const preselezionati = Array.isArray(l?.articoli_magazzino) ? l.articoli_magazzino : [];
     setArtSelezionati(preselezionati.map((it) => {
@@ -305,7 +310,7 @@ export default function LavoriSection({ clienteId, editLavoroId }) {
                 <div className="space-y-1.5">
                   <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Ore lavoro</Label>
                   <Input type="number" step="0.5" min="0" className="font-mono-num" value={form.ore ?? 0} onChange={(e) => onOreChange(e.target.value)} data-testid="input-lavoro-ore" />
-                  {tariffaOraria > 0 && <div className="text-[11px] text-muted-foreground" data-testid="lavoro-tariffa-hint">{tariffaOraria} €/h da Tariffe{costoManuale ? " · costo modificato a mano" : ""}</div>}
+                  {tariffaOraria > 0 && <div className="text-[11px] text-muted-foreground" data-testid="lavoro-tariffa-hint">{tariffaOraria} €/h da Tariffe{costoManuale ? <> · costo modificato a mano · <button type="button" className="underline text-primary" onClick={() => { setCostoManuale(false); setForm((f) => ({ ...f, costo: +((Number(f.ore) || 0) * tariffaOraria).toFixed(2) })); }} data-testid="btn-lavoro-ricalcola">ricalcola da ore</button></> : ""}</div>}
                 </div>
                 <div className="space-y-1.5">
                   <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Costo manodopera</Label>

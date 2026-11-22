@@ -1206,3 +1206,6 @@ Backend spezzato in moduli (`server.py` ora 112 righe, prima 2761):
 
 ## 2026-11-19 — Recupero con impronta, rimossa super password
 - Rimossi verify_master_password e /auth/master-reset (MASTER_PASSWORD_SHA256 non più usata). webauthn_lock: public_router /api/webauthn/recupero/{stato,options,complete} (assertion su impronte del titolare → nuova password + login), /webauthn/impronte/{options,complete} con MAX_IMPRONTE=4. BiometriaCard: elenco (n/4), registra con nome, elimina. RecuperoPin: tab Impronta digitale, tab Super password rimosso. Manuale aggiornato. Testato e2e con autenticatore virtuale (registrazione, recupero, login).
+
+## 2026-11-22 — Fix modifica lavoro: costo manodopera segue le ore
+- LavoriSection.openEdit: costoManuale=true solo se costo ≠ ore×tariffa; link "ricalcola da ore" (btn-lavoro-ricalcola). Testato e2e.
