@@ -1,0 +1,22 @@
+{
+  "summary": "Verified the Scan DDT (AI) bugfix. Backend: 9 of 9 pytest tests pass. POST /api/magazzino/scan-ddt returns 200 with 2 extracted rows for a PNG image (image_base64) and for a reportlab PDF (file_base64 + application/pdf). ai_client.vision() works with only EMERGENT_LLM_KEY and returns 'OK'. It falls back to Emergent when _gemini_direct is mocked to raise 503, and also with a real invalid GEMINI_API_KEY=fake-key. With no keys it returns 500. Empty payload gives 400 and an unauthenticated call gives 401. Frontend: on /magazzino, Scan DDT (AI), choose fornitore, upload PNG, Analizza DDT shows the toast 'Trovati 2 articoli e 0 spese' and rows ddt-row-0/1 (12345 Anodo barra alluminio qty 2 netto 10.5; 67890 Filtro gasolio Racor qty 3 netto 24). The 'Totale verificato 93,00 €' banner is correct and no 'sovraccarico' error appears. 'Importa' was NOT pressed, so no warehouse data was created or changed. The production direct-Gemini path (real GEMINI_API_KEY with the new model list) could not be tested in preview.",
+  "backend_issues": {"critical": [], "minor": [
+    {"endpoint": "ai_client._gemini_direct", "issue": "Neither the Gemini model list nor the docstring/credentials file mention gemini-3-flash-preview, the model used on the Emergent path. If production has no EMERGENT_LLM_KEY and none of gemini-3.8-flash/3.6-flash/3.5-flash-lite/2.5-flash answers, the 503 comes back. Consider adding 'gemini-3-flash-preview' as the last fallback in the direct list."},
+    {"endpoint": "ai_client._gemini_direct", "issue": "An invalid API key (400 API_KEY_INVALID) is handled as 'model not available' because the body contains 'model'. It cycles through all models and then raises 503 'sovraccarico' instead of a clear 'chiave Gemini non valida' error (unless the Emergent fallback rescues it)."}
+  ]},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [{"screen": "Scan DDT dialog, results table", "issues": ["The Q.tà number input is ~37px wide: its value (2, 3) is in the DOM but looks EMPTY on screen at 1920px. Widen the column (min-w ~56px) or reduce the padding.", "The Codice and Categoria inputs are truncated ('1234', 'Carbur')."]}]
+  },
+  "test_report_links": ["/app/backend/tests/test_scan_ddt_ai_fallback.py", "/app/test_reports/pytest/pytest_iter27.xml"],
+  "action_items": ["Widen the Q.tà (and Codice/Categoria) inputs in the ScanDDTDialog table: the quantity looks empty", "Optional: add gemini-3-flash-preview to the direct Gemini fallback list; return a specific error for an invalid API key"],
+  "critical_code_review_comments": ["The ai_client.vision fallback logic is correct (502/503 lead to Emergent)", "In ai_client.py the module docstring and testo() priority differ (Emergent first for testo, Gemini first for vision). Fine, but document it."],
+  "updated_files": ["/app/backend/tests/test_scan_ddt_ai_fallback.py"],
+  "success_rate": {"backend": "100%", "frontend": "100% functional (1 minor design issue)"},
+  "seed_data_creation": "None. No fornitori or articoli created; Import was not pressed.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Login is password-only 'admin'. Scan endpoint: /api/magazzino/scan-ddt. The test file generates the PNG/PDF itself; the AI call takes ~10-20s. The dialog's testids are btn-scan-ddt, dialog-scan-ddt, input-ddt-file, ddt-select-fornitore, btn-ddt-scan, ddt-row-N, btn-ddt-import.",
+  "rca of the issue": "Production used GEMINI_API_KEY directly and the old model list ended with gemini-2.0-flash, which Google retired (404). With every model failing, the 503 'sovraccarico' was raised. Fix: new model list plus fallback to EMERGENT_LLM_KEY on 502/503. Verified in preview through the Emergent path and through the mocked and invalid-key fallback."
+}

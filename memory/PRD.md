@@ -1209,3 +1209,6 @@ Backend spezzato in moduli (`server.py` ora 112 righe, prima 2761):
 
 ## 2026-11-22 — Fix modifica lavoro: costo manodopera segue le ore
 - LavoriSection.openEdit: costoManuale=true solo se costo ≠ ore×tariffa; link "ricalcola da ore" (btn-lavoro-ricalcola). Testato e2e.
+
+## 2026-11-23 — Fix Scan DDT AI (404 gemini-2.0-flash)
+- ai_client: modelli Gemini diretti aggiornati (gemini-3.8-flash primario; 3.6, 3.5-lite, 2.5; rimosso 2.0) + fallback automatico alla chiave Emergent se Gemini diretto fallisce (502/503). Verificato dal testing_agent: /app/test_reports/iteration_27.json (9/9 backend, frontend OK).
