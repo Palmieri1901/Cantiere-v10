@@ -114,7 +114,10 @@ export default function Layout() {
   const [pending, setPending] = useState(0);
 
   useEffect(() => {
-    api.get("/cantiere").then((r) => setC(r.data)).catch(() => {});
+    const loadC = () => api.get("/cantiere").then((r) => setC(r.data)).catch(() => {});
+    loadC();
+    window.addEventListener("cantiere-changed", loadC);
+    return () => window.removeEventListener("cantiere-changed", loadC);
   }, []);
   useEffect(() => {
     const load = () => api.get("/lavori-pending/count").then((r) => setPending(r.data.count)).catch(() => {});
@@ -196,7 +199,7 @@ export default function Layout() {
               </div>
               <div className="min-w-0 flex-1">
                 <div className="font-semibold truncate">{user.nome || user.email}</div>
-                <div className="text-muted-foreground truncate text-[11px]">{user.email}</div>
+                <div className="text-muted-foreground truncate text-[11px]" data-testid="sidebar-user-email">{c?.email_amministratore || user.email}</div>
               </div>
             </div>
           )}

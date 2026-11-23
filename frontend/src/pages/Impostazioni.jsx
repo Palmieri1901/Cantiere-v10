@@ -126,6 +126,7 @@ export default function Impostazioni() {
       payload.contratto_template = c.contratto_template ?? "";
       payload.iva_percentuale = Number(c.iva_percentuale ?? 22);
       await api.put("/cantiere", payload);
+      window.dispatchEvent(new Event("cantiere-changed"));
       toast.success("Informazioni salvate");
       load();
     } catch {

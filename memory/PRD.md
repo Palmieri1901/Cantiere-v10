@@ -1215,3 +1215,6 @@ Backend spezzato in moduli (`server.py` ora 112 righe, prima 2761):
 
 ## 2026-11-23 — Impostazioni: Modello AI attivo
 - routers/ai_config.py: GET/PUT /api/ai/config (app_settings.ai_config: modello_gemini, preferisci_emergent; elenco modelli Gemini da ListModels se chiave presente), POST /api/ai/test. ai_client: get_ai_config, stato_ai (ultimo provider/modello/errore), priorità Emergent opzionale con fallback incrociato. AiModelloCard in Impostazioni. ai_config escluso dalla sync. Testato via curl + screenshot.
+
+## 2026-11-23 — Sidebar: email amministratore
+- Layout.jsx mostra cantiere.email_amministratore (fallback user.email), aggiornata live via evento cantiere-changed emesso da Impostazioni al salvataggio.
