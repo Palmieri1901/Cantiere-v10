@@ -7,6 +7,9 @@ import os
 import asyncio
 from typing import List
 import httpx
+import logging
+
+logger = logging.getLogger("cantiere")
 from fastapi import HTTPException
 
 GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
@@ -28,9 +31,9 @@ def _mime(b64: str) -> str:
 
 
 async def _gemini_direct(api_key: str, system: str, prompt: str, images: List[str]) -> str:
-    primario = os.environ.get("GEMINI_MODEL", "gemini-3.6-flash")
+    primario = os.environ.get("GEMINI_MODEL", "gemini-3.8-flash")
     # In caso di 503/429/404 (modello sovraccarico o non più disponibile) riprova e poi passa a modelli alternativi
-    modelli = [primario] + [m for m in ("gemini-3.8-flash", "gemini-3.5-flash-lite", "gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-2.0-flash") if m != primario]
+    modelli = [primario] + [m for m in ("gemini-3.8-flash", "gemini-3.6-flash", "gemini-3.5-flash-lite", "gemini-2.5-flash") if m != primario]
     parts = [{"text": prompt}] + [{"inline_data": {"mime_type": _mime(i), "data": i}} for i in images]
     body = {
         "system_instruction": {"parts": [{"text": system}]},
@@ -87,9 +90,14 @@ async def vision(system: str, prompt: str, images_b64: List[str]) -> str:
     """Analizza una o più immagini/PDF (base64) e restituisce il testo prodotto dal modello."""
     images = [_clean(i) for i in images_b64 if i]
     gemini_key = os.environ.get("GEMINI_API_KEY", "").strip()
-    if gemini_key:
-        return await _gemini_direct(gemini_key, system, prompt, images)
     emergent_key = os.environ.get("EMERGENT_LLM_KEY", "").strip()
+    if gemini_key:
+        try:
+            return await _gemini_direct(gemini_key, system, prompt, images)
+        except HTTPException as e:
+            if not emergent_key or e.status_code not in (502, 503):
+                raise
+            logger.warning(f"Gemini diretto non disponibile ({e.detail[:120]}): passo alla chiave Emergent")
     if emergent_key:
         return await _emergent(emergent_key, system, prompt, images)
     raise HTTPException(500, "Nessuna chiave AI configurata sul server: imposta GEMINI_API_KEY (o EMERGENT_LLM_KEY) nel file .env del backend e riavvia")
