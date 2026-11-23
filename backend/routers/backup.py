@@ -110,7 +110,8 @@ class CartellaPayload(BaseModel):
 
 
 def _su_pc() -> bool:
-    return bool(os.environ.get("SYNC_PEER_URL"))
+    from routers.sync import _peer
+    return bool(_peer())
 
 
 @router.get("/backup/cartella")

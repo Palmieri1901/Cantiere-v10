@@ -1223,4 +1223,6 @@ Backend spezzato in moduli (`server.py` ora 112 righe, prima 2761):
 - Impostazioni → Sincronizzazione: «Genera token» (GEB-…), copia, inserimento manuale token + indirizzo dell'altra installazione, «Salva», «Prova collegamento».
 - Config salvata in `_sync_config` (esclusa dalla sync), prevale su SYNC_TOKEN/SYNC_PEER_URL del .env; loop sync sempre attivo, cambio indirizzo azzera lo stato di allineamento.
 - Endpoint: GET/PUT `/api/sync/config`, POST `/api/sync/genera-token`, POST `/api/sync/prova` (`routers/sync.py`, `impostazioni/SyncConfig.jsx`).
+- Istruzioni aggiornate: manuale PDF (sez. 14, 16 e scheda chiavi) e `memory/SYNC_INSTALLAZIONE_LOCALE.md` con il collegamento da app. Backup: riconoscimento «installazione sul PC» ora usa anche l'indirizzo salvato dall'app.
+
 
