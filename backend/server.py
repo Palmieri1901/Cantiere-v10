@@ -111,8 +111,7 @@ async def _startup():
     await db.users.create_index("email", unique=True)
     await db["_sync_log"].create_index([("coll", 1), ("doc_id", 1)], unique=True)
     await db["_sync_log"].create_index("ts")
-    if os.environ.get("SYNC_PEER_URL"):
-        asyncio.create_task(sync.sync_loop())
+    asyncio.create_task(sync.sync_loop())
     await officina.ensure_indexes()
     try:
         await gommoni.migra_presentazioni_pdf()

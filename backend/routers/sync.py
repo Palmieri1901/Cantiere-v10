@@ -6,10 +6,11 @@ Regola: vince l'ultima modifica (confronto `_sync_ts` per documento). Richiede S
 """
 import asyncio
 import os
+import secrets
 
 import httpx
 from bson import ObjectId, json_util
-from fastapi import APIRouter, Header, HTTPException, Request
+from fastapi import APIRouter, Body, Header, HTTPException, Request
 from fastapi.responses import Response, StreamingResponse
 from motor.motor_asyncio import AsyncIOMotorGridFSBucket
 from pymongo.errors import DuplicateKeyError
@@ -23,12 +24,21 @@ PAGE = 500
 _stato = {"in_corso": False, "ultimo_ok": None, "ultimo_errore": "", "ultimo_tentativo": None, "inviati": 0, "ricevuti": 0}
 
 
+_cfg = {"token": "", "peer": ""}  # impostati dall'app (Impostazioni); prevalgono su .env
+
+
+async def carica_config():
+    d = await db["_sync_config"].find_one({"id": "cfg"}, {"_id": 0}) or {}
+    _cfg["token"] = d.get("token") or ""
+    _cfg["peer"] = d.get("peer") or ""
+
+
 def _token() -> str:
-    return os.environ.get("SYNC_TOKEN", "")
+    return _cfg["token"] or os.environ.get("SYNC_TOKEN", "")
 
 
 def _peer() -> str:
-    return (os.environ.get("SYNC_PEER_URL") or "").rstrip("/")
+    return (_cfg["peer"] or os.environ.get("SYNC_PEER_URL") or "").rstrip("/")
 
 
 def _check(x_sync_token: str):
@@ -307,6 +317,7 @@ async def pulisci_log_esclusi():
 
 
 async def sync_loop():
+    await carica_config()
     await pulisci_log_esclusi()
     await asyncio.sleep(5)
     while True:
@@ -320,8 +331,56 @@ async def stato():
     return {**_stato, "peer": _peer(), "configurato": bool(_peer() and _token()), "token_presente": bool(_token()), "in_attesa_di_invio": pend}
 
 
+async def _salva_config(token: str, peer: str):
+    old_peer = _peer()
+    await db["_sync_config"].replace_one({"id": "cfg"}, {"id": "cfg", "token": token, "peer": peer}, upsert=True)
+    _cfg.update(token=token, peer=peer)
+    if _peer() != old_peer:
+        await db["_sync_state"].delete_many({})
+
+
+@router.get("/config")
+async def get_config():
+    return {"token": _token(), "peer": _peer(), "da_app": bool(_cfg["token"] or _cfg["peer"])}
+
+
+@router.post("/genera-token")
+async def genera_token():
+    await _salva_config("GEB-" + secrets.token_urlsafe(24), _cfg["peer"])
+    return await get_config()
+
+
+@router.put("/config")
+async def put_config(token: str = Body(""), peer: str = Body("")):
+    token, peer = token.strip(), peer.strip().rstrip("/")
+    if token and len(token) < 16:
+        raise HTTPException(400, "Token troppo corto (minimo 16 caratteri)")
+    if peer and not peer.startswith(("http://", "https://")):
+        raise HTTPException(400, "L'indirizzo deve iniziare con http:// o https://")
+    if peer and not token:
+        raise HTTPException(400, "Per collegarti a un'altra installazione inserisci anche il token")
+    await _salva_config(token, peer)
+    return await get_config()
+
+
+@router.post("/prova")
+async def prova():
+    if not _peer():
+        raise HTTPException(400, "Nessun indirizzo da collegare")
+    try:
+        async with httpx.AsyncClient(timeout=15) as cl:
+            r = await cl.get(f"{_peer()}/api/sync/collections", headers={"X-Sync-Token": _token()})
+    except Exception as e:  # noqa: BLE001
+        raise HTTPException(502, f"Indirizzo non raggiungibile: {str(e)[:120]}")
+    if r.status_code == 401:
+        raise HTTPException(400, "Collegamento riuscito ma il token non coincide con quello dell'altra installazione")
+    if r.status_code != 200:
+        raise HTTPException(502, f"Risposta inattesa dall'altra installazione ({r.status_code})")
+    return {"ok": True}
+
+
 @router.post("/ora")
 async def ora():
     if not _peer():
-        raise HTTPException(400, "Questa installazione non ha un peer configurato (SYNC_PEER_URL)")
+        raise HTTPException(400, "Questa installazione non è collegata a un'altra (inserisci indirizzo e token)")
     return await sync_once()

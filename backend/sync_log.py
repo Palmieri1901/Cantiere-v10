@@ -9,7 +9,7 @@ import time
 
 from motor.motor_asyncio import AsyncIOMotorCollection
 
-ESCLUSE = {"_sync_log", "_sync_state", "fs.files", "fs.chunks", "users", "password_reset_tokens"}
+ESCLUSE = {"_sync_log", "_sync_state", "_sync_config", "fs.files", "fs.chunks", "users", "password_reset_tokens"}
 # Documenti locali a ogni installazione (credenziali, PIN, cartella backup del PC): mai sincronizzati
 DOC_ESCLUSI = {"app_settings": {"auth", "backup_info", "recupero_codice", "ai_config"}}
 

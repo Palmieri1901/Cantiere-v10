@@ -1218,3 +1218,9 @@ Backend spezzato in moduli (`server.py` ora 112 righe, prima 2761):
 
 ## 2026-11-23 — Sidebar: email amministratore
 - Layout.jsx mostra cantiere.email_amministratore (fallback user.email), aggiornata live via evento cantiere-changed emesso da Impostazioni al salvataggio.
+
+## 2026-11-23 — Collegamento PC ↔ online con token dall'app
+- Impostazioni → Sincronizzazione: «Genera token» (GEB-…), copia, inserimento manuale token + indirizzo dell'altra installazione, «Salva», «Prova collegamento».
+- Config salvata in `_sync_config` (esclusa dalla sync), prevale su SYNC_TOKEN/SYNC_PEER_URL del .env; loop sync sempre attivo, cambio indirizzo azzera lo stato di allineamento.
+- Endpoint: GET/PUT `/api/sync/config`, POST `/api/sync/genera-token`, POST `/api/sync/prova` (`routers/sync.py`, `impostazioni/SyncConfig.jsx`).
+

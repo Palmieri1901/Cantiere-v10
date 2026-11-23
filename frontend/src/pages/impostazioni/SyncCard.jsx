@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { RefreshCw, Cloud, CloudOff, Loader2 } from "lucide-react";
+import SyncConfig from "./SyncConfig";
 
 const quando = (ts) => (ts ? new Date(ts * 1000).toLocaleString("it-IT") : "mai");
 
@@ -40,10 +41,10 @@ export default function SyncCard() {
       ) : (
         <div className="text-sm text-muted-foreground" data-testid="sync-non-configurato">
           Questa è l'installazione <b>{s.token_presente ? "online (riceve e invia su richiesta del PC)" : "senza token di sincronizzazione"}</b>.
-          {!s.token_presente && " Imposta SYNC_TOKEN (uguale sui due lati) per abilitare la sincronizzazione."}
-          {" "}Sul PC locale imposta nel file backend/.env: <code className="text-xs">SYNC_PEER_URL=https://indirizzo-online</code> e <code className="text-xs">SYNC_TOKEN=…</code>, poi riavvia il backend.
+          {!s.token_presente && " Genera un token qui sotto per abilitare la sincronizzazione."}
         </div>
       )}
+      <SyncConfig onChange={load} />
     </Card>
   );
 }
