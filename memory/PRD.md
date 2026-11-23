@@ -1212,3 +1212,6 @@ Backend spezzato in moduli (`server.py` ora 112 righe, prima 2761):
 
 ## 2026-11-23 — Fix Scan DDT AI (404 gemini-2.0-flash)
 - ai_client: modelli Gemini diretti aggiornati (gemini-3.8-flash primario; 3.6, 3.5-lite, 2.5; rimosso 2.0) + fallback automatico alla chiave Emergent se Gemini diretto fallisce (502/503). Verificato dal testing_agent: /app/test_reports/iteration_27.json (9/9 backend, frontend OK).
+
+## 2026-11-23 — Impostazioni: Modello AI attivo
+- routers/ai_config.py: GET/PUT /api/ai/config (app_settings.ai_config: modello_gemini, preferisci_emergent; elenco modelli Gemini da ListModels se chiave presente), POST /api/ai/test. ai_client: get_ai_config, stato_ai (ultimo provider/modello/errore), priorità Emergent opzionale con fallback incrociato. AiModelloCard in Impostazioni. ai_config escluso dalla sync. Testato via curl + screenshot.

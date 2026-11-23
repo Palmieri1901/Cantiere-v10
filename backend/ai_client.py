@@ -13,6 +13,23 @@ logger = logging.getLogger("cantiere")
 from fastapi import HTTPException
 
 GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
+MODELLI_GEMINI = ["gemini-3.8-flash", "gemini-3.6-flash", "gemini-3.5-flash-lite", "gemini-2.5-flash"]
+MODELLO_EMERGENT = "gemini-3-flash-preview"
+
+# Stato per la pagina Impostazioni: configurazione scelta dall'utente (db app_settings id=ai_config) e ultimo uso
+stato_ai = {"ultimo_provider": "", "ultimo_modello": "", "ultimo_at": "", "ultimo_errore": ""}
+
+
+async def get_ai_config() -> dict:
+    from database import db
+    doc = await db.app_settings.find_one({"id": "ai_config"}, {"_id": 0}) or {}
+    return {"modello_gemini": doc.get("modello_gemini") or os.environ.get("GEMINI_MODEL", "").strip() or MODELLI_GEMINI[0],
+            "preferisci_emergent": bool(doc.get("preferisci_emergent", False))}
+
+
+def _segna(provider: str, modello: str):
+    from datetime import datetime, timezone
+    stato_ai.update({"ultimo_provider": provider, "ultimo_modello": modello, "ultimo_at": datetime.now(timezone.utc).isoformat(), "ultimo_errore": ""})
 
 
 def _clean(b64: str) -> str:
@@ -30,10 +47,10 @@ def _mime(b64: str) -> str:
     return "image/jpeg"
 
 
-async def _gemini_direct(api_key: str, system: str, prompt: str, images: List[str]) -> str:
-    primario = os.environ.get("GEMINI_MODEL", "gemini-3.8-flash")
+async def _gemini_direct(api_key: str, system: str, prompt: str, images: List[str], primario: str | None = None) -> str:
+    primario = primario or (await get_ai_config())["modello_gemini"]
     # In caso di 503/429/404 (modello sovraccarico o non più disponibile) riprova e poi passa a modelli alternativi
-    modelli = [primario] + [m for m in ("gemini-3.8-flash", "gemini-3.6-flash", "gemini-3.5-flash-lite", "gemini-2.5-flash") if m != primario]
+    modelli = [primario] + [m for m in MODELLI_GEMINI if m != primario]
     parts = [{"text": prompt}] + [{"inline_data": {"mime_type": _mime(i), "data": i}} for i in images]
     body = {
         "system_instruction": {"parts": [{"text": system}]},
@@ -64,7 +81,9 @@ async def _gemini_direct(api_key: str, system: str, prompt: str, images: List[st
                 continue
             break
         else:
+            stato_ai["ultimo_errore"] = f"Gemini: {ultimo}"
             raise HTTPException(503, f"Il servizio AI è momentaneamente sovraccarico su tutti i modelli disponibili. Riprova tra qualche minuto. (ultimo errore {ultimo})")
+    _segna("gemini", model)
     data = r.json()
     try:
         return "".join(p.get("text", "") for p in data["candidates"][0]["content"]["parts"])
@@ -75,7 +94,8 @@ async def _gemini_direct(api_key: str, system: str, prompt: str, images: List[st
 async def _emergent(api_key: str, system: str, prompt: str, images: List[str]) -> str:
     from emergentintegrations.llm.chat import LlmChat, UserMessage, ImageContent, TextDelta, StreamDone
     from datetime import datetime
-    chat = LlmChat(api_key=api_key, session_id=f"vision-{datetime.now().timestamp()}", system_message=system).with_model("gemini", "gemini-3-flash-preview")
+    chat = LlmChat(api_key=api_key, session_id=f"vision-{datetime.now().timestamp()}", system_message=system).with_model("gemini", MODELLO_EMERGENT)
+    _segna("emergent", MODELLO_EMERGENT)
     msg = UserMessage(text=prompt, file_contents=[ImageContent(image_base64=i) for i in images])
     chunks: List[str] = []
     async for ev in chat.stream_message(msg):
@@ -91,6 +111,16 @@ async def vision(system: str, prompt: str, images_b64: List[str]) -> str:
     images = [_clean(i) for i in images_b64 if i]
     gemini_key = os.environ.get("GEMINI_API_KEY", "").strip()
     emergent_key = os.environ.get("EMERGENT_LLM_KEY", "").strip()
+    cfg = await get_ai_config()
+    if emergent_key and (cfg["preferisci_emergent"] or not gemini_key):
+        try:
+            return await _emergent(emergent_key, system, prompt, images)
+        except Exception as e:
+            stato_ai["ultimo_errore"] = f"Emergent: {str(e)[:150]}"
+            if not gemini_key:
+                raise HTTPException(503, f"Il servizio AI non è disponibile al momento: {str(e)[:150]}")
+            logger.warning(f"Emergent non disponibile ({str(e)[:100]}): passo a Gemini diretto")
+            return await _gemini_direct(gemini_key, system, prompt, images)
     if gemini_key:
         try:
             return await _gemini_direct(gemini_key, system, prompt, images)

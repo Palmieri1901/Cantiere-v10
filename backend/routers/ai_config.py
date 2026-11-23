@@ -1,0 +1,63 @@
+"""Configurazione del modello AI dalla pagina Impostazioni (senza toccare i Secrets)."""
+import os
+
+import httpx
+from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel
+
+from ai_client import MODELLI_GEMINI, MODELLO_EMERGENT, get_ai_config, stato_ai, vision
+from database import db
+
+router = APIRouter(prefix="/ai")
+
+
+class AiConfigIn(BaseModel):
+    modello_gemini: str = ""
+    preferisci_emergent: bool = False
+
+
+async def _modelli_disponibili(api_key: str) -> list[str]:
+    try:
+        async with httpx.AsyncClient(timeout=15) as cl:
+            r = await cl.get("https://generativelanguage.googleapis.com/v1beta/models", params={"key": api_key, "pageSize": 200})
+        if r.status_code != 200:
+            return MODELLI_GEMINI
+        nomi = [m["name"].split("/")[-1] for m in r.json().get("models", []) if "generateContent" in m.get("supportedGenerationMethods", [])]
+        flash = sorted({n for n in nomi if "flash" in n and "image" not in n and "tts" not in n and "live" not in n}, reverse=True)
+        return flash or MODELLI_GEMINI
+    except httpx.HTTPError:
+        return MODELLI_GEMINI
+
+
+@router.get("/config")
+async def ai_config():
+    gemini_key = os.environ.get("GEMINI_API_KEY", "").strip()
+    emergent_key = os.environ.get("EMERGENT_LLM_KEY", "").strip()
+    cfg = await get_ai_config()
+    attivo = "emergent" if emergent_key and (cfg["preferisci_emergent"] or not gemini_key) else ("gemini" if gemini_key else "")
+    return {
+        **cfg,
+        "gemini_key_presente": bool(gemini_key),
+        "emergent_key_presente": bool(emergent_key),
+        "provider_attivo": attivo,
+        "modello_attivo": MODELLO_EMERGENT if attivo == "emergent" else (cfg["modello_gemini"] if attivo == "gemini" else ""),
+        "modello_emergent": MODELLO_EMERGENT,
+        "modelli_gemini": await _modelli_disponibili(gemini_key) if gemini_key else MODELLI_GEMINI,
+        "stato": stato_ai,
+    }
+
+
+@router.put("/config")
+async def salva_ai_config(p: AiConfigIn):
+    modello = p.modello_gemini.strip()
+    if modello and not modello.startswith("gemini-"):
+        raise HTTPException(400, "Nome modello non valido: deve iniziare con 'gemini-'")
+    await db.app_settings.update_one({"id": "ai_config"}, {"$set": {"modello_gemini": modello, "preferisci_emergent": p.preferisci_emergent}}, upsert=True)
+    return await ai_config()
+
+
+@router.post("/test")
+async def test_ai():
+    """Prova rapida: chiede al modello attivo di rispondere OK e riporta provider/modello usati."""
+    r = await vision("Rispondi solo con il testo richiesto.", "Scrivi esattamente la parola OK", [])
+    return {"ok": "OK" in r.upper(), "risposta": r.strip()[:40], "provider": stato_ai["ultimo_provider"], "modello": stato_ai["ultimo_modello"]}

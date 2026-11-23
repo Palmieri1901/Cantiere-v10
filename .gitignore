@@ -112,3 +112,4 @@ deploy/backups/
 *.prima-*
 frontend/node_modules/.cache/default-development/6.pack_
 frontend/node_modules/.cache/default-development/8.pack_
+frontend/node_modules/.cache/default-development/1.pack_

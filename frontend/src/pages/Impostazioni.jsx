@@ -17,6 +17,7 @@ import { toast } from "sonner";
 import { salvaBackupInCartella } from "@/lib/backupFolder";
 import { CartellaBackupPc } from "@/pages/impostazioni/CartellaBackupPc";
 import { BackupProgress } from "@/components/BackupProgress";
+import AiModelloCard from "@/pages/impostazioni/AiModelloCard";
 import { Building2, Upload, Save, RefreshCw, Trash2, ImageIcon, Download, Database, AlertTriangle, FileText, FileSignature, KeyRound, Lock } from "lucide-react";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -436,6 +437,7 @@ export default function Impostazioni() {
         <CartellaBackupPc />
       </Card>
 
+      <AiModelloCard />
       <BiometriaCard />
       <ManualeCard />
       <FatturazioneCard />

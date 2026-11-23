@@ -176,6 +176,7 @@ SEZIONI = [
         ("-", "Sincronizzazione PC ↔ online: stato dell'ultimo allineamento, modifiche in attesa di invio e tasto Sincronizza ora (vedi sezione 16)."),
         ("-", "Sicurezza: cambio password del gestionale (serve quella attuale)."),
         ("-", "PIN di recupero master: cambio del PIN usato per reimpostare la password (con il PIN attuale oppure con la password di accesso)."),
+        ("-", "Modello AI attivo: mostra quale modello e quale chiave (Gemini diretta o Emergent) sono in uso, permette di scegliere il modello Gemini, dare priorità alla chiave Emergent e fare una prova immediata."),
         ("-", "Impronte digitali: fino a 4 impronte/volti registrati su telefoni o PC con lettore; servono per lo sblocco rapido e per recuperare la password."),
         ("-", "Backup & Ripristino: Scarica backup salva un file JSON con tutti i dati; Ripristina da file lo ricarica (sostituisce i dati attuali, con conferma). Fai un backup prima di ogni aggiornamento e almeno una volta al mese."),
         ("-", "Manuale d'uso: questo PDF."),
