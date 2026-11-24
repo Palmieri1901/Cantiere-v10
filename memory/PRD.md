@@ -1235,3 +1235,10 @@ Backend spezzato in moduli (`server.py` ora 112 righe, prima 2761):
 - Invio preventivo WhatsApp dalla lista di scelta: icona WhatsApp per riga (`scelta-preventivo-wa-<id>`); se il cliente ha telefono apre direttamente la sua chat (wa.me/39…) con messaggio e link PDF 30 giorni, altrimenti scelta contatto/condivisione nativa. `condividiPdfWhatsApp` accetta `opts.telefono`.
 
 
+
+## 2026-11-24 — Aggiornamenti sul PC senza Docker
+- Causa: sul PC (installato a mano) mancava il servizio updater (UPDATER_URL/TOKEN) → «solo Oracle».
+- `deploy/updater/updater.py`: modalità `UPDATER_MODE=locale` (mongodump/mongorestore diretti, ricostruzione con `deploy/pc/ricostruisci.sh`, ascolto su 127.0.0.1).
+- `deploy/pc/installa-aggiornamenti.sh` (sudo, una volta): crea servizio systemd `gebnautica-updater`, scrive UPDATER_URL/TOKEN in backend/.env, chiede i servizi da riavviare. Messaggio in Impostazioni e Manuale sez. 14/16 aggiornati.
+- Verificato in anteprima: /status in modalità locale e backup mongodump. Non verificato sul PC reale.
+

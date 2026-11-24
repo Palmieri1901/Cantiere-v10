@@ -4,7 +4,7 @@ from fastapi import APIRouter, HTTPException
 
 router = APIRouter(prefix="/aggiornamenti")
 
-NON_DISPONIBILE = {"disponibile": False, "motivo": "Aggiornamenti disponibili soltanto sull'installazione Oracle"}
+NON_DISPONIBILE = {"disponibile": False, "motivo": "Servizio aggiornamenti non installato su questa installazione. Sul PC Ubuntu aprire il terminale nella cartella del programma ed eseguire una volta: git pull && sudo bash deploy/pc/installa-aggiornamenti.sh (vedi Manuale, sezione 16). Sulla versione online gli aggiornamenti si fanno ripubblicando."}
 
 
 def _cfg():

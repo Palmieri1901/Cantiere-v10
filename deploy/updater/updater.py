@@ -15,6 +15,9 @@ DB_NAME = os.environ.get("DB_NAME", "portomare")
 STATE_FILE = os.path.join(DEPLOY_DIR, "backups", "updater-state.json")
 LOG_FILE = os.path.join(DEPLOY_DIR, "backups", "updater.log")
 SERVICES = ["backend", "frontend"]
+LOCALE = os.environ.get("UPDATER_MODE", "docker") == "locale"  # PC senza Docker (servizi systemd)
+REBUILD_CMD = os.environ.get("REBUILD_CMD") or os.path.join(DEPLOY_DIR, "pc", "ricostruisci.sh")
+MONGO_URL = os.environ.get("MONGO_URL", "mongodb://localhost:27017")
 
 _lock = threading.Lock()
 _state = {"stato": "idle", "fase": "", "errore": "", "iniziato": None, "terminato": None}
@@ -103,12 +106,18 @@ def _set(**kw):
 def _rebuild():
     _set(fase="Ricostruzione container (può richiedere alcuni minuti)…")
     sha = subprocess.run(["git", "rev-parse", "--short", "HEAD"], cwd=PROJECT_DIR, capture_output=True, text=True).stdout.strip()
+    if LOCALE:
+        return _run(["bash", REBUILD_CMD], env={**os.environ, "APP_COMMIT": sha})
     _run(["docker", "compose", "up", "-d", "--build", "--remove-orphans", *SERVICES], cwd=DEPLOY_DIR, env={**os.environ, "APP_COMMIT": sha})
 
 
 def _backup_db(tag):
     _set(fase="Backup del database…")
     name = f"pre-update-{tag}-{datetime.now().strftime('%Y%m%d-%H%M%S')}.gz"
+    if LOCALE:
+        os.makedirs(os.path.join(DEPLOY_DIR, "backups"), exist_ok=True)
+        _run(["mongodump", f"--uri={MONGO_URL}", f"--db={DB_NAME}", f"--archive={os.path.join(DEPLOY_DIR, 'backups', name)}", "--gzip"])
+        return name
     _run(["docker", "compose", "exec", "-T", "mongo", "mongodump", "--uri=mongodb://localhost:27017",
           f"--db={DB_NAME}", f"--archive=/tmp/{name}", "--gzip"], cwd=DEPLOY_DIR)
     _run(["sh", "-c", f"docker compose cp mongo:/tmp/{name} ./backups/{name}"], cwd=DEPLOY_DIR)
@@ -134,6 +143,8 @@ def do_update():
 
 def _restore_db(name):
     _set(fase="Ripristino del database dalla copia di sicurezza…")
+    if LOCALE:
+        return _run(["mongorestore", f"--uri={MONGO_URL}", "--drop", "--gzip", f"--archive={os.path.join(DEPLOY_DIR, 'backups', name)}"])
     _run(["sh", "-c", f"docker compose cp ./backups/{name} mongo:/tmp/{name}"], cwd=DEPLOY_DIR)
     _run(["docker", "compose", "exec", "-T", "mongo", "mongorestore", "--uri=mongodb://localhost:27017", "--drop", "--gzip",
           f"--archive=/tmp/{name}"], cwd=DEPLOY_DIR)
@@ -214,4 +225,4 @@ class Handler(BaseHTTPRequestHandler):
 if __name__ == "__main__":
     subprocess.run(["git", "config", "--global", "--add", "safe.directory", "*"], check=False)
     _log("updater avviato")
-    HTTPServer(("0.0.0.0", 9000), Handler).serve_forever()
+    HTTPServer(("127.0.0.1" if LOCALE else "0.0.0.0", int(os.environ.get("UPDATER_PORT", "9000"))), Handler).serve_forever()

@@ -181,7 +181,7 @@ SEZIONI = [
         ("-", "Backup & Ripristino: Scarica backup salva un file JSON con tutti i dati; Ripristina da file lo ricarica (sostituisce i dati attuali, con conferma). Fai un backup prima di ogni aggiornamento e almeno una volta al mese."),
         ("-", "Manuale d'uso: questo PDF."),
         ("-", "Fatturazione: collegamento Fatture in Cloud."),
-        ("-", "Aggiornamenti (solo installazione sul proprio server): mostra versione installata e disponibile con elenco novità; Aggiorna esegue backup automatico, scarica e ricostruisce; Ripristina torna alla versione precedente."),
+        ("-", "Aggiornamenti (installazione sul proprio server o sul PC): mostra versione installata e disponibile con elenco novità; Aggiorna esegue backup automatico, scarica e ricostruisce; Ripristina torna alla versione precedente. Sul PC senza Docker va prima installato il servizio (sezione 16)."),
     ]),
     ("15. Installazione sul proprio server e aggiornamenti", [
         "Il programma gira su un server (es. Oracle Cloud) in contenitori Docker: frontend, backend, database MongoDB, Caddy (HTTPS automatico) e updater. Le istruzioni complete sono nel file deploy/INSTALLAZIONE.md del repository.",
@@ -208,6 +208,13 @@ SEZIONI = [
         ("#", "Backup sul PC"),
         ("-", "Sul PC, in Impostazioni → Backup compare «Cartella dei backup su questo PC»: scrivi il percorso (es. una cartella in Documenti, oppure una chiavetta o un disco esterno sotto /media) e premi Imposta cartella. Da quel momento «Salva backup» (Home) e «Scarica backup» salvano il file direttamente lì, con qualsiasi browser; restano le ultime 3 copie."),
         ("!", "Il token è una password condivisa tra le due installazioni: non comunicarlo a nessuno. Dopo ogni aggiornamento del programma aggiornare entrambe le copie."),
+        ("#", "Aggiornamenti sul PC (installazione senza Docker)"),
+        ("-", "Se in Impostazioni → Aggiornamenti compare «Servizio aggiornamenti non installato», il PC non ha ancora il servizio che scarica e installa le nuove versioni. Si installa una sola volta."),
+        ("1", "Sul PC apri il Terminale nella cartella del programma (quella scaricata con git clone) e scrivi: git pull"),
+        ("1", "Poi: sudo bash deploy/pc/installa-aggiornamenti.sh. Lo script mostra i servizi del gestionale trovati sul PC: scrivi i nomi da riavviare (es. quello del backend e del frontend) e conferma la ricostruzione del frontend."),
+        ("1", "Al termine apri Impostazioni → Aggiornamenti → Controlla aggiornamenti: da quel momento Aggiorna fa da solo backup del database, scarica la nuova versione da GitHub, reinstalla e riavvia; Ripristina torna alla versione precedente."),
+        ("-", "Per pubblicare una nuova versione: su Emergent premi Save to GitHub, poi sul PC premi Aggiorna. La versione online si aggiorna ripubblicando."),
+        ("-", "Se qualcosa non va, il registro è nel file deploy/backups/updater.log; il servizio si chiama gebnautica-updater (sudo systemctl status gebnautica-updater)."),
     ]),
 ]
 
