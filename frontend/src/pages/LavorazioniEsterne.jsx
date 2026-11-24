@@ -12,6 +12,7 @@ import LavoriSection from "@/pages/LavoriSection";
 import PreventiviEsternoTab from "@/pages/esterni/PreventiviEsternoTab";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PdfPreviewOverlay } from "@/components/PdfPreviewOverlay";
+import { WhatsAppPdfButton } from "@/components/WhatsAppPdfButton";
 import { openBlob } from "@/pages/ddt/common";
 import { SoggettoFiscale, erroreSoggetto } from "@/components/SoggettoFiscale";
 import { AnagraficaSuggerimenti } from "@/components/AnagraficaSuggerimenti";
@@ -162,11 +163,14 @@ export default function LavorazioniEsterne() {
           </DialogHeader>
           <div className="border rounded-md divide-y max-h-[60vh] overflow-y-auto">
             {scelte?.map((p) => (
-              <button key={p.id} type="button" onClick={() => apriPreventivo(p)} className="w-full text-left p-3 flex items-center gap-3 hover:bg-muted/50 transition-colors" data-testid={`scelta-preventivo-${p.id}`}>
-                <div className="w-20 shrink-0"><div className="font-mono-num text-sm font-semibold">n. {p.numero}/{p.anno}</div><div className="text-[11px] text-muted-foreground">{p.data}</div></div>
-                <div className="flex-1 min-w-0 text-sm line-clamp-2 [overflow-wrap:anywhere]">{p.oggetto || p.righe?.map((r) => r.descrizione).filter(Boolean).slice(0, 2).join(", ") || "—"}<div className="text-[11px] text-muted-foreground">{p.stato}</div></div>
-                <div className="font-mono-num text-sm font-semibold shrink-0">{fmtEuro(p.totale)}</div>
-              </button>
+              <div key={p.id} className="flex items-center gap-1 pr-2 hover:bg-muted/50 transition-colors">
+                <button type="button" onClick={() => apriPreventivo(p)} className="flex-1 min-w-0 text-left p-3 flex items-center gap-3" data-testid={`scelta-preventivo-${p.id}`}>
+                  <div className="w-20 shrink-0"><div className="font-mono-num text-sm font-semibold">n. {p.numero}/{p.anno}</div><div className="text-[11px] text-muted-foreground">{p.data}</div></div>
+                  <div className="flex-1 min-w-0 text-sm line-clamp-2 [overflow-wrap:anywhere]">{p.oggetto || p.righe?.map((r) => r.descrizione).filter(Boolean).slice(0, 2).join(", ") || "—"}<div className="text-[11px] text-muted-foreground">{p.stato}</div></div>
+                  <div className="font-mono-num text-sm font-semibold shrink-0">{fmtEuro(p.totale)}</div>
+                </button>
+                <WhatsAppPdfButton size="icon" url={`/esterni/preventivi/${p.id}/pdf`} filename={`Preventivo_${p.numero}_${p.anno}.pdf`} telefono={open?.telefono} testo={`Buongiorno ${open?.nome || ""}, ecco il preventivo n. ${p.numero}/${p.anno} (${fmtEuro(p.totale)})`} testId={`scelta-preventivo-wa-${p.id}`} />
+              </div>
             ))}
           </div>
         </DialogContent>

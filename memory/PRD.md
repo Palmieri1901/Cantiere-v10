@@ -1232,4 +1232,6 @@ Backend spezzato in moduli (`server.py` ora 112 righe, prima 2761):
 
 
 - Scelta preventivo: con più preventivi, «Anteprima preventivo PDF» apre la finestra «Quale preventivo vuoi vedere?» (numero, data, oggetto, stato, totale) e mostra quello scelto; con uno solo lo apre subito. Testato a 390px con dati TEST_ poi eliminati.
+- Invio preventivo WhatsApp dalla lista di scelta: icona WhatsApp per riga (`scelta-preventivo-wa-<id>`); se il cliente ha telefono apre direttamente la sua chat (wa.me/39…) con messaggio e link PDF 30 giorni, altrimenti scelta contatto/condivisione nativa. `condividiPdfWhatsApp` accetta `opts.telefono`.
+
 

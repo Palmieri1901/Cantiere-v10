@@ -12,12 +12,16 @@ async function fetchPdf(url, client) {
 // Condivide un PDF su WhatsApp: su telefono usa la condivisione nativa (file allegato),
 // altrimenti crea un link temporaneo (30 giorni) e apre WhatsApp con il messaggio.
 // opts.client: istanza axios alternativa (es. app dipendenti), opts.uploadPath: endpoint di caricamento link.
+// opts.telefono: invia direttamente a quel numero (link temporaneo + chat WhatsApp del cliente).
+const waNum = (t) => { let d = String(t || "").replace(/\D/g, "").replace(/^00/, ""); if (d.length === 10 && d.startsWith("3")) d = `39${d}`; return d.length >= 8 ? d : ""; };
+
 export async function condividiPdfWhatsApp(url, filename = "documento.pdf", testo = "", opts = {}) {
   const client = opts.client || api;
+  const num = waNum(opts.telefono);
   try {
     const blob = await fetchPdf(url, opts.client);
     const file = new File([blob], filename, { type: "application/pdf" });
-    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+    if (!num && navigator.canShare && navigator.canShare({ files: [file] })) {
       try {
         await navigator.share({ files: [file], title: filename, text: testo || `Documento: ${filename}` });
         return;
@@ -30,8 +34,8 @@ export async function condividiPdfWhatsApp(url, filename = "documento.pdf", test
     fd.append("filename", filename);
     const r = await client.post(opts.uploadPath || "/condividi/pdf", fd, { headers: { "Content-Type": "multipart/form-data" } });
     const msg = `${testo || `Ecco il documento ${filename.replace(/_/g, " ").replace(/\.pdf$/i, "")}`}\n${r.data.url}`;
-    window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, "_blank", "noopener");
-    toast.success("Link creato (valido 30 giorni): scegli il contatto su WhatsApp");
+    window.open(`https://wa.me/${num}?text=${encodeURIComponent(msg)}`, "_blank", "noopener");
+    toast.success(num ? "Link creato (valido 30 giorni): si apre la chat del cliente su WhatsApp" : "Link creato (valido 30 giorni): scegli il contatto su WhatsApp");
   } catch (e) {
     toast.error(e.response?.data?.detail || "Impossibile condividere il PDF");
   }
