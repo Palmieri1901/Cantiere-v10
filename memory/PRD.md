@@ -1246,4 +1246,9 @@ Backend spezzato in moduli (`server.py` ora 112 righe, prima 2761):
 - Documento `app_settings/credenziali_sync` (solo hash password admin + PIN) scritto a ogni cambio/recupero (change-password, reset-password, pin-reset, codice email, change-pin, impronta) e applicato all'arrivo sull'altra installazione (`auth.applica_credenziali`). `users` e doc `auth` restano esclusi. Impronte non sincronizzate (legate al dominio).
 - Verificato in anteprima: cambio password → registro sync; arrivo da peer → nuova password valida, vecchia rifiutata; password ripristinata.
 
+## 2026-11-24 — Chiave AI inseribile dall'app (PC)
+- Sul PC mancavano le chiavi AI nel .env. Impostazioni → Modello AI attivo → «Chiave Gemini di questa installazione»: PUT `/api/ai/chiave` verifica la chiave con Google e la salva in `app_settings/ai_chiavi` (locale, esclusa dalla sync, mai restituita). `ai_client.chiavi()` usa .env poi DB. Riquadro visibile solo dove manca la chiave Emergent.
+- Verificato: chiave non valida rifiutata con messaggio; UI a 390px senza overflow (simulazione assenza chiavi). Chiave reale non testata.
+
+
 

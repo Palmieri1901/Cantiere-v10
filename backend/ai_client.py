@@ -106,11 +106,19 @@ async def _emergent(api_key: str, system: str, prompt: str, images: List[str]) -
     return "".join(chunks)
 
 
+async def chiavi() -> tuple[str, str]:
+    """(gemini, emergent): dal .env, altrimenti la chiave Gemini inserita dall'app (Impostazioni)."""
+    from database import db
+    gemini = os.environ.get("GEMINI_API_KEY", "").strip()
+    if not gemini:
+        gemini = ((await db.app_settings.find_one({"id": "ai_chiavi"}, {"_id": 0}) or {}).get("gemini_api_key") or "").strip()
+    return gemini, os.environ.get("EMERGENT_LLM_KEY", "").strip()
+
+
 async def vision(system: str, prompt: str, images_b64: List[str]) -> str:
     """Analizza una o più immagini/PDF (base64) e restituisce il testo prodotto dal modello."""
     images = [_clean(i) for i in images_b64 if i]
-    gemini_key = os.environ.get("GEMINI_API_KEY", "").strip()
-    emergent_key = os.environ.get("EMERGENT_LLM_KEY", "").strip()
+    gemini_key, emergent_key = await chiavi()
     cfg = await get_ai_config()
     if emergent_key and (cfg["preferisci_emergent"] or not gemini_key):
         try:
@@ -130,12 +138,12 @@ async def vision(system: str, prompt: str, images_b64: List[str]) -> str:
             logger.warning(f"Gemini diretto non disponibile ({e.detail[:120]}): passo alla chiave Emergent")
     if emergent_key:
         return await _emergent(emergent_key, system, prompt, images)
-    raise HTTPException(500, "Nessuna chiave AI configurata sul server: imposta GEMINI_API_KEY (o EMERGENT_LLM_KEY) nel file .env del backend e riavvia")
+    raise HTTPException(500, "Nessuna chiave AI configurata su questa installazione: inseriscila in Impostazioni → Modello AI attivo → Chiave Gemini")
 
 
 async def testo(system: str, prompt: str) -> str:
     """Generazione testo: Claude Sonnet 5 via chiave Emergent, altrimenti Gemini diretto."""
-    emergent_key = os.environ.get("EMERGENT_LLM_KEY", "").strip()
+    gemini_key, emergent_key = await chiavi()
     if emergent_key:
         from emergentintegrations.llm.chat import LlmChat, UserMessage, TextDelta, StreamDone
         from datetime import datetime
@@ -147,7 +155,6 @@ async def testo(system: str, prompt: str) -> str:
             elif isinstance(ev, StreamDone):
                 break
         return "".join(chunks)
-    gemini_key = os.environ.get("GEMINI_API_KEY", "").strip()
     if gemini_key:
         return await _gemini_direct(gemini_key, system, prompt, [])
-    raise HTTPException(500, "Nessuna chiave AI configurata")
+    raise HTTPException(500, "Nessuna chiave AI configurata su questa installazione: inseriscila in Impostazioni → Modello AI attivo → Chiave Gemini")

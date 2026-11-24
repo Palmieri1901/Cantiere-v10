@@ -5,6 +5,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Sparkles, CheckCircle2, AlertCircle } from "lucide-react";
+import AiChiaveGemini from "./AiChiaveGemini";
 
 export default function AiModelloCard() {
   const [cfg, setCfg] = useState(null);
@@ -34,7 +35,7 @@ export default function AiModelloCard() {
       <div className="flex items-center gap-1.5 label-mini mb-2"><Sparkles className="w-3.5 h-3.5" /> Intelligenza artificiale</div>
       <h3 className="font-display text-xl font-semibold">Modello AI attivo</h3>
       <div className="mt-3 rounded-md border bg-muted/30 p-3 text-sm" data-testid="ai-stato">
-        {nessunaChiave ? <span className="text-destructive">Nessuna chiave AI configurata sul server.</span> : (
+        {nessunaChiave ? <span className="text-destructive">Nessuna chiave AI configurata su questa installazione: inserisci la chiave Gemini qui sotto.</span> : (
           <>
             <div>In uso: <b data-testid="ai-modello-attivo">{cfg.modello_attivo}</b> <span className="text-muted-foreground">({cfg.provider_attivo === "emergent" ? "chiave Emergent" : "chiave Gemini diretta"})</span></div>
             <div className="text-xs text-muted-foreground mt-1">Chiavi presenti: Gemini {cfg.gemini_key_presente ? "sì" : "no"} · Emergent {cfg.emergent_key_presente ? "sì" : "no"}.{cfg.stato?.ultimo_modello ? ` Ultima chiamata: ${cfg.stato.ultimo_modello} (${cfg.stato.ultimo_provider}) il ${new Date(cfg.stato.ultimo_at).toLocaleString("it-IT")}.` : ""}</div>
@@ -42,6 +43,7 @@ export default function AiModelloCard() {
           </>
         )}
       </div>
+      {!cfg.emergent_key_presente && <AiChiaveGemini cfg={cfg} onSaved={(d) => { setCfg(d); setModello(d.modello_gemini || ""); }} />}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4 max-w-3xl">
         <div>
           <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Modello Gemini (chiave diretta)</Label>

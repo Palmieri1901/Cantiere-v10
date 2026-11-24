@@ -227,7 +227,7 @@ CHIAVI = [
     ("Email del titolare", "deploy/.env → ADMIN_EMAIL e OWNER_EMAIL", "Riceve le email di recupero password"),
     ("Chiavi dipendenti (app)", "Gestionale → Dipendenti → Genera chiave (una per dipendente)", "Rigenerabile; la vecchia smette di funzionare"),
     ("Token Fatture in Cloud", "Impostazioni → Fatturazione · Fatture in Cloud → Verifica e salva", "Fatture in Cloud → Impostazioni → Applicazioni e integrazioni → Autenticazione manuale (permessi Clienti + Fatture)"),
-    ("Chiave Gemini (assistente GEB e officina)", "deploy/.env → GEMINI_API_KEY", "aistudio.google.com → Get API key"),
+    ("Chiave Gemini (assistente GEB, officina, DDT con AI)", "Impostazioni → Modello AI attivo → Chiave Gemini di questa installazione (oppure deploy/.env → GEMINI_API_KEY)", "aistudio.google.com → Get API key; va inserita su ogni installazione (es. sul PC)"),
     ("Chiave Tavily (ricerca web officina)", "Assistente officina → Impostazioni → Ricerca web, oppure deploy/.env → TAVILY_API_KEY", "app.tavily.com → API Keys"),
     ("Email di invio (SMTP)", "deploy/.env → SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASSWORD, SMTP_FROM", "Dal proprio provider di posta (es. Gmail: password per le app)"),
     ("Repository GitHub", "deploy/.env → UPDATE_REPO (e UPDATE_BRANCH=main)", "Creato da Emergent con Save to GitHub"),
