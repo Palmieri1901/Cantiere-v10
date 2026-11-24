@@ -42,11 +42,19 @@ export default function LavorazioniEsterne() {
   };
 
   const [tab, setTab] = useState("lavori");
+  const [scelte, setScelte] = useState(null);
   const anteprimaPreventivo = async (e) => {
     try {
       const { data } = await api.get(`/esterni/${e.id}/preventivi`);
-      const p = [...data].sort((a, b) => (b.anno - a.anno) || (b.numero - a.numero))[0];
-      if (!p) return toast.error("Nessun preventivo per questo cliente");
+      const ord = [...data].sort((a, b) => (b.anno - a.anno) || (b.numero - a.numero));
+      if (!ord.length) return toast.error("Nessun preventivo per questo cliente");
+      if (ord.length > 1) return setScelte(ord);
+      await apriPreventivo(ord[0]);
+    } catch (err) { toast.error(err.response?.data?.detail || "Errore PDF"); }
+  };
+  const apriPreventivo = async (p) => {
+    setScelte(null);
+    try {
       setPreviewName(`Preventivo_${p.numero}_${p.anno}.pdf`);
       await openBlob(api, "get", `/esterni/preventivi/${p.id}/pdf`, null, setPreviewUrl, setPreviewOpen);
     } catch (err) { toast.error(err.response?.data?.detail || "Errore PDF"); }
@@ -146,6 +154,23 @@ export default function LavorazioniEsterne() {
         </div>
       )}
 
+      <Dialog open={!!scelte} onOpenChange={(o) => { if (!o) setScelte(null); }}>
+        <DialogContent className="max-w-md" data-testid="scelta-preventivo-dialog">
+          <DialogHeader>
+            <DialogTitle>Quale preventivo vuoi vedere?</DialogTitle>
+            <DialogDescription>{scelte?.length} preventivi per {open?.nome}</DialogDescription>
+          </DialogHeader>
+          <div className="border rounded-md divide-y max-h-[60vh] overflow-y-auto">
+            {scelte?.map((p) => (
+              <button key={p.id} type="button" onClick={() => apriPreventivo(p)} className="w-full text-left p-3 flex items-center gap-3 hover:bg-muted/50 transition-colors" data-testid={`scelta-preventivo-${p.id}`}>
+                <div className="w-20 shrink-0"><div className="font-mono-num text-sm font-semibold">n. {p.numero}/{p.anno}</div><div className="text-[11px] text-muted-foreground">{p.data}</div></div>
+                <div className="flex-1 min-w-0 text-sm line-clamp-2 [overflow-wrap:anywhere]">{p.oggetto || p.righe?.map((r) => r.descrizione).filter(Boolean).slice(0, 2).join(", ") || "—"}<div className="text-[11px] text-muted-foreground">{p.stato}</div></div>
+                <div className="font-mono-num text-sm font-semibold shrink-0">{fmtEuro(p.totale)}</div>
+              </button>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
       <Dialog open={!!open} onOpenChange={(o) => { if (!o) { setOpen(null); setTab("lavori"); load(); } }}>
         <DialogContent className="max-w-5xl w-[95vw] max-h-[92vh] overflow-y-auto overflow-x-hidden [&>*]:min-w-0" data-testid="esterno-dialog">
           <DialogHeader>

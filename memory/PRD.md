@@ -1231,3 +1231,5 @@ Backend spezzato in moduli (`server.py` ora 112 righe, prima 2761):
 
 
 
+- Scelta preventivo: con più preventivi, «Anteprima preventivo PDF» apre la finestra «Quale preventivo vuoi vedere?» (numero, data, oggetto, stato, totale) e mostra quello scelto; con uno solo lo apre subito. Testato a 390px con dati TEST_ poi eliminati.
+
