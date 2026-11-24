@@ -41,6 +41,17 @@ export default function LavorazioniEsterne() {
     } catch (err) { toast.error(err.response?.data?.detail || "Errore PDF"); }
   };
 
+  const [tab, setTab] = useState("lavori");
+  const anteprimaPreventivo = async (e) => {
+    try {
+      const { data } = await api.get(`/esterni/${e.id}/preventivi`);
+      const p = [...data].sort((a, b) => (b.anno - a.anno) || (b.numero - a.numero))[0];
+      if (!p) return toast.error("Nessun preventivo per questo cliente");
+      setPreviewName(`Preventivo_${p.numero}_${p.anno}.pdf`);
+      await openBlob(api, "get", `/esterni/preventivi/${p.id}/pdf`, null, setPreviewUrl, setPreviewOpen);
+    } catch (err) { toast.error(err.response?.data?.detail || "Errore PDF"); }
+  };
+
   const load = () => api.get("/esterni").then((r) => setList(r.data));
   useEffect(() => { load(); }, []);
 
@@ -142,13 +153,15 @@ export default function LavorazioniEsterne() {
             <DialogDescription>Scheda lavori del cliente esterno.</DialogDescription>
           </DialogHeader>
           {open && (
-            <Tabs defaultValue="lavori">
+            <Tabs value={tab} onValueChange={setTab}>
               <div className="flex items-center justify-between flex-wrap gap-2 -mt-2 mb-2">
                 <TabsList>
                   <TabsTrigger value="lavori" data-testid="tab-esterno-lavori">Lavori eseguiti</TabsTrigger>
                   <TabsTrigger value="preventivi" data-testid="tab-esterno-preventivi">Preventivi</TabsTrigger>
                 </TabsList>
-                <Button size="sm" variant="outline" onClick={() => anteprimaConto(open)} data-testid="btn-conto-dialog"><FileText className="w-3.5 h-3.5 mr-1" /> Anteprima stima dei costi PDF</Button>
+                {tab === "preventivi"
+                  ? <Button size="sm" variant="outline" onClick={() => anteprimaPreventivo(open)} data-testid="btn-preventivo-anteprima-dialog"><FileText className="w-3.5 h-3.5 mr-1" /> Anteprima preventivo PDF</Button>
+                  : <Button size="sm" variant="outline" onClick={() => anteprimaConto(open)} data-testid="btn-conto-dialog"><FileText className="w-3.5 h-3.5 mr-1" /> Anteprima stima dei costi PDF</Button>}
               </div>
               <TabsContent value="lavori"><LavoriSection key={lavoriKey} clienteId={open.id} /></TabsContent>
               <TabsContent value="preventivi"><PreventiviEsternoTab esterno={open} anteprima={(url, name) => { setPreviewName(name); openBlob(api, "get", url, null, setPreviewUrl, setPreviewOpen).catch((e) => toast.error(e.response?.data?.detail || "Errore PDF")); }} onLavoroCreato={() => setLavoriKey((k) => k + 1)} /></TabsContent>
