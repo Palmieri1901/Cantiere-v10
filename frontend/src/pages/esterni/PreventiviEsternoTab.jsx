@@ -29,7 +29,7 @@ export default function PreventiviEsternoTab({ esterno, anteprima, onLavoroCreat
 
   return (
     <div className="space-y-3" data-testid="prev-esterno-tab">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-2 flex-wrap">
         <div className="text-sm text-muted-foreground">{list.length} preventivi</div>
         <Button size="sm" onClick={() => setEdit({})} className="bg-primary hover:bg-primary/90" data-testid="btn-nuovo-prev-esterno"><Plus className="w-4 h-4 mr-1" /> Nuovo preventivo</Button>
       </div>
@@ -38,9 +38,9 @@ export default function PreventiviEsternoTab({ esterno, anteprima, onLavoroCreat
       ) : (
         <div className="border rounded-md divide-y">
           {list.map((p) => (
-            <div key={p.id} className="p-3 flex items-center gap-3 hover:bg-muted/40" data-testid={`prev-row-${p.id}`}>
+            <div key={p.id} className="p-3 flex items-center gap-x-3 gap-y-2 flex-wrap hover:bg-muted/40" data-testid={`prev-row-${p.id}`}>
               <div className="w-20 shrink-0"><div className="font-mono-num text-sm font-semibold">n. {p.numero}/{p.anno}</div><div className="text-[11px] text-muted-foreground">{p.data}</div></div>
-              <div className="flex-1 min-w-0">
+              <div className="flex-1 min-w-[140px]">
                 <div className="text-sm [overflow-wrap:anywhere] line-clamp-2" title={p.oggetto}>{p.oggetto || p.righe.map((r) => r.descrizione).filter(Boolean).slice(0, 3).join(", ") || "—"}</div>
                 <div className="text-[11px] text-muted-foreground">{p.righe.length} righe · {p.righe.filter((r) => r.tipo === "articolo").length} ricambi{p.lavoro_id ? " · lavoro creato" : ""}</div>
               </div>

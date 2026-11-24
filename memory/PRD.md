@@ -1225,4 +1225,9 @@ Backend spezzato in moduli (`server.py` ora 112 righe, prima 2761):
 - Endpoint: GET/PUT `/api/sync/config`, POST `/api/sync/genera-token`, POST `/api/sync/prova` (`routers/sync.py`, `impostazioni/SyncConfig.jsx`).
 - Istruzioni aggiornate: manuale PDF (sez. 14, 16 e scheda chiavi) e `memory/SYNC_INSTALLAZIONE_LOCALE.md` con il collegamento da app. Backup: riconoscimento «installazione sul PC» ora usa anche l'indirizzo salvato dall'app.
 
+## 2026-11-24 — Fix Lavorazioni esterne: anteprima nel tab Preventivi
+- Nel tab Preventivi il tasto in alto diventa «Anteprima preventivo PDF» (ultimo preventivo); nel tab Lavori resta «Anteprima stima dei costi PDF». Tab riportato a Lavori alla chiusura.
+- Mobile: righe preventivi a capo, dialog senza scorrimento laterale. Test: iteration_28 + screenshot 390px.
+
+
 

@@ -1,0 +1,33 @@
+{
+  "summary": "Frontend-only retest of the 'Anteprima' button in the Lavorazioni esterne dialog (/esterni). The fix works. The customer case 'Navigare Di Calisi Fabrizio' is NOT in the preview DB (only 4 clienti esterni: Gagliano x2, Rossi, Stefano Soba), so I could not reproduce it on that case. I used the existing 'Stefano Soba' instead, read-only: lavori total 65,71 €, bozza preventivo n.1/2026 total 2.088,64 €. Desktop 1920: in tab Lavori the btn-conto-dialog button opens the STIMA DEI COSTI PDF (65,71 €). In tab Preventivi that button is replaced by btn-preventivo-anteprima-dialog ('Anteprima preventivo PDF'), which calls GET /api/esterni/preventivi/{pid}/pdf (200) and opens 'PREVENTIVO N. 1/2026, TOTALE € 2.088,64', not 0 €. The per-row btn-prev-pdf button works. Rossi (0 preventivi) shows the toast 'Nessun preventivo per questo cliente'. Mobile 390: all three buttons fire the correct request and the PDF preview shows the preventivo, but the dialog content overflows sideways, so the buttons are off-screen (see design issue). I also checked the PDF text with pdftotext: preventivo €2.088,64, conto €65,71.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "LavorazioniEsterne dialog – tab state", "issue": "The 'tab' state is not reset when the dialog closes or another cliente is opened. After using Preventivi on one cliente, opening a different cliente starts directly on the Preventivi tab. Probably unintended. Fix: call setTab('lavori') in onOpenChange close, or reset it when 'open' changes.", "selector": "[data-testid=tab-esterno-preventivi]", "priority": "LOW"}
+    ],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Esterno dialog on mobile 390px", "issues": [
+        "DialogContent scrolls sideways: scrollWidth is 584px on the Lavori tab and 921px on the Preventivi tab, inside a 369px dialog.",
+        "The title is cut off and the top button 'Anteprima stima dei costi PDF' / 'Anteprima preventivo PDF' sits at x≈351/711, off-screen. Users must scroll sideways to find it.",
+        "Root cause in PreventiviEsternoTab.jsx line 41: the row 'p-3 flex items-center gap-3' has no flex-wrap, and it holds 5-6 buttons (PDF, Invia a fatturazione, Crea lavoro, Modifica, delete). This pushes the dialog grid width to about 889px, and the wide grid also drags the header and tab bar. Fix: add flex-wrap or a stacked mobile layout for the action buttons. Check LavoriSection rows too (552px)."
+      ]}
+    ]
+  },
+  "test_report_links": [],
+  "action_items": [
+    "Fix the sideways overflow on mobile in the esterno dialog: make the PreventiviEsternoTab row (and LavoriSection rows) wrap at small widths, so the top Anteprima button and the per-row PDF button are visible without horizontal scroll.",
+    "Optional: reset the tab to 'lavori' when the dialog closes or opens a different cliente."
+  ],
+  "critical_code_review_comments": [
+    "anteprimaPreventivo picks the latest preventivo by anno, then numero. That works because numero is an int. If a cliente has several preventivi, the top button always opens the newest one (bozza or accettato). Acceptable, but the button label could show which one (e.g. 'Anteprima preventivo n.X').",
+    "The Preventivo button in the list row (btn-preventivo-{id}) opens the dialog on whatever tab was last used, not on Preventivi. Consider setTab('preventivi') there, since the label says 'Preventivo'."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "skipped", "frontend": "100% functional (5/5 flows); 1 mobile layout issue"},
+  "seed_data_creation": "None. No data created or modified. Read-only use of Stefano Soba and Rossi.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Route is /esterni (not /lavorazioni-esterne). Login is password 'admin' only. Preview DB: Stefano Soba id 80fea831-c8e6-4272-b070-33eb84386840 has preventivo 530be828-5fe9-4e70-b8e0-a1e759bbe7dd (2088,64 €, total lavori 65,71 €). Rossi 740d0029-7d68-41c4-8b03-e665f0f1f7c7 has no preventivi. 'Navigare Di Calisi Fabrizio' is not present in preview.",
+  "rca of the issue": "Original bug: the dialog's top button always called anteprimaConto (GET /esterni/{id}/conto.pdf, built from lavori eseguiti), so a cliente with only a preventivo got 0 €. Fix verified: the tab state is now controlled and the button calls anteprimaPreventivo on the Preventivi tab. Could not reproduce on the real customer case because it is absent from the preview DB."
+}
