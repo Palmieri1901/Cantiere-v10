@@ -194,6 +194,9 @@ async def apply_changes(changes: list) -> int:
                         await db[coll].delete_many({**kv, "id": {"$ne": did}})
                         await db[coll].replace_one({"id": did}, doc, upsert=True)
                     await db["_sync_log"].update_one({"coll": coll, "doc_id": did}, {"$set": {"ts": ts}})
+                    if coll == "app_settings" and did == "credenziali_sync":
+                        from auth import applica_credenziali
+                        await applica_credenziali(doc)
                     n += 1
     finally:
         _origin_reset(tok)

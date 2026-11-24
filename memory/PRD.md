@@ -1242,3 +1242,8 @@ Backend spezzato in moduli (`server.py` ora 112 righe, prima 2761):
 - `deploy/pc/installa-aggiornamenti.sh` (sudo, una volta): crea servizio systemd `gebnautica-updater`, scrive UPDATER_URL/TOKEN in backend/.env, chiede i servizi da riavviare. Messaggio in Impostazioni e Manuale sez. 14/16 aggiornati.
 - Verificato in anteprima: /status in modalità locale e backup mongodump. Non verificato sul PC reale.
 
+## 2026-11-24 — Sync password e PIN tra PC e online
+- Documento `app_settings/credenziali_sync` (solo hash password admin + PIN) scritto a ogni cambio/recupero (change-password, reset-password, pin-reset, codice email, change-pin, impronta) e applicato all'arrivo sull'altra installazione (`auth.applica_credenziali`). `users` e doc `auth` restano esclusi. Impronte non sincronizzate (legate al dominio).
+- Verificato in anteprima: cambio password → registro sync; arrivo da peer → nuova password valida, vecchia rifiutata; password ripristinata.
+
+

@@ -224,7 +224,7 @@ class RecuperoImprontaBody(CredentialBody):
 
 @public_router.post("/recupero/complete")
 async def recupero_complete(body: RecuperoImprontaBody, request: Request, response: Response):
-    from auth import _set_cookie, create_access_token, hash_password, validate_password_policy
+    from auth import _set_cookie, create_access_token, hash_password, pubblica_credenziali, validate_password_policy
     validate_password_policy(body.new_password)
     acc = await _admin_account()
     cred_body = CredentialBody(**body.model_dump(exclude={"new_password"}))
@@ -232,6 +232,7 @@ async def recupero_complete(body: RecuperoImprontaBody, request: Request, respon
     admin_email = os.environ.get("ADMIN_EMAIL", "admin@portomare.it").strip().lower()
     user = await db.users.find_one({"email": admin_email})
     await db.users.update_one({"id": user["id"]}, {"$set": {"password_hash": hash_password(body.new_password), "password_customized": True}})
+    await pubblica_credenziali()
     token = create_access_token(user["id"], admin_email)
     _set_cookie(response, token)
     return {"ok": True, "id": user["id"], "email": admin_email, "nome": user.get("nome", ""), "role": user.get("role", "user"), "token": token}
