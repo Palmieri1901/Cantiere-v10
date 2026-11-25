@@ -12,7 +12,7 @@ from motor.motor_asyncio import AsyncIOMotorCollection
 ESCLUSE = {"_sync_log", "_sync_state", "_sync_config", "fs.files", "fs.chunks", "password_reset_tokens",
            "webauthn_credentials", "webauthn_challenges"}
 # Documenti locali a ogni installazione (codice email temporaneo, cartella backup, chiavi/modello AI): mai sincronizzati
-DOC_ESCLUSI = {"app_settings": {"backup_info", "recupero_codice", "ai_config", "ai_chiavi"}}
+DOC_ESCLUSI = {"app_settings": {"backup_info", "recupero_codice", "ai_config", "ai_chiavi", "blocco_accessi"}}
 # Credenziali: sincronizzate solo in parte (hash, mai in chiaro); env_password_hash/env_pin_hash restano locali
 CHIAVE = {"users": "email"}
 CAMPI = {

@@ -1252,3 +1252,8 @@ Backend spezzato in moduli (`server.py` ora 112 righe, prima 2761):
 
 
 
+
+## 2026-11-25 — Blocco dopo 20 tentativi errati
+- `backend/blocco_accessi.py`: contatori separati password/PIN in `app_settings/blocco_accessi` (locale, non sincronizzato). Da 10 rimasti il messaggio mostra «Tentativi rimasti: N su 20»; al 20° errore 429 con blocco 1 ora (ora di Roma) e email di ALLERTA all'email amministratore (`build_alert_blocco_email`). Accesso corretto azzera; codice email o impronta sbloccano subito. Applicato a login, pin-reset, change-pin, change-password.
+- Verificato: messaggi tentativi, blocco al 20°, password giusta rifiutata durante blocco, email inviata (202), sblocco → login OK.
+

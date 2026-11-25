@@ -233,6 +233,8 @@ async def recupero_complete(body: RecuperoImprontaBody, request: Request, respon
     user = await db.users.find_one({"email": admin_email})
     await db.users.update_one({"id": user["id"]}, {"$set": {"password_hash": hash_password(body.new_password), "password_customized": True}})
     await segna_credenziali({"id": user["id"]})
+    import blocco_accessi
+    await blocco_accessi.sblocca_tutto()
     token = create_access_token(user["id"], admin_email)
     _set_cookie(response, token)
     return {"ok": True, "id": user["id"], "email": admin_email, "nome": user.get("nome", ""), "role": user.get("role", "user"), "token": token}

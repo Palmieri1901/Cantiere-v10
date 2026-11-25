@@ -21,6 +21,7 @@ SEZIONI = [
         ("1", "Apri l'indirizzo del gestionale: compare la pagina di accesso con il solo campo Password."),
         ("1", "Inserisci la password del cantiere (minimo 5 caratteri) e premi Entra. Da PC la password viene richiesta a ogni apertura del browser; da telefono l'accesso resta memorizzato ma a ogni apertura viene richiesto lo sblocco biometrico (impronta, volto o codice del telefono), attivato al primo accesso. I telefoni registrati si gestiscono in Impostazioni → Sblocco biometrico."),
         ("1", "Password dimenticata: dalla pagina di accesso premi «Password dimenticata» e scegli uno dei tre modi: PIN di recupero, Codice via email (inviato all'email amministratore) oppure Impronta digitale (registrata in Impostazioni); si imposta una nuova password e si entra subito."),
+        ("!", "Sicurezza: dopo 20 password o PIN sbagliati l'accesso con quel metodo si blocca per 1 ora (dagli ultimi 10 tentativi il messaggio mostra quanti ne restano) e parte una email di ALLERTA all'email amministratore. Per sbloccare subito usa «Password dimenticata» → Codice via email oppure Impronta digitale."),
         ("#", "Struttura delle schermate"),
         ("-", "Home: riquadri dei moduli con i numeri chiave (clienti dell'anno, articoli, lavori da approvare, clienti esterni, preventivi, modelli, valutazioni usato). Premendo un riquadro si apre il modulo."),
         ("!", "Prima di cancellare qualunque cosa (clienti, articoli, preventivi, valutazioni, documenti) il programma chiede sempre conferma."),

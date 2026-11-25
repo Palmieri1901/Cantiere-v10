@@ -275,3 +275,39 @@ def build_recovery_code_email(codice: str, minuti: int) -> tuple[str, str]:
 </table>
 """
     return subject, html
+
+
+def build_alert_blocco_email(metodo: str, tentativi: int, quando: str, fino: str) -> tuple[str, str]:
+    """(subject, html) dell'avviso di accesso bloccato per troppi tentativi errati."""
+    brand = escape(os.environ.get("EMAIL_FROM_NAME", "Gestionale GEBnautica"))
+    metodo, quando, fino = escape(metodo), escape(quando), escape(fino)
+    subject = f"{brand} — ALLERTA: accesso bloccato per troppi tentativi errati"
+    html = f"""
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f4f6f8;padding:32px 0;font-family:Arial,Helvetica,sans-serif">
+  <tr><td align="center">
+    <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:8px;padding:32px">
+      <tr><td style="padding-bottom:16px">
+        <div style="font-size:12px;letter-spacing:0.08em;text-transform:uppercase;color:#b91c1c">Allerta sicurezza</div>
+        <div style="font-size:22px;font-weight:600;color:#0f172a;margin-top:4px">{brand}</div>
+      </td></tr>
+      <tr><td>
+        <h1 style="font-size:20px;color:#0f172a;margin:0 0 12px 0">Accesso bloccato</h1>
+        <p style="font-size:14px;color:#334155;line-height:1.6;margin:0 0 12px 0">
+          Il {quando} sono stati inseriti <strong>{tentativi} tentativi errati</strong> di {metodo}.
+          L'accesso con {metodo} è bloccato per 1 ora, <strong>fino alle {fino}</strong>.
+        </p>
+        <p style="font-size:14px;color:#334155;line-height:1.6;margin:0">
+          Se sei stato tu, puoi sbloccare subito con il codice via email dalla pagina «Password dimenticata».
+          Se non sei stato tu, qualcuno sta provando ad entrare: dopo lo sblocco cambia password e PIN da Impostazioni.
+        </p>
+      </td></tr>
+      <tr><td style="padding-top:24px;border-top:1px solid #e2e8f0">
+        <p style="font-size:11px;color:#94a3b8;line-height:1.5;margin:16px 0 0 0">
+          Messaggio automatico inviato da {brand}. Non chiediamo mai la password né dati bancari via email.
+        </p>
+      </td></tr>
+    </table>
+  </td></tr>
+</table>
+"""
+    return subject, html

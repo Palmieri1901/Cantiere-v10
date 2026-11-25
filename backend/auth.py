@@ -14,6 +14,7 @@ from models import (
     PinResetRequest, ChangePinRequest,
 )
 from email_service import send_email, build_password_reset_email, build_recovery_code_email
+import blocco_accessi
 
 JWT_ALGORITHM = "HS256"
 SESSION_DAYS = 30
@@ -116,9 +117,11 @@ async def login(payload: LoginRequest, response: Response):
     email = (payload.email or "").strip().lower()
     if not email:
         email = os.environ.get("ADMIN_EMAIL", "admin@portomare.it").strip().lower()
+    await blocco_accessi.controlla("password")
     user = await db.users.find_one({"email": email})
     if not user or not verify_password(payload.password, user.get("password_hash", "")):
-        raise HTTPException(401, "Password non corretta")
+        await blocco_accessi.errore("password", "Password non corretta")
+    await blocco_accessi.ok("password")
     token = create_access_token(user["id"], email)
     _set_cookie(response, token)
     return {"id": user["id"], "email": email, "nome": user.get("nome", ""), "role": user.get("role", "user"), "token": token}
@@ -136,11 +139,13 @@ async def pin_reset(payload: PinResetRequest, response: Response):
         raise HTTPException(400, "PIN e nuova password obbligatori")
     validate_password_policy(payload.new_password)
 
+    await blocco_accessi.controlla("pin")
     settings = await db.app_settings.find_one({"id": "auth"})
     if not settings or not settings.get("recovery_pin_hash"):
         raise HTTPException(500, "PIN di recupero non configurato")
     if not verify_password(pin_raw, settings["recovery_pin_hash"]):
-        raise HTTPException(401, "PIN non corretto")
+        await blocco_accessi.errore("pin", "PIN non corretto")
+    await blocco_accessi.ok("pin", "password")
 
     admin_email = os.environ.get("ADMIN_EMAIL", "admin@portomare.it").strip().lower()
     user = await db.users.find_one({"email": admin_email})
@@ -180,14 +185,18 @@ async def change_pin(payload: ChangePinRequest, user: dict = Depends(get_current
 
     settings = await db.app_settings.find_one({"id": "auth"})
     if current_password:
+        await blocco_accessi.controlla("password")
         dbu = await db.users.find_one({"id": user["id"]}, {"password_hash": 1}) or {}
         if not verify_password(current_password, dbu.get("password_hash", "")):
-            raise HTTPException(401, "Password non corretta")
+            await blocco_accessi.errore("password", "Password non corretta")
+        await blocco_accessi.ok("password")
     else:
+        await blocco_accessi.controlla("pin")
         if not settings or not settings.get("recovery_pin_hash"):
             raise HTTPException(500, "PIN di recupero non configurato")
         if not verify_password(current_pin, settings["recovery_pin_hash"]):
-            raise HTTPException(401, "PIN attuale non corretto")
+            await blocco_accessi.errore("pin", "PIN attuale non corretto")
+        await blocco_accessi.ok("pin")
 
     await db.app_settings.update_one(
         {"id": "auth"},
@@ -327,6 +336,7 @@ async def codice_reset(payload: CodiceResetRequest, response: Response):
         raise HTTPException(500, "Utente admin non trovato")
     await db.users.update_one({"id": user["id"]}, {"$set": {"password_hash": hash_password(payload.new_password), "password_customized": True}})
     await db.app_settings.update_one({"id": "recupero_codice"}, {"$set": {"usato": True}})
+    await blocco_accessi.sblocca_tutto()
     logger.info("Password admin reimpostata via codice email")
     await segna_credenziali({"id": user["id"]})
     token = create_access_token(user["id"], admin_email)
@@ -371,9 +381,11 @@ async def change_password(payload: ChangePasswordRequest, user: dict = Depends(g
         raise HTTPException(400, "Compila entrambi i campi")
     validate_password_policy(payload.new_password)
 
+    await blocco_accessi.controlla("password")
     full = await db.users.find_one({"id": user["id"]})
     if not full or not verify_password(payload.current_password, full.get("password_hash", "")):
-        raise HTTPException(401, "Password attuale non corretta")
+        await blocco_accessi.errore("password", "Password attuale non corretta")
+    await blocco_accessi.ok("password")
 
     await db.users.update_one(
         {"id": user["id"]},
