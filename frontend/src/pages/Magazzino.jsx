@@ -10,7 +10,7 @@ import MovimentiTab from "./magazzino/MovimentiTab";
 export default function Magazzino() {
   const [tab, setTab] = useState("articoli");
   return (
-    <div className="p-6 md:p-10 max-w-7xl" data-testid="magazzino-page">
+    <div className="p-4 md:p-6 xl:p-8 w-full max-w-none" data-testid="magazzino-page">
       <div className="mb-6">
         <div className="flex items-center gap-2 label-mini mb-2">
           <Package className="w-3.5 h-3.5" /> Magazzino

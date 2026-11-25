@@ -1277,3 +1277,7 @@ Backend spezzato in moduli (`server.py` ora 112 righe, prima 2761):
 
 
 - Lavori (rimessaggio ed esterni, `LavoriSection.jsx`): il menu «Tipo» elenca anche le voci di listino aggiunte, raggruppate «Listino · settore»; sceglierne una compila descrizione e costo (1 unità, ore=1 se a ora, costo segnato manuale) senza cambiare il tipo. Verificato a 390px.
+
+## 2026-11-25 — Magazzino a tutto schermo su PC
+- Pagina Magazzino senza limite di larghezza; tabella articoli da 1280px in su a colonne fisse in percentuale (tutto visibile senza scorrimento), prezzi su una riga; sotto 1280px resta lo scorrimento orizzontale. Verificato a 1920/1366/1280 (tabella = contenitore) e 390px.
+

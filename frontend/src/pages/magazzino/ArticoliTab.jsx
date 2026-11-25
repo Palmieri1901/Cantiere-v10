@@ -204,9 +204,9 @@ export default function ArticoliTab() {
         </TableCell>
         <TableCell>{a.categoria && <Badge variant="secondary">{a.categoria}</Badge>}</TableCell>
         <TableCell className="text-sm text-muted-foreground">{fornMap[a.fornitore_id] || "—"}</TableCell>
-        <TableCell className="text-right font-mono-num text-muted-foreground">{fmtEuro(pa)}</TableCell>
-        <TableCell className="text-right font-mono-num font-semibold">{fmtEuro(pv)}</TableCell>
-        <TableCell className="text-right font-mono-num text-primary" data-testid={`cell-pv-iva-${a.id}`}>{fmtEuro(prezzoIvato(a))}</TableCell>
+        <TableCell className="text-right font-mono-num text-muted-foreground whitespace-nowrap">{fmtEuro(pa)}</TableCell>
+        <TableCell className="text-right font-mono-num font-semibold whitespace-nowrap">{fmtEuro(pv)}</TableCell>
+        <TableCell className="text-right font-mono-num text-primary whitespace-nowrap" data-testid={`cell-pv-iva-${a.id}`}>{fmtEuro(prezzoIvato(a))}</TableCell>
         <TableCell className="text-right">
           <RicaricoCell a={a} onSaved={load} />
         </TableCell>
@@ -227,7 +227,7 @@ export default function ArticoliTab() {
               onChange={(e) => setScaricoInput((s) => ({ ...s, [a.id]: e.target.value }))}
               onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); doScarico(a); } }}
               disabled={!!scaricoLoading[a.id]}
-              className="h-8 w-[70px] text-right font-mono-num text-sm px-2"
+              className="h-8 w-[60px] xl:w-full xl:min-w-0 text-right font-mono-num text-sm px-2"
               data-testid={`input-scarico-${a.id}`}
             />
             <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => doCarico(a)} disabled={!!scaricoLoading[a.id] || !scaricoInput[a.id]} title="Carica (entrata merce)" data-testid={`btn-carico-${a.id}`}>
@@ -366,20 +366,20 @@ export default function ArticoliTab() {
         </div>
 
         <div className="rounded-md border border-border overflow-x-auto">
-          <Table className="min-w-[1100px]">
+          <Table className="min-w-[1000px] xl:min-w-0 xl:table-fixed [&_td]:px-2 [&_th]:px-2 [&_td]:py-2 [&_td]:break-words [&_th]:whitespace-normal">
             <TableHeader>
               <TableRow className="bg-muted/40">
-                <TableHead>Codice</TableHead>
-                <TableHead>Articolo</TableHead>
-                <TableHead>Categoria</TableHead>
-                <TableHead>Fornitore</TableHead>
-                <TableHead className="text-right" title="Prezzo di acquisto netto, IVA esclusa">Acquisto netto</TableHead>
-                <TableHead className="text-right" title="Acquisto netto + ricarico fornitore, IVA esclusa">Vendita netto</TableHead>
-                <TableHead className="text-right" title="Prezzo finito: vendita netto + IVA del fornitore">Prezzo finito IVA inc.</TableHead>
-                <TableHead className="text-right" title="Ricarico fornitore · IVA · ricarico totale">Ricarico / IVA / Tot.</TableHead>
-                <TableHead className="text-right w-[80px]">Giacenza</TableHead>
-                <TableHead className="text-right w-[170px]" title="Digita la quantità: ↑ carica (entrata), ↓ scarica (uscita). Invio = scarico">Carica / Scarica</TableHead>
-                <TableHead className="text-right w-[100px] sticky right-0 bg-muted/40 backdrop-blur">Azioni</TableHead>
+                <TableHead className="xl:w-[8%]">Codice</TableHead>
+                <TableHead className="xl:w-[16%]">Articolo</TableHead>
+                <TableHead className="xl:w-[8%]">Categoria</TableHead>
+                <TableHead className="xl:w-[8%]">Fornitore</TableHead>
+                <TableHead className="text-right xl:w-[8%]" title="Prezzo di acquisto netto, IVA esclusa">Acquisto netto</TableHead>
+                <TableHead className="text-right xl:w-[8%]" title="Acquisto netto + ricarico fornitore, IVA esclusa">Vendita netto</TableHead>
+                <TableHead className="text-right xl:w-[8%]" title="Prezzo finito: vendita netto + IVA del fornitore">Prezzo finito IVA inc.</TableHead>
+                <TableHead className="text-right xl:w-[7%]" title="Ricarico fornitore · IVA · ricarico totale">Ricarico / IVA / Tot.</TableHead>
+                <TableHead className="text-right w-[70px] xl:w-[6%]">Giacenza</TableHead>
+                <TableHead className="text-right w-[150px] xl:w-[14%]" title="Digita la quantità: ↑ carica (entrata), ↓ scarica (uscita). Invio = scarico">Carica / Scarica</TableHead>
+                <TableHead className="text-right w-[100px] xl:w-[9%] sticky right-0 bg-muted/40 backdrop-blur">Azioni</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
