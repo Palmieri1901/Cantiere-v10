@@ -9,7 +9,7 @@ import time
 
 from motor.motor_asyncio import AsyncIOMotorCollection
 
-ESCLUSE = {"_sync_log", "_sync_state", "_sync_config", "fs.files", "fs.chunks", "password_reset_tokens",
+ESCLUSE = {"_sync_log", "_sync_state", "_sync_config", "_cestino", "fs.files", "fs.chunks", "password_reset_tokens",
            "webauthn_credentials", "webauthn_challenges"}
 # Documenti locali a ogni installazione (codice email temporaneo, cartella backup, chiavi/modello AI): mai sincronizzati
 DOC_ESCLUSI = {"app_settings": {"backup_info", "recupero_codice", "ai_config", "ai_chiavi", "blocco_accessi"}}
@@ -50,6 +50,8 @@ def _irrilevante(coll: str, flt, update) -> bool:
         keys |= set((update.get(op) or {}).keys())
     return not (keys & f)
 _origin = contextvars.ContextVar("sync_origin", default="local")
+# Cestino della richiesta DELETE in corso: {"batch": id, "n": documenti salvati} (vedi middleware in server.py)
+cestino_ctx = contextvars.ContextVar("cestino", default=None)
 
 
 def now_ts() -> float:
@@ -70,6 +72,22 @@ def _ids_from_filter(flt, k: str = "id") -> list | None:
 
 def is_file_coll(name: str) -> bool:
     return name.endswith(".files")
+
+
+async def _al_cestino(coll, flt, multi: bool):
+    """Copia i documenti che stanno per essere cancellati, per poter annullare l'eliminazione."""
+    c = cestino_ctx.get()
+    if not c or _origin.get() != "local" or is_file_coll(coll.name):
+        return
+    docs = await coll.find(flt).to_list(5000) if multi else [d for d in [await coll.find_one(flt)] if d]
+    if not docs:
+        return
+    db = coll.database
+    now = time.time()
+    await db["_cestino"].insert_many([{"batch": c["batch"], "coll": coll.name, "doc": d, "ts": now} for d in docs])
+    # conserva le copie solo 24 ore
+    await db["_cestino"].delete_many({"ts": {"$lt": now - 86400}})
+    c["n"] += len(docs)
 
 
 def _esclusa(name: str) -> bool:
@@ -173,6 +191,7 @@ def install():
             if _esclusa(self.name):
                 return await orig(self, flt, *a, **k)
             ids = await _resolve_ids(self, flt, multi)
+            await _al_cestino(self, flt, multi)
             r = await orig(self, flt, *a, **k)
             await _log(self, ids, "delete", now_ts())
             return r

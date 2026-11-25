@@ -1,4 +1,5 @@
 import axios from "axios";
+import { toast } from "sonner";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 export const API = `${BACKEND_URL}/api`;
@@ -10,9 +11,24 @@ export const api = axios.create({
   timeout: 30000,
 });
 
+// Dopo ogni eliminazione: avviso con «Annulla» che ripristina quanto cancellato
+const annullaEliminazione = async (batch) => {
+  try {
+    const r = await api.post(`/cestino/${batch}/ripristina`);
+    toast.success(`Eliminazione annullata (${r.data.ripristinati} elementi ripristinati)`);
+    setTimeout(() => window.location.reload(), 900);
+  } catch (e) {
+    toast.error(e.response?.data?.detail || "Ripristino non riuscito");
+  }
+};
+
 // Interceptor: su 401 reindirizza al login (sessione scaduta o mancante)
 api.interceptors.response.use(
-  (r) => r,
+  (r) => {
+    const batch = r.config?.method === "delete" && r.headers?.["x-cestino"];
+    if (batch) toast("Eliminato", { id: `cestino-${batch}`, description: "Hai cancellato per errore?", duration: 12000, action: { label: "Annulla", onClick: () => annullaEliminazione(batch) } });
+    return r;
+  },
   (err) => {
     const status = err?.response?.status;
     const url = err?.config?.url || "";

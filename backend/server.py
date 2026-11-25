@@ -11,6 +11,7 @@ L'app è organizzata in moduli:
                         report, anni)
 """
 import os
+import uuid
 import asyncio
 from fastapi import FastAPI, APIRouter
 from starlette.middleware.cors import CORSMiddleware
@@ -22,7 +23,7 @@ from routers import (
     tariffe, clienti, lavori, stats, export,
     cantiere, backup, preventivo, report, anni, contratti, magazzino, tubolari, suzuki, gommoni, ddt,
     dipendenti, mobile, esterni, servizio, capitaneria, mezzi, aggiornamenti, calendario, assistente, unisci, anagrafica, officina, officina_siti, fatturazione, webauthn_lock, lavagna, laser,
-    share, valutazioni, sync, ai_config,
+    share, valutazioni, sync, ai_config, cestino,
 )
 
 
@@ -73,6 +74,7 @@ api_router.include_router(assistente.router)
 api_router.include_router(unisci.router)
 api_router.include_router(lavagna.router)
 api_router.include_router(laser.router)
+api_router.include_router(cestino.router)
 
 app.include_router(api_router)
 app.include_router(auth_router)
@@ -104,6 +106,23 @@ app.add_middleware(
     allow_headers=["*"],
     expose_headers=["*"],
 )
+
+
+@app.middleware("http")
+async def _cestino_middleware(request, call_next):
+    """Per ogni DELETE salva i documenti eliminati: l'header X-Cestino permette di annullare."""
+    if request.method != "DELETE" or not request.url.path.startswith("/api/"):
+        return await call_next(request)
+    from sync_log import cestino_ctx
+    c = {"batch": uuid.uuid4().hex, "n": 0}
+    tok = cestino_ctx.set(c)
+    try:
+        resp = await call_next(request)
+    finally:
+        cestino_ctx.reset(tok)
+    if c["n"] and resp.status_code < 400:
+        resp.headers["X-Cestino"] = c["batch"]
+    return resp
 
 
 @app.on_event("startup")
