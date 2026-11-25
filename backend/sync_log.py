@@ -87,7 +87,7 @@ async def _al_cestino(coll, flt, multi: bool, tipo: str = "eliminato"):
             continue  # conta solo lo stato prima della richiesta
         c["visti"].add(key)
         c["seq"] += 1
-        voci.append({"batch": c["batch"], "seq": c["seq"], "tipo": tipo, "coll": coll.name, "doc": d, "ts": time.time()})
+        voci.append({"batch": c["batch"], "seq": c["seq"], "tipo": tipo, "coll": coll.name, "doc": d, "ts": time.time(), "path": c.get("path", "")})
     if voci:
         await coll.database["_cestino"].insert_many(voci)
         if tipo == "eliminato":

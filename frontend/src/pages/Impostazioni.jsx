@@ -11,6 +11,7 @@ import PasswordInput from "@/components/PasswordInput";
 import AggiornamentiCard from "@/pages/impostazioni/AggiornamentiCard";
 import FatturazioneCard from "@/pages/impostazioni/FatturazioneCard";
 import SyncCard from "@/pages/impostazioni/SyncCard";
+import CestinoCard from "@/pages/impostazioni/CestinoCard";
 import ManualeCard from "@/pages/impostazioni/ManualeCard";
 import BiometriaCard from "@/pages/impostazioni/BiometriaCard";
 import { toast } from "sonner";
@@ -443,6 +444,7 @@ export default function Impostazioni() {
       <ManualeCard />
       <FatturazioneCard />
       <SyncCard />
+      <CestinoCard />
       <AggiornamentiCard />
 
       <AlertDialog open={!!restoreData} onOpenChange={(o) => !o && setRestoreData(null)}>

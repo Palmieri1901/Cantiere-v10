@@ -39,6 +39,7 @@ class Tariffe(BaseModel):
     maggiorazione_scafo_sporco_per_metro: float = 15.0
     costo_orario_manodopera: float = 45.0
     servizi_extra: List[dict] = Field(default_factory=list)
+    settori_extra: List[str] = Field(default_factory=list)
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 
@@ -76,6 +77,7 @@ class TariffeUpdate(BaseModel):
     costo_lavaggio_fine_stagione: Optional[float] = None
     maggiorazione_scafo_sporco_per_metro: Optional[float] = None
     servizi_extra: Optional[List[dict]] = None
+    settori_extra: Optional[List[str]] = None
 
 
 class Cliente(BaseModel):

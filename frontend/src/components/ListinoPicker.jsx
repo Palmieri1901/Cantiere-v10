@@ -51,7 +51,7 @@ export function vociListino(t) {
   (t.servizi_extra || []).forEach((s, i) => {
     const u = normUnita(s.unita);
     const aQuantita = !!u.domanda;
-    v.push({ id: `extra_${i}`, cat: "Altri servizi", nome: s.nome, unita: aQuantita ? u.breve : "", domanda: u.domanda, prezzo: s.prezzo, calc: (q) => +((aQuantita ? q : 1) * s.prezzo).toFixed(2), label: (q) => (aQuantita ? `${s.nome} · ${fmtQ(q)} ${u.breve}` : s.nome) });
+    v.push({ id: `extra_${i}`, cat: s.settore || "Altri servizi", nome: s.nome, unita: aQuantita ? u.breve : "", domanda: u.domanda, prezzo: s.prezzo, calc: (q) => +((aQuantita ? q : 1) * s.prezzo).toFixed(2), label: (q) => (aQuantita ? `${s.nome} · ${fmtQ(q)} ${u.breve}` : s.nome) });
   });
   return v.filter((x) => Number(x.prezzo) > 0 || x.nota);
 }

@@ -1267,3 +1267,11 @@ Backend spezzato in moduli (`server.py` ora 112 righe, prima 2761):
 
 - 2026-11-25: DELETE `/api/esterni/{id}` ora elimina anche i `preventivi_esterni` del cliente (annullabile con lo stesso «Annulla»); testo conferma aggiornato. Verificato: 2 preventivi eliminati e ripristinati.
 
+
+## 2026-11-25 — Cestino in Impostazioni
+- Card «Cestino – eliminazioni recenti» (`impostazioni/CestinoCard.jsx`): GET `/api/cestino` elenca le eliminazioni degli ultimi 7 giorni (elemento principale ricavato dal percorso della richiesta, tipo, n. collegati, data) con «Ripristina» (conferma). Il ripristino salta i dati modificati dopo l'eliminazione (es. giacenze) e lo segnala. Verificato a 390px: cliente esterno + preventivo ripristinati.
+
+## 2026-11-25 — Tariffe: voci e settori personalizzabili
+- Ogni settore delle Tariffe ha «Aggiungi voce» (nome, unità, prezzo, elimina); nuovi settori creabili/rinominabili/eliminabili (`tariffe/VociSettore.jsx`, `tariffe/SettoriExtra.jsx`). Dati: `servizi_extra[].settore` + `settori_extra`. Voci senza settore restano in «Altri servizi». Listino PDF: le voci compaiono nel settore corrispondente o in un riquadro per il nuovo settore; il selettore «Dal listino» le raggruppa per settore. Le voci fisse restano non rinominabili (scelta predefinita).
+- Verificato: voce in Sosta + settore nuovo salvati, ricaricati, presenti nel PDF; tariffe anteprima ripristinate.
+

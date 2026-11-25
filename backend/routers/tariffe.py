@@ -29,9 +29,12 @@ async def update_tariffe(payload: TariffeUpdate):
     updates = {k: v for k, v in payload.model_dump().items() if v is not None}
     if "servizi_extra" in updates:
         updates["servizi_extra"] = [
-            {"nome": str(s.get("nome") or "").strip(), "unita": str(s.get("unita") or "forfait").strip(), "prezzo": float(s.get("prezzo") or 0)}
+            {"nome": str(s.get("nome") or "").strip(), "unita": str(s.get("unita") or "forfait").strip(), "prezzo": float(s.get("prezzo") or 0),
+             "settore": str(s.get("settore") or "").strip()}
             for s in updates["servizi_extra"] if str(s.get("nome") or "").strip()
         ]
+    if "settori_extra" in updates:
+        updates["settori_extra"] = list(dict.fromkeys(s.strip() for s in updates["settori_extra"] if str(s or "").strip()))
     new_data = current.model_dump()
     new_data.update(updates)
     new_data["updated_at"] = datetime.now(timezone.utc)
@@ -251,10 +254,20 @@ async def listino_prezzi_pdf():
 
     tariffe_dict = t.model_dump()
     extra = [s for s in (tariffe_dict.get("servizi_extra") or []) if str(s.get("nome") or "").strip()]
-    if extra:
-        groups.append(("ALTRI SERVIZI", [(str(s["nome"]).strip(), f"__extra_{i}", str(s.get("unita") or "forfait")) for i, s in enumerate(extra)]))
-        for i, s in enumerate(extra):
-            tariffe_dict[f"__extra_{i}"] = float(s.get("prezzo") or 0)
+    # voci aggiunte: nel settore del listino corrispondente, in un settore nuovo o in «Altri servizi»
+    pdf_settore = {"sosta": "SOSTA", "alaggio & varo": "ALAGGIO & VARO", "copertura & antivegetativa": "COPERTURA & TRATTAMENTI SCAFO",
+                   "lavaggi stagionali": "COPERTURA & TRATTAMENTI SCAFO", "manodopera generica": "MANODOPERA GENERICA",
+                   "manodopera motore fuoribordo (per potenza hp)": "MANODOPERA MOTORE FUORIBORDO",
+                   "manodopera motore entrobordo": "MANODOPERA MOTORE ENTROBORDO", "ricambi motore": "RICAMBI & MATERIALI"}
+    per_titolo = {g[0]: g[1] for g in groups}
+    for i, s in enumerate(extra):
+        sett = str(s.get("settore") or "").strip()
+        titolo = pdf_settore.get(sett.lower(), sett.upper()) if sett else "ALTRI SERVIZI"
+        if titolo not in per_titolo:
+            per_titolo[titolo] = []
+            groups.append((titolo, per_titolo[titolo]))
+        per_titolo[titolo].append((str(s["nome"]).strip(), f"__extra_{i}", str(s.get("unita") or "forfait")))
+        tariffe_dict[f"__extra_{i}"] = float(s.get("prezzo") or 0)
     col_w = [52*mm, 20*mm, 17*mm]
     group_tables = []
     for titolo, voci in groups:

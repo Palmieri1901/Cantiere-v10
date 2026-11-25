@@ -6,10 +6,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
-import { confirmDialog } from "@/components/ConfirmDialog";
-import { Settings2, RefreshCw, Save, Waves, Anchor, Wrench, Cog, ListPlus, Plus, Trash2 } from "lucide-react";
+import { Settings2, RefreshCw, Save, Waves, Anchor, Wrench, Cog, ListPlus } from "lucide-react";
 import { useYear } from "@/lib/year";
-import { UNITA, normUnita } from "@/lib/unita";
+import { VociSettore } from "./tariffe/VociSettore";
+import { SettoriExtra } from "./tariffe/SettoriExtra";
 
 const GROUPS = [
   {
@@ -106,7 +106,10 @@ export default function Tariffe() {
     try {
       const payload = {};
       ALL_KEYS.forEach((k) => { payload[k] = Number(t[k]) || 0; });
-      payload.servizi_extra = (t.servizi_extra || []).filter((s) => (s.nome || "").trim()).map((s) => ({ nome: s.nome.trim(), unita: s.unita || "forfait", prezzo: Number(s.prezzo) || 0 }));
+      const settori = (t.settori_extra || []).map((s) => s.trim()).filter(Boolean);
+      const validi = new Set([...GROUPS.map((g) => g.title), ...settori]);
+      payload.settori_extra = settori;
+      payload.servizi_extra = (t.servizi_extra || []).filter((s) => (s.nome || "").trim()).map((s) => ({ nome: s.nome.trim(), unita: s.unita || "forfait", prezzo: Number(s.prezzo) || 0, settore: validi.has((s.settore || "").trim()) ? s.settore.trim() : "" }));
       await api.put("/tariffe", payload);
       // Ricalcolo automatico di tutti i clienti dell'anno in corso
       try {
@@ -185,42 +188,22 @@ export default function Tariffe() {
                     </div>
                   ))}
                 </div>
+                <VociSettore t={t} setT={setT} settore={g.title} />
               </Card>
             );
           })}
 
+          <SettoriExtra t={t} setT={setT} riservati={[...GROUPS.map((g) => g.title), "Altri servizi"]} />
+
           <Card className="p-5" data-testid="tariffe-servizi-extra">
-            <div className="flex items-center justify-between gap-3 mb-4 flex-wrap">
-              <div className="flex items-center gap-2">
-                <div className="w-7 h-7 rounded-md bg-primary/10 text-primary grid place-items-center"><ListPlus className="w-4 h-4" /></div>
-                <div>
-                  <div className="font-display text-base font-semibold">Altri servizi e prezzi</div>
-                  <p className="text-xs text-muted-foreground">Voci aggiuntive del listino in vigore (es. lucidatura, rimessaggio invernale motore…)</p>
-                </div>
+            <div className="flex items-center gap-2 mb-1">
+              <div className="w-7 h-7 rounded-md bg-primary/10 text-primary grid place-items-center"><ListPlus className="w-4 h-4" /></div>
+              <div>
+                <div className="font-display text-base font-semibold">Altri servizi e prezzi</div>
+                <p className="text-xs text-muted-foreground">Voci senza settore (es. lucidatura, rimessaggio invernale motore…). Ricorda di premere «Salva tariffe».</p>
               </div>
-              <Button size="sm" variant="outline" onClick={() => setT({ ...t, servizi_extra: [...(t.servizi_extra || []), { nome: "", unita: "forfait", prezzo: "" }] })} data-testid="btn-aggiungi-servizio">
-                <Plus className="w-4 h-4 mr-1" /> Aggiungi servizio
-              </Button>
             </div>
-            {(t.servizi_extra || []).length === 0 ? (
-              <div className="text-sm text-muted-foreground py-2">Nessun servizio aggiuntivo. Usa "Aggiungi servizio" e poi "Salva tariffe".</div>
-            ) : (
-              <div className="space-y-2">
-                {t.servizi_extra.map((s, i) => (
-                  <div key={i} className="flex items-center gap-2 flex-wrap sm:flex-nowrap" data-testid={`servizio-extra-${i}`}>
-                    <Input value={s.nome} placeholder="Nome servizio" onChange={(e) => setT({ ...t, servizi_extra: t.servizi_extra.map((x, j) => j === i ? { ...x, nome: e.target.value } : x) })} className="flex-1 min-w-[180px] h-9" data-testid={`servizio-nome-${i}`} />
-                    <select value={normUnita(s.unita).id} onChange={(e) => setT({ ...t, servizi_extra: t.servizi_extra.map((x, j) => j === i ? { ...x, unita: e.target.value } : x) })} className="w-44 h-9 rounded-md border border-input bg-background px-2 text-sm" data-testid={`servizio-unita-${i}`}>
-                      {UNITA.map((u) => <option key={u.id} value={u.id}>{u.label}</option>)}
-                    </select>
-                    <div className="relative w-32 shrink-0">
-                      <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">€</span>
-                      <Input type="number" step="0.01" min="0" value={s.prezzo} onChange={(e) => setT({ ...t, servizi_extra: t.servizi_extra.map((x, j) => j === i ? { ...x, prezzo: e.target.value } : x) })} className="pl-10 font-mono-num text-right h-9" data-testid={`servizio-prezzo-${i}`} />
-                    </div>
-                    <Button size="icon" variant="ghost" className="h-9 w-9 text-destructive" onClick={async () => { if (await confirmDialog("Eliminare questo servizio extra dalle tariffe?", { okLabel: "Elimina" })) setT({ ...t, servizi_extra: t.servizi_extra.filter((_, j) => j !== i) }); }} data-testid={`servizio-del-${i}`}><Trash2 className="w-4 h-4" /></Button>
-                  </div>
-                ))}
-              </div>
-            )}
+            <VociSettore t={t} setT={setT} settore="" />
           </Card>
         </div>
       </div>
