@@ -1261,5 +1261,9 @@ Backend spezzato in moduli (`server.py` ora 112 righe, prima 2761):
 ## 2026-11-25 — Annulla eliminazione
 - Ogni richiesta DELETE `/api/...` (middleware in server.py) registra in `_cestino` tutto ciò che cambia nella richiesta: documenti eliminati, stato precedente dei modificati (es. giacenze magazzino), documenti creati (es. movimenti di storno). Conservati 24 ore, esclusi dalla sync. Risposta con header `X-Cestino`. Il frontend (`lib/api.js`) mostra «Eliminato» con **Annulla** per 12 s, sopra l'avviso della sezione → POST `/api/cestino/{batch}/ripristina` annulla in ordine inverso (409 se nel frattempo è stato creato un codice uguale) e ricarica la pagina. Limite: i file (foto/PDF/cataloghi in GridFS) cancellati non tornano.
 - Test: iteration_29 + `backend/tests/test_cestino_undo.py` 7/7 dopo la correzione (giacenze ripristinate), UI 390px con Annulla visibile. Nota: eliminando un cliente esterno i suoi preventivi non vengono cancellati (comportamento già esistente).
+
+## 2026-11-25 — Fix import anagrafica da Fatture in Cloud: indirizzo e CAP
+- Causa: la lista clienti FIC restituisce di default i campi «basic» (senza address_street/address_postal_code). Ora `importa_clienti` chiede `fieldset=detailed`; per i privati usa first_name/last_name se presenti. Verificato con lettura reale (5 clienti: basic 0 via/0 CAP, detailed 5/5). Reimportando, gli indirizzi mancanti si completano (upsert riempie i campi vuoti).
+
 - 2026-11-25: DELETE `/api/esterni/{id}` ora elimina anche i `preventivi_esterni` del cliente (annullabile con lo stesso «Annulla»); testo conferma aggiornato. Verificato: 2 preventivi eliminati e ripristinati.
 

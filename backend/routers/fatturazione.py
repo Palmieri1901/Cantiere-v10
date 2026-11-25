@@ -440,14 +440,16 @@ async def importa_clienti():
     page = 1
     while True:
         try:
-            res = await _fic("GET", f"/c/{cid}/entities/clients", tok, params={"per_page": 100, "page": page})
+            res = await _fic("GET", f"/c/{cid}/entities/clients", tok, params={"per_page": 100, "page": page, "fieldset": "detailed"})
         except HTTPException as e:
             if e.status_code == 403:
                 raise HTTPException(403, "Il token Fatture in Cloud non ha il permesso 'Clienti' (lettura)")
             raise
         for x in res.get("data", []):
             az = x.get("type") == "company"
-            cognome, nome = ("", "") if az else _split_fic_nome(x.get("name", ""))
+            cognome, nome = ("", "") if az else ((x.get("last_name") or "").strip(), (x.get("first_name") or "").strip())
+            if not az and not (cognome or nome):
+                cognome, nome = _split_fic_nome(x.get("name", ""))
             paese = (x.get("country") or "").strip()
             d = {"tipo_soggetto": "azienda" if az else "privato", "ragione_sociale": x.get("name", "") if az else "",
                  "cognome": cognome, "nome": nome, "partita_iva": x.get("vat_number") or "", "codice_fiscale": x.get("tax_code") or "",
