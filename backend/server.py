@@ -114,7 +114,7 @@ async def _cestino_middleware(request, call_next):
     if request.method != "DELETE" or not request.url.path.startswith("/api/"):
         return await call_next(request)
     from sync_log import cestino_ctx
-    c = {"batch": uuid.uuid4().hex, "n": 0}
+    c = {"batch": uuid.uuid4().hex, "n": 0, "seq": 0, "visti": set()}
     tok = cestino_ctx.set(c)
     try:
         resp = await call_next(request)

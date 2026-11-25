@@ -74,20 +74,38 @@ def is_file_coll(name: str) -> bool:
     return name.endswith(".files")
 
 
-async def _al_cestino(coll, flt, multi: bool):
-    """Copia i documenti che stanno per essere cancellati, per poter annullare l'eliminazione."""
+async def _al_cestino(coll, flt, multi: bool, tipo: str = "eliminato"):
+    """Durante una DELETE salva i documenti eliminati o modificati (stato precedente) per poter annullare tutto."""
     c = cestino_ctx.get()
     if not c or _origin.get() != "local" or is_file_coll(coll.name):
         return
     docs = await coll.find(flt).to_list(5000) if multi else [d for d in [await coll.find_one(flt)] if d]
-    if not docs:
+    voci = []
+    for d in docs:
+        key = (coll.name, str(d["_id"]))
+        if tipo == "prima" and key in c["visti"]:
+            continue  # conta solo lo stato prima della richiesta
+        c["visti"].add(key)
+        c["seq"] += 1
+        voci.append({"batch": c["batch"], "seq": c["seq"], "tipo": tipo, "coll": coll.name, "doc": d, "ts": time.time()})
+    if voci:
+        await coll.database["_cestino"].insert_many(voci)
+        if tipo == "eliminato":
+            c["n"] += len(voci)
+
+
+async def _nuovi_al_cestino(coll, oids):
+    """Documenti creati durante una DELETE (es. movimenti di storno): all'annullamento vanno tolti."""
+    c = cestino_ctx.get()
+    oids = [o for o in oids if o is not None]
+    if not c or not oids or _origin.get() != "local" or is_file_coll(coll.name):
         return
-    db = coll.database
-    now = time.time()
-    await db["_cestino"].insert_many([{"batch": c["batch"], "coll": coll.name, "doc": d, "ts": now} for d in docs])
-    # conserva le copie solo 24 ore
-    await db["_cestino"].delete_many({"ts": {"$lt": now - 86400}})
-    c["n"] += len(docs)
+    voci = []
+    for o in oids:
+        c["visti"].add((coll.name, str(o)))
+        c["seq"] += 1
+        voci.append({"batch": c["batch"], "seq": c["seq"], "tipo": "nuovo", "coll": coll.name, "doc": {"_id": o}, "ts": time.time()})
+    await coll.database["_cestino"].insert_many(voci)
 
 
 def _esclusa(name: str) -> bool:
@@ -145,6 +163,8 @@ def install():
         if not _esclusa(self.name) and isinstance(doc, dict):
             doc["_sync_ts"] = ts
         r = await o_insert_one(self, doc, *a, **k)
+        if not _esclusa(self.name):
+            await _nuovi_al_cestino(self, [r.inserted_id])
         if isinstance(doc, dict) and doc.get(chiave(self.name)):
             await _log(self, [doc[chiave(self.name)]], "upsert", ts)
         elif is_file_coll(self.name) and isinstance(doc, dict) and doc.get("_id") is not None:
@@ -159,6 +179,8 @@ def install():
                 if isinstance(d, dict):
                     d["_sync_ts"] = ts
         r = await o_insert_many(self, docs, *a, **k)
+        if not _esclusa(self.name):
+            await _nuovi_al_cestino(self, r.inserted_ids)
         ck = chiave(self.name)
         await _log(self, [d[ck] for d in docs if isinstance(d, dict) and d.get(ck)], "upsert", ts)
         return r
@@ -168,7 +190,9 @@ def install():
             ts = now_ts()
             if _esclusa(self.name) or is_file_coll(self.name) or _irrilevante(self.name, flt, update):
                 return await orig(self, flt, update, *a, **k)
+            await _al_cestino(self, flt, multi, "prima")
             r = await orig(self, flt, _with_ts(update, ts), *a, **k)
+            await _nuovi_al_cestino(self, [getattr(r, "upserted_id", None)])
             ids = await _resolve_ids(self, flt, multi)
             if not ids and k.get("upsert") and isinstance(flt, dict) and isinstance(flt.get("id"), str):
                 ids = [flt["id"]]
@@ -180,7 +204,10 @@ def install():
         ts = now_ts()
         if not _esclusa(self.name) and isinstance(doc, dict):
             doc["_sync_ts"] = ts
+            await _al_cestino(self, flt, False, "prima")
         r = await o_replace_one(self, flt, doc, *a, **k)
+        if not _esclusa(self.name):
+            await _nuovi_al_cestino(self, [getattr(r, "upserted_id", None)])
         ck = chiave(self.name)
         ids = await _resolve_ids(self, flt, False) or ([doc[ck]] if isinstance(doc, dict) and doc.get(ck) else [])
         await _log(self, ids, "upsert", ts)
@@ -201,6 +228,7 @@ def install():
         ts = now_ts()
         if _esclusa(self.name) or is_file_coll(self.name) or _irrilevante(self.name, flt, update):
             return await o_fou(self, flt, update, *a, **k)
+        await _al_cestino(self, flt, False, "prima")
         r = await o_fou(self, flt, _with_ts(update, ts), *a, **k)
         ids = await _resolve_ids(self, flt, False) or ([r["id"]] if isinstance(r, dict) and r.get("id") else [])
         await _log(self, ids, "upsert", ts)

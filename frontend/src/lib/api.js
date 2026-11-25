@@ -26,7 +26,8 @@ const annullaEliminazione = async (batch) => {
 api.interceptors.response.use(
   (r) => {
     const batch = r.config?.method === "delete" && r.headers?.["x-cestino"];
-    if (batch) toast("Eliminato", { id: `cestino-${batch}`, description: "Hai cancellato per errore?", duration: 12000, action: { label: "Annulla", onClick: () => annullaEliminazione(batch) } });
+    // dopo l'avviso della sezione, cos\u00ec il tasto Annulla resta in cima e visibile
+    if (batch) setTimeout(() => toast("Eliminato", { id: `cestino-${batch}`, description: "Hai cancellato per errore?", duration: 12000, action: { label: "Annulla", onClick: () => annullaEliminazione(batch) } }), 150);
     return r;
   },
   (err) => {

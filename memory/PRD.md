@@ -1257,3 +1257,8 @@ Backend spezzato in moduli (`server.py` ora 112 righe, prima 2761):
 - `backend/blocco_accessi.py`: contatori separati password/PIN in `app_settings/blocco_accessi` (locale, non sincronizzato). Da 10 rimasti il messaggio mostra «Tentativi rimasti: N su 20»; al 20° errore 429 con blocco 1 ora (ora di Roma) e email di ALLERTA all'email amministratore (`build_alert_blocco_email`). Accesso corretto azzera; codice email o impronta sbloccano subito. Applicato a login, pin-reset, change-pin, change-password.
 - Verificato: messaggi tentativi, blocco al 20°, password giusta rifiutata durante blocco, email inviata (202), sblocco → login OK.
 
+
+## 2026-11-25 — Annulla eliminazione
+- Ogni richiesta DELETE `/api/...` (middleware in server.py) registra in `_cestino` tutto ciò che cambia nella richiesta: documenti eliminati, stato precedente dei modificati (es. giacenze magazzino), documenti creati (es. movimenti di storno). Conservati 24 ore, esclusi dalla sync. Risposta con header `X-Cestino`. Il frontend (`lib/api.js`) mostra «Eliminato» con **Annulla** per 12 s, sopra l'avviso della sezione → POST `/api/cestino/{batch}/ripristina` annulla in ordine inverso (409 se nel frattempo è stato creato un codice uguale) e ricarica la pagina. Limite: i file (foto/PDF/cataloghi in GridFS) cancellati non tornano.
+- Test: iteration_29 + `backend/tests/test_cestino_undo.py` 7/7 dopo la correzione (giacenze ripristinate), UI 390px con Annulla visibile. Nota: eliminando un cliente esterno i suoi preventivi non vengono cancellati (comportamento già esistente).
+

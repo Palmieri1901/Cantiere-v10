@@ -1,0 +1,43 @@
+{
+  "summary": "Tested the generic undo for deletes (X-Cestino header + POST /api/cestino/{batch}/ripristina) in the backend and the UI. Backend: 6 of 7 tests passed. The header is set on a successful DELETE. It is absent on GET and on a DELETE that returns 404. Unauthenticated restore returns 401. Unknown batch and a second restore both return 404 'Niente da ripristinare'. Cascade works: deleting a cliente esterno with a lavoro, then restoring, brings back both (2 items). Articolo delete and restore works. FAILED: undoing the delete of a lavoro that used magazzino stock leaves stock inflated (10 instead of 7). UI: on desktop /esterni, Test_cestino (1 TEST lavoro + 1 preventivo) was deleted via ConfirmDialog; the toast showed Eliminato / Hai cancellato per errore? / Annulla; clicking Annulla showed 'Eliminazione annullata (2 elementi ripristinati)', the page reloaded, and the client, lavoro (33 EUR) and preventivo were back. On mobile 390px /magazzino: a TEST article was created via UI, deleted and restored with Annulla; deleted again without Annulla, the toast disappeared after about 12s and the article stayed deleted.",
+  "backend_issues": {
+    "critical": [
+      {"endpoint": "DELETE /api/lavori/{id} (and DELETE /api/esterni/{id} cascade) + POST /api/cestino/{batch}/ripristina", "issue": "Stock goes wrong. delete_lavoro puts the used stock back into articoli (update_one $set quantita + a 'carico' movimento). Undo restores only the deleted lavoro document. The stock increase and the storno movimento stay. The lavoro is back but the stock is no longer reduced. Reproduced: stock 10 -> lavoro uses 3 -> 7 -> delete -> 10 -> undo -> still 10 (expected 7). Same for clients with lavori that used magazzino articles.", "priority": "HIGH"}
+    ],
+    "minor": [
+      {"endpoint": "POST /api/cestino/{batch}/ripristina", "issue": "Rebuilt data is not recalculated after restore. sync_lavori_cliente is not called, so on regular clienti the costo_lavori/lavori_storico summary goes stale when a lavoro is restored (from code review, not run)."},
+      {"endpoint": "DELETE /api/esterni/{id}", "issue": "Does not delete the client's preventivi_esterni. They were left behind as orphans, which is why the preventivo 'came back'. It was never actually deleted (restore count = 2: esterno + lavoro)."},
+      {"endpoint": "_cestino", "issue": "Restore uses replace_one upsert on _id with no conflict check. If a unique field (e.g. articolo codice) was reused in the meantime, a duplicate can appear. GridFS files are not restored (known limitation)."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "Sonner toasts after delete", "issue": "The section's own success toast ('Cliente esterno eliminato' / 'Articolo eliminato') is shown after the undo toast and stacks on top of it. The undo toast is collapsed behind it, so the Annulla button is not visible until the user hovers or taps the stack. This was seen on desktop and on mobile 390px. Fix ideas: remove the per-section success toast when X-Cestino is present, or reuse the same toast id, or set expand on the Toaster.", "selector": "[data-sonner-toast]", "priority": "MEDIUM"}
+    ],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "/esterni delete ConfirmDialog", "issues": ["The text still says 'Gli articoli scaricati tornano in magazzino. Operazione irreversibile.', which is no longer true now that undo exists."]},
+      {"screen": "/magazzino mobile 390px", "issues": ["The delete button on the last article row is covered by the hall-fab mic button and the mobile-nav, and the page cannot scroll it free. The bottom padding of the content is too small."]}
+    ]
+  },
+  "test_report_links": ["/app/backend/tests/test_cestino_undo.py", "/app/test_reports/pytest/pytest_cestino.xml"],
+  "action_items": [
+    "Undo of a lavoro (directly or by cascade from a cliente esterno) must apply the stock reduction again and remove the storno movimento. Option: also save the articoli/movimenti changes made during a DELETE in the cestino batch (snapshot the docs before update_one in the delete wrappers' context), or have ripristina call a domain hook.",
+    "After ripristina, call sync_lavori_cliente for restored lavori.",
+    "Fix the toast stacking so Annulla is visible right away (drop the duplicate success toast or merge it into the undo toast).",
+    "DELETE /api/esterni/{id}: also delete preventivi_esterni (they are restored by the same batch).",
+    "Update the 'Operazione irreversibile' wording in the delete confirmation.",
+    "Mobile: add bottom padding so the last row is not hidden under mobile-nav/FAB."
+  ],
+  "critical_code_review_comments": [
+    "Cestino only captures deleted documents. Any side-effect updates in the same DELETE request (stock, denormalized totals, movimenti inserts) are not rolled back, so the restored data can disagree with the rest of the system.",
+    "_cestino cleanup (delete_many ts < now-24h) runs on every DELETE. Add a TTL index on ts instead.",
+    "Middleware uses BaseHTTPMiddleware: the contextvar dict is shared by reference, so it works, but StreamingResponse DELETEs would still be fine."
+  ],
+  "updated_files": ["/app/backend/tests/test_cestino_undo.py"],
+  "success_rate": {"backend": "86% (6/7)", "frontend": "100% of tested flows functional (with toast stacking UX issue)"},
+  "seed_data_creation": "Created TEST esterni, articoli and lavori, and one TEST lavoro on Test_cestino. All deleted at the end, including Test_cestino (954238f6...) and its preventivo d6986702.... _cestino copies stay until the 24h expiry.",
+  "retest_needed": true,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Login with password 'admin' only. Run the test with: pytest tests/test_cestino_undo.py -p no:xdist -o addopts=''. test_lavoro_with_stock_restore_consistency is expected to fail until the stock fix. Undo toast selector: [data-sonner-toast] button with text Annulla. On mobile, click row buttons with JS click because the FAB covers them."
+}
