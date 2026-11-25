@@ -1242,9 +1242,9 @@ Backend spezzato in moduli (`server.py` ora 112 righe, prima 2761):
 - `deploy/pc/installa-aggiornamenti.sh` (sudo, una volta): crea servizio systemd `gebnautica-updater`, scrive UPDATER_URL/TOKEN in backend/.env, chiede i servizi da riavviare. Messaggio in Impostazioni e Manuale sez. 14/16 aggiornati.
 - Verificato in anteprima: /status in modalità locale e backup mongodump. Non verificato sul PC reale.
 
-## 2026-11-24 — Sync password e PIN tra PC e online
-- Documento `app_settings/credenziali_sync` (solo hash password admin + PIN) scritto a ogni cambio/recupero (change-password, reset-password, pin-reset, codice email, change-pin, impronta) e applicato all'arrivo sull'altra installazione (`auth.applica_credenziali`). `users` e doc `auth` restano esclusi. Impronte non sincronizzate (legate al dominio).
-- Verificato in anteprima: cambio password → registro sync; arrivo da peer → nuova password valida, vecchia rifiutata; password ripristinata.
+## 2026-11-24 — Sync password e PIN tra PC e online (rivisto su specifica utente)
+- `users` sincronizzata per email (sync_log `CHIAVE`), solo campi email/role/password_hash/password_customized/password_updated_at; `app_settings/auth` solo recovery_pin_hash/pin_customized/pin_updated_at (`CAMPI`, `filtra`). env_password_hash/env_pin_hash locali. Arrivo → *_customized=True (`sync._applica_credenziali`, crea l'utente se manca, mai cancellazioni). Seed in origin `nolog`. Update che non toccano campi sincronizzati non registrati. Rimosso il vecchio doc `credenziali_sync`. Locali: webauthn_*, password_reset_tokens, recupero_codice (codice email, non il PIN), ai_chiavi, ai_config, backup_info.
+- Verificato con script (13/13): log per email, solo campi ammessi, arrivo password/PIN, utente nuovo senza id, tenuta dopo riavvio, seed non propagato, cambio PIN propagato; credenziali anteprima ripristinate.
 
 ## 2026-11-24 — Chiave AI inseribile dall'app (PC)
 - Sul PC mancavano le chiavi AI nel .env. Impostazioni → Modello AI attivo → «Chiave Gemini di questa installazione»: PUT `/api/ai/chiave` verifica la chiave con Google e la salva in `app_settings/ai_chiavi` (locale, esclusa dalla sync, mai restituita). `ai_client.chiavi()` usa .env poi DB. Riquadro visibile solo dove manca la chiave Emergent.

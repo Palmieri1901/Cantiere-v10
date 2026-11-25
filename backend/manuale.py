@@ -197,7 +197,7 @@ SEZIONI = [
         ("-", "Senza internet il PC continua a funzionare in tutto e per tutto; le modifiche restano in coda e partono da sole appena torna la connessione."),
         ("-", "Se il PC è spento mentre si lavora online, all'accensione recupera subito tutto quello che è stato fatto nel frattempo."),
         ("-", "Se lo stesso dato viene modificato su entrambi i lati, vince l'ultima modifica in ordine di tempo."),
-        ("-", "Password di accesso e PIN di recupero si sincronizzano: se li cambi o li recuperi (PIN, codice email, impronta) su una installazione, alla sincronizzazione successiva valgono anche sull'altra. Le impronte digitali invece vanno registrate su ciascuna installazione."),
+        ("-", "Password di accesso (di tutti gli utenti, riconosciuti per email) e PIN di recupero si sincronizzano, vince l'ultima modifica: se li cambi o li recuperi su una installazione, alla sincronizzazione successiva valgono anche sull'altra. Restano invece di ogni installazione: impronte digitali, codici email temporanei, chiavi AI e la password/PIN iniziali scritti nel file .env."),
         ("#", "Configurazione (una sola volta)"),
         ("1", "Sulla versione online: Impostazioni → Sincronizzazione PC ↔ online → premi «Genera token» (chiave che inizia con GEB-), poi «Copia». L'indirizzo dell'altra installazione qui resta vuoto."),
         ("1", "Sul PC: stessa schermata → incolla il token nel campo «Chiave token di collegamento» (si può anche scrivere a mano, minimo 16 caratteri; l'occhio lo mostra/nasconde) e scrivi in «Indirizzo dell'altra installazione» l'indirizzo online completo, es. https://(indirizzo del gestionale online). Premi «Salva»."),

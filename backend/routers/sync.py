@@ -7,6 +7,8 @@ Regola: vince l'ultima modifica (confronto `_sync_ts` per documento). Richiede S
 import asyncio
 import os
 import secrets
+import uuid
+from datetime import datetime, timezone
 
 import httpx
 from bson import ObjectId, json_util
@@ -16,7 +18,7 @@ from motor.motor_asyncio import AsyncIOMotorGridFSBucket
 from pymongo.errors import DuplicateKeyError
 
 from database import db, logger
-from sync_log import DOC_ESCLUSI, ESCLUSE, doc_escluso, is_file_coll, now_ts, set_origin
+from sync_log import DOC_ESCLUSI, ESCLUSE, campi_sync, chiave, doc_escluso, filtra, is_file_coll, now_ts, set_origin
 
 router = APIRouter(prefix="/sync")  # stato/ora: protetti dal login del gestionale
 peer_router = APIRouter(prefix="/api/sync")  # endpoint tra installazioni: protetti dal solo SYNC_TOKEN
@@ -65,11 +67,11 @@ async def _with_docs(entries: list) -> list:
             if e["op"] == "upsert" and await db[e["coll"]].count_documents({"_id": ObjectId(e["doc_id"])}) == 0:
                 item["op"] = "delete"
         elif e["op"] == "upsert":
-            d = await db[e["coll"]].find_one({"id": e["doc_id"]}, {"_id": 0})
+            d = await db[e["coll"]].find_one({chiave(e["coll"]): e["doc_id"]}, {"_id": 0})
             if d is None:
                 item["op"] = "delete"
             else:
-                item["doc"] = d
+                item["doc"] = filtra(e["coll"], e["doc_id"], d)
         out.append(item)
     return out
 
@@ -91,8 +93,9 @@ async def snapshot(coll: str, skip: int = 0, x_sync_token: str = Header(default=
     if is_file_coll(coll):
         docs = [{"id": str(d["_id"]), "_sync_ts": d.get("_sync_ts") or 0} for d in await db[coll].find({}, {"_id": 1, "_sync_ts": 1}).skip(skip).limit(PAGE).to_list(PAGE)]
     else:
-        docs = [d for d in await db[coll].find({"id": {"$exists": True}}, {"_id": 0}).skip(skip).limit(PAGE).to_list(PAGE) if not doc_escluso(coll, d.get("id"))]
-    return _bson({"docs": docs, "has_more": len(docs) == PAGE})
+        k = chiave(coll)
+        docs = [filtra(coll, d.get(k), d) for d in await db[coll].find({k: {"$exists": True}}, {"_id": 0}).skip(skip).limit(PAGE).to_list(PAGE) if not doc_escluso(coll, d.get(k))]
+    return _bson({"docs": docs, "key": k if not is_file_coll(coll) else "id", "has_more": len(docs) == PAGE})
 
 
 @peer_router.get("/collections")
@@ -174,8 +177,14 @@ async def apply_changes(changes: list) -> int:
                         await db["_sync_log"].update_one({"coll": coll, "doc_id": did}, {"$set": {"op": "delete", "ts": ts, "origin": "sync"}}, upsert=True)
                         n += 1
                 continue
-            cur = await db[coll].find_one({"id": did}, {"_id": 0, "_sync_ts": 1})
+            cur = await db[coll].find_one({chiave(coll): did}, {"_id": 0, "_sync_ts": 1})
             cur_ts = float((cur or {}).get("_sync_ts") or 0)
+            campi = campi_sync(coll, did)
+            if campi:  # credenziali: solo i campi ammessi, mai cancellazioni
+                if c["op"] != "delete" and (cur is None or cur_ts < ts):
+                    await _applica_credenziali(coll, did, c.get("doc") or {}, campi, ts)
+                    n += 1
+                continue
             if c["op"] == "delete":
                 if cur is not None and cur_ts <= ts:
                     await db[coll].delete_one({"id": did})
@@ -194,13 +203,26 @@ async def apply_changes(changes: list) -> int:
                         await db[coll].delete_many({**kv, "id": {"$ne": did}})
                         await db[coll].replace_one({"id": did}, doc, upsert=True)
                     await db["_sync_log"].update_one({"coll": coll, "doc_id": did}, {"$set": {"ts": ts}})
-                    if coll == "app_settings" and did == "credenziali_sync":
-                        from auth import applica_credenziali
-                        await applica_credenziali(doc)
                     n += 1
     finally:
         _origin_reset(tok)
     return n
+
+
+async def _applica_credenziali(coll: str, did: str, doc: dict, campi: set, ts: float):
+    """Aggiorna password/PIN arrivati dall'altra installazione; *_customized=True così il seed da .env non li sovrascrive."""
+    k = chiave(coll)
+    s = {f: v for f, v in doc.items() if f in campi and f != k}
+    s["_sync_ts"] = ts
+    ins = {}
+    if coll == "users":
+        s["password_customized"] = True
+        ins = {"id": str(uuid.uuid4()), "nome": did.split("@")[0].title(), "created_at": datetime.now(timezone.utc).isoformat()}
+    else:
+        s["pin_customized"] = True
+    await db[coll].update_one({k: did}, {"$set": s, **({"$setOnInsert": ins} if ins else {})}, upsert=True)
+    await db["_sync_log"].update_one({"coll": coll, "doc_id": did}, {"$set": {"op": "upsert", "ts": ts, "origin": "sync"}}, upsert=True)
+    logger.info(f"sync: credenziali aggiornate dall'altra installazione ({coll}/{did})")
 
 
 async def _pull_files(cl, peer: str, h: dict, changes: list) -> int:
@@ -275,7 +297,8 @@ async def sync_once() -> dict:
                     skip = 0
                     while True:
                         r = json_util.loads((await cl.get(f"{peer}/api/sync/snapshot", params={"coll": coll, "skip": skip}, headers=h)).raise_for_status().text)
-                        chg = [{"coll": coll, "doc_id": d["id"], "op": "upsert", "ts": float(d.get("_sync_ts") or 0), "doc": d} for d in r["docs"] if d.get("id")]
+                        kk = r.get("key") or "id"
+                        chg = [{"coll": coll, "doc_id": d[kk], "op": "upsert", "ts": float(d.get("_sync_ts") or 0), "doc": d} for d in r["docs"] if d.get(kk)]
                         _stato["ricevuti"] += await _pull_files(cl, peer, h, chg) if is_file_coll(coll) else await apply_changes(chg)
                         skip += len(r["docs"])
                         if not r["has_more"]:

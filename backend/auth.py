@@ -155,7 +155,7 @@ async def pin_reset(payload: PinResetRequest, response: Response):
         }},
     )
     logger.info(f"Password admin reimpostata via PIN per {admin_email}")
-    await pubblica_credenziali()
+    await segna_credenziali({"id": user["id"]})
 
     token = create_access_token(user["id"], admin_email)
     _set_cookie(response, token)
@@ -198,7 +198,7 @@ async def change_pin(payload: ChangePinRequest, user: dict = Depends(get_current
         }},
         upsert=True,
     )
-    await pubblica_credenziali()
+    await segna_credenziali(pin=True)
     return {"ok": True, "message": "PIN di recupero aggiornato"}
 
 
@@ -328,7 +328,7 @@ async def codice_reset(payload: CodiceResetRequest, response: Response):
     await db.users.update_one({"id": user["id"]}, {"$set": {"password_hash": hash_password(payload.new_password), "password_customized": True}})
     await db.app_settings.update_one({"id": "recupero_codice"}, {"$set": {"usato": True}})
     logger.info("Password admin reimpostata via codice email")
-    await pubblica_credenziali()
+    await segna_credenziali({"id": user["id"]})
     token = create_access_token(user["id"], admin_email)
     _set_cookie(response, token)
     return {"ok": True, "id": user["id"], "email": admin_email, "nome": user.get("nome", ""), "role": user.get("role", "user"), "token": token}
@@ -361,7 +361,7 @@ async def reset_password(payload: ResetPasswordRequest):
         {"$set": {"used": True, "used_at": datetime.now(timezone.utc)}},
     )
     logger.info(f"Password reimpostata per user_id={record['user_id']}")
-    await pubblica_credenziali()
+    await segna_credenziali({"id": record["user_id"]})
     return {"ok": True, "message": "Password aggiornata correttamente"}
 
 
@@ -379,32 +379,29 @@ async def change_password(payload: ChangePasswordRequest, user: dict = Depends(g
         {"id": user["id"]},
         {"$set": {"password_hash": hash_password(payload.new_password)}},
     )
-    await pubblica_credenziali()
+    await segna_credenziali({"id": user["id"]})
     return {"ok": True, "message": "Password aggiornata correttamente"}
 
 
-async def pubblica_credenziali():
-    """Copia gli hash di password admin e PIN nel documento sincronizzato con l'altra installazione."""
-    admin_email = os.environ.get("ADMIN_EMAIL", "admin@portomare.it").strip().lower()
-    u = await db.users.find_one({"email": admin_email}, {"password_hash": 1}) or {}
-    s = await db.app_settings.find_one({"id": "auth"}, {"recovery_pin_hash": 1}) or {}
-    await db.app_settings.replace_one({"id": "credenziali_sync"}, {
-        "id": "credenziali_sync", "password_hash": u.get("password_hash", ""), "recovery_pin_hash": s.get("recovery_pin_hash", ""),
-        "aggiornato": datetime.now(timezone.utc).isoformat(),
-    }, upsert=True)
-
-
-async def applica_credenziali(doc: dict):
-    """Applica password/PIN arrivati dall'altra installazione (non rigenera il registro sync)."""
-    admin_email = os.environ.get("ADMIN_EMAIL", "admin@portomare.it").strip().lower()
-    if doc.get("password_hash"):
-        await db.users.update_one({"email": admin_email}, {"$set": {"password_hash": doc["password_hash"], "password_customized": True}})
-    if doc.get("recovery_pin_hash"):
-        await db.app_settings.update_one({"id": "auth"}, {"$set": {"recovery_pin_hash": doc["recovery_pin_hash"], "pin_customized": True, "updated_at": datetime.now(timezone.utc)}})
-    logger.info("sync: password/PIN aggiornati dall'altra installazione")
+async def segna_credenziali(flt: dict | None = None, pin: bool = False):
+    """Data dell'ultima modifica di password/PIN: viaggia con la sincronizzazione (vince la più recente)."""
+    now = datetime.now(timezone.utc).isoformat()
+    if pin:
+        await db.app_settings.update_one({"id": "auth"}, {"$set": {"pin_updated_at": now}})
+    else:
+        await db.users.update_one(flt, {"$set": {"password_updated_at": now, "password_customized": True}})
 
 
 async def seed_admin():
+    from sync_log import set_origin, _origin
+    tok = set_origin("nolog")  # password/PIN dal .env restano locali: non si propagano all'altra installazione
+    try:
+        await _seed_admin()
+    finally:
+        _origin.reset(tok)
+
+
+async def _seed_admin():
     admin_email = os.environ.get("ADMIN_EMAIL", "admin@portomare.it").strip().lower()
     admin_password = os.environ.get("ADMIN_PASSWORD", "admin")
     existing = await db.users.find_one({"email": admin_email})

@@ -9,13 +9,46 @@ import time
 
 from motor.motor_asyncio import AsyncIOMotorCollection
 
-ESCLUSE = {"_sync_log", "_sync_state", "_sync_config", "fs.files", "fs.chunks", "users", "password_reset_tokens"}
-# Documenti locali a ogni installazione (credenziali, PIN, cartella backup del PC): mai sincronizzati
-DOC_ESCLUSI = {"app_settings": {"auth", "backup_info", "recupero_codice", "ai_config", "ai_chiavi"}}
+ESCLUSE = {"_sync_log", "_sync_state", "_sync_config", "fs.files", "fs.chunks", "password_reset_tokens",
+           "webauthn_credentials", "webauthn_challenges"}
+# Documenti locali a ogni installazione (codice email temporaneo, cartella backup, chiavi/modello AI): mai sincronizzati
+DOC_ESCLUSI = {"app_settings": {"backup_info", "recupero_codice", "ai_config", "ai_chiavi"}}
+# Credenziali: sincronizzate solo in parte (hash, mai in chiaro); env_password_hash/env_pin_hash restano locali
+CHIAVE = {"users": "email"}
+CAMPI = {
+    "users": {"email", "role", "password_hash", "password_customized", "password_updated_at"},
+    ("app_settings", "auth"): {"id", "recovery_pin_hash", "pin_customized", "pin_updated_at"},
+}
 
 
 def doc_escluso(coll: str, doc_id) -> bool:
     return doc_id in DOC_ESCLUSI.get(coll, ())
+
+
+def chiave(coll: str) -> str:
+    return CHIAVE.get(coll, "id")
+
+
+def campi_sync(coll: str, doc_id=None) -> set | None:
+    return CAMPI.get(coll) or CAMPI.get((coll, doc_id))
+
+
+def filtra(coll: str, doc_id, doc: dict) -> dict:
+    """Per i documenti di credenziali lascia solo i campi sincronizzabili (+ _sync_ts)."""
+    f = campi_sync(coll, doc_id)
+    return doc if not f else {k: v for k, v in doc.items() if k in f or k == "_sync_ts"}
+
+
+def _irrilevante(coll: str, flt, update) -> bool:
+    """Update su credenziali che non tocca campi sincronizzati (es. ultimo accesso, env_*): non va registrato."""
+    doc_id = flt.get("id") if isinstance(flt, dict) and isinstance(flt.get("id"), str) else None
+    f = campi_sync(coll, doc_id)
+    if not f or not isinstance(update, dict):
+        return False
+    keys = set()
+    for op in ("$set", "$unset", "$setOnInsert"):
+        keys |= set((update.get(op) or {}).keys())
+    return not (keys & f)
 _origin = contextvars.ContextVar("sync_origin", default="local")
 
 
@@ -27,11 +60,11 @@ def set_origin(v: str):
     return _origin.set(v)
 
 
-def _ids_from_filter(flt) -> list | None:
-    if isinstance(flt, dict) and isinstance(flt.get("id"), str):
-        return [flt["id"]]
-    if isinstance(flt, dict) and isinstance(flt.get("id"), dict) and isinstance(flt["id"].get("$in"), list):
-        return [x for x in flt["id"]["$in"] if isinstance(x, str)]
+def _ids_from_filter(flt, k: str = "id") -> list | None:
+    if isinstance(flt, dict) and isinstance(flt.get(k), str):
+        return [flt[k]]
+    if isinstance(flt, dict) and isinstance(flt.get(k), dict) and isinstance(flt[k].get("$in"), list):
+        return [x for x in flt[k]["$in"] if isinstance(x, str)]
     return None
 
 
@@ -40,7 +73,8 @@ def is_file_coll(name: str) -> bool:
 
 
 def _esclusa(name: str) -> bool:
-    return name in ESCLUSE or name.endswith(".chunks")
+    # origin "nolog": scritture locali da non propagare (es. seed da .env all'avvio)
+    return name in ESCLUSE or name.endswith(".chunks") or _origin.get() == "nolog"
 
 
 async def _file_ids(coll, flt) -> list:
@@ -70,13 +104,14 @@ def _with_ts(update, ts: float):
 async def _resolve_ids(coll, flt, multi: bool) -> list:
     if is_file_coll(coll.name):
         return await _file_ids(coll, flt)
-    ids = _ids_from_filter(flt)
+    k = chiave(coll.name)
+    ids = _ids_from_filter(flt, k)
     if ids is not None:
         return ids
     if multi:
-        return [d["id"] for d in await coll.find(flt, {"_id": 0, "id": 1}).to_list(10000) if d.get("id")]
-    d = await coll.find_one(flt, {"_id": 0, "id": 1})
-    return [d["id"]] if d and d.get("id") else []
+        return [d[k] for d in await coll.find(flt, {"_id": 0, k: 1}).to_list(10000) if d.get(k)]
+    d = await coll.find_one(flt, {"_id": 0, k: 1})
+    return [d[k]] if d and d.get(k) else []
 
 
 def install():
@@ -92,8 +127,8 @@ def install():
         if not _esclusa(self.name) and isinstance(doc, dict):
             doc["_sync_ts"] = ts
         r = await o_insert_one(self, doc, *a, **k)
-        if isinstance(doc, dict) and doc.get("id"):
-            await _log(self, [doc["id"]], "upsert", ts)
+        if isinstance(doc, dict) and doc.get(chiave(self.name)):
+            await _log(self, [doc[chiave(self.name)]], "upsert", ts)
         elif is_file_coll(self.name) and isinstance(doc, dict) and doc.get("_id") is not None:
             await _log(self, [str(doc["_id"])], "upsert", ts)
         return r
@@ -106,13 +141,14 @@ def install():
                 if isinstance(d, dict):
                     d["_sync_ts"] = ts
         r = await o_insert_many(self, docs, *a, **k)
-        await _log(self, [d["id"] for d in docs if isinstance(d, dict) and d.get("id")], "upsert", ts)
+        ck = chiave(self.name)
+        await _log(self, [d[ck] for d in docs if isinstance(d, dict) and d.get(ck)], "upsert", ts)
         return r
 
     def _mk_update(orig, multi):
         async def f(self, flt, update, *a, **k):
             ts = now_ts()
-            if _esclusa(self.name) or is_file_coll(self.name):
+            if _esclusa(self.name) or is_file_coll(self.name) or _irrilevante(self.name, flt, update):
                 return await orig(self, flt, update, *a, **k)
             r = await orig(self, flt, _with_ts(update, ts), *a, **k)
             ids = await _resolve_ids(self, flt, multi)
@@ -127,7 +163,8 @@ def install():
         if not _esclusa(self.name) and isinstance(doc, dict):
             doc["_sync_ts"] = ts
         r = await o_replace_one(self, flt, doc, *a, **k)
-        ids = await _resolve_ids(self, flt, False) or ([doc["id"]] if isinstance(doc, dict) and doc.get("id") else [])
+        ck = chiave(self.name)
+        ids = await _resolve_ids(self, flt, False) or ([doc[ck]] if isinstance(doc, dict) and doc.get(ck) else [])
         await _log(self, ids, "upsert", ts)
         return r
 
@@ -143,7 +180,7 @@ def install():
 
     async def find_one_and_update(self, flt, update, *a, **k):
         ts = now_ts()
-        if _esclusa(self.name) or is_file_coll(self.name):
+        if _esclusa(self.name) or is_file_coll(self.name) or _irrilevante(self.name, flt, update):
             return await o_fou(self, flt, update, *a, **k)
         r = await o_fou(self, flt, _with_ts(update, ts), *a, **k)
         ids = await _resolve_ids(self, flt, False) or ([r["id"]] if isinstance(r, dict) and r.get("id") else [])
