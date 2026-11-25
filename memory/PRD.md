@@ -1275,3 +1275,5 @@ Backend spezzato in moduli (`server.py` ora 112 righe, prima 2761):
 - Ogni settore delle Tariffe ha «Aggiungi voce» (nome, unità, prezzo, elimina); nuovi settori creabili/rinominabili/eliminabili (`tariffe/VociSettore.jsx`, `tariffe/SettoriExtra.jsx`). Dati: `servizi_extra[].settore` + `settori_extra`. Voci senza settore restano in «Altri servizi». Listino PDF: le voci compaiono nel settore corrispondente o in un riquadro per il nuovo settore; il selettore «Dal listino» le raggruppa per settore. Le voci fisse restano non rinominabili (scelta predefinita).
 - Verificato: voce in Sosta + settore nuovo salvati, ricaricati, presenti nel PDF; tariffe anteprima ripristinate.
 
+
+- Lavori (rimessaggio ed esterni, `LavoriSection.jsx`): il menu «Tipo» elenca anche le voci di listino aggiunte, raggruppate «Listino · settore»; sceglierne una compila descrizione e costo (1 unità, ore=1 se a ora, costo segnato manuale) senza cambiare il tipo. Verificato a 390px.

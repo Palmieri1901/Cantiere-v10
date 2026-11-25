@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue
+  Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue
 } from "@/components/ui/select";
 import {
   Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription
@@ -17,6 +17,7 @@ import { toast } from "sonner";
 import { Plus, Pencil, Trash2, Wrench, Package, AlertTriangle } from "lucide-react";
 import { ListinoPicker } from "@/components/ListinoPicker";
 import { righeLavoro } from "@/lib/righeLavoro";
+import { normUnita } from "@/lib/unita";
 
 const TIPI_LAVORO = ["Antivegetativa", "Manutenzione motore", "Riparazione", "Pulizia", "Elettrico", "Altro"];
 const STATI = [
@@ -43,6 +44,16 @@ export default function LavoriSection({ clienteId, editLavoroId }) {
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState(null);
   const [tariffaOraria, setTariffaOraria] = useState(0);
+  const [vociListino, setVociListino] = useState([]);
+  // Voce di listino dalla scelta rapida: compila descrizione e costo (1 unità, modificabile)
+  const scegliTipo = (v) => {
+    if (!v.startsWith("voce:")) return setForm((f) => ({ ...f, tipo: v }));
+    const s = vociListino[Number(v.slice(5))];
+    const u = normUnita(s.unita);
+    setCostoManuale(true);
+    setForm((f) => ({ ...f, descrizione: f.descrizione?.trim() ? `${f.descrizione.trim()}\n${s.nome}` : s.nome, costo: Number(s.prezzo), ...(u.id === "ore" ? { ore: 1 } : {}) }));
+    toast.success(u.domanda ? `${s.nome}: prezzo per 1 ${u.breve || "unità"}, correggi il costo se serve` : `${s.nome}: prezzo compilato`);
+  };
   const [costoManuale, setCostoManuale] = useState(false);
   const [articoliMag, setArticoliMag] = useState([]);
   const [artSelezionati, setArtSelezionati] = useState([]); // [{articolo_id, codice, nome, quantita, prezzo_unitario, giacenza}]
@@ -74,6 +85,7 @@ export default function LavoriSection({ clienteId, editLavoroId }) {
       const [r, t] = await Promise.all([api.get("/magazzino/articoli"), api.get("/tariffe")]);
       setArticoliMag(r.data);
       setTariffaOraria(Number(t.data.costo_orario_manodopera) || 0);
+      setVociListino((t.data.servizi_extra || []).filter((s) => (s.nome || "").trim() && Number(s.prezzo) > 0));
     } catch { /* ignoro */ }
   };
 
@@ -292,10 +304,18 @@ export default function LavoriSection({ clienteId, editLavoroId }) {
                 </div>
                 <div className="space-y-1.5">
                   <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Tipo</Label>
-                  <Select value={form.tipo} onValueChange={(v) => setForm({ ...form, tipo: v })}>
+                  <Select value={form.tipo} onValueChange={scegliTipo}>
                     <SelectTrigger data-testid="select-lavoro-tipo"><SelectValue /></SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="max-w-[calc(100vw-2rem)]">
                       {TIPI_LAVORO.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                      {[...new Set(vociListino.map((s) => s.settore || "Altri servizi"))].map((sett) => (
+                        <SelectGroup key={sett}>
+                          <SelectLabel className="text-[11px] uppercase tracking-wider text-muted-foreground">Listino · {sett}</SelectLabel>
+                          {vociListino.map((s, i) => (s.settore || "Altri servizi") === sett && (
+                            <SelectItem key={i} value={`voce:${i}`} className="whitespace-normal" data-testid={`lavoro-voce-listino-${i}`}>{s.nome} · {fmtEuro(s.prezzo)}{normUnita(s.unita).breve ? ` / ${normUnita(s.unita).breve}` : ""}</SelectItem>
+                          ))}
+                        </SelectGroup>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
