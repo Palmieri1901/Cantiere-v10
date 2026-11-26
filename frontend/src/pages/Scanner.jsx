@@ -10,6 +10,7 @@ import { elabora, leggiFile } from "@/lib/scanImage";
 import { TimbroCard } from "./scanner/TimbroCard";
 import { PaginaCard } from "./scanner/PaginaCard";
 import { TimbroEditor } from "./scanner/TimbroEditor";
+import { RitaglioEditor } from "./scanner/RitaglioEditor";
 
 export default function Scanner() {
   const cam = useRef(null);
@@ -19,6 +20,7 @@ export default function Scanner() {
   const [nome, setNome] = useState(`Scansione_${new Date().toLocaleDateString("it-IT").replace(/\//g, "-")}`);
   const [busy, setBusy] = useState("");
   const [edit, setEdit] = useState(null);
+  const [crop, setCrop] = useState(null);
   const [pdf, setPdf] = useState({ url: null, open: false });
 
   const aggiungi = async (e) => {
@@ -30,15 +32,17 @@ export default function Scanner() {
       const nuove = [];
       for (const f of files) {
         const src = await leggiFile(f);
-        nuove.push({ id: crypto.randomUUID(), src, filtro: "documento", rot: 0, img: await elabora(src, "documento", 0), timbri: [] });
+        nuove.push({ id: crypto.randomUUID(), src, filtro: "documento", rot: 0, angoli: null, img: await elabora(src, "documento", 0), timbri: [] });
       }
       setPagine((p) => [...p, ...nuove]);
     } catch { toast.error("Immagine non leggibile"); } finally { setBusy(""); }
   };
-  const aggiorna = async (i, patch) => {
-    const p = { ...pagine[i], ...patch };
-    const img = await elabora(p.src, p.filtro, p.rot);
-    setPagine((l) => l.map((x) => (x.id === p.id ? { ...p, img, timbri: patch.rot !== undefined ? [] : p.timbri } : x)));
+  const aggiorna = async (id, patch) => {
+    const p = { ...pagine.find((x) => x.id === id), ...patch };
+    if (patch.rot !== undefined) p.angoli = null;
+    const img = await elabora(p.src, p.filtro, p.rot, p.angoli);
+    const geom = patch.rot !== undefined || patch.angoli !== undefined;
+    setPagine((l) => l.map((x) => (x.id === id ? { ...p, img, timbri: geom ? [] : p.timbri } : x)));
   };
   const sposta = (i, d) => setPagine((l) => { const c = [...l]; [c[i], c[i + d]] = [c[i + d], c[i]]; return c; });
   const genera = async () => {
@@ -71,7 +75,7 @@ export default function Scanner() {
         <>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
             {pagine.map((p, i) => (
-              <PaginaCard key={p.id} p={p} i={i} tot={pagine.length} onFiltro={(f) => aggiorna(i, { filtro: f })} onRuota={() => aggiorna(i, { rot: (p.rot + 90) % 360 })}
+              <PaginaCard key={p.id} p={p} i={i} tot={pagine.length} onFiltro={(f) => aggiorna(p.id, { filtro: f })} onRuota={() => aggiorna(p.id, { rot: (p.rot + 90) % 360 })} onRitaglia={() => setCrop(p.id)}
                 onSposta={(d) => sposta(i, d)} onElimina={() => setPagine((l) => l.filter((x) => x.id !== p.id))}
                 onTimbro={() => (timbro ? setEdit(p.id) : toast.error("Carica prima timbro e firma qui sopra"))} />
             ))}
@@ -86,6 +90,8 @@ export default function Scanner() {
       )}
       <TimbroEditor pagina={editIdx >= 0 ? pagine[editIdx] : null} timbro={timbro} onClose={() => setEdit(null)}
         onChange={(timbri) => setPagine((l) => l.map((x) => (x.id === edit ? { ...x, timbri } : x)))} />
+      <RitaglioEditor pagina={pagine.find((p) => p.id === crop) || null} onClose={() => setCrop(null)}
+        onApply={(angoli) => { const id = crop; setCrop(null); aggiorna(id, { angoli }); }} />
       <PdfPreviewOverlay open={pdf.open} onClose={() => setPdf((s) => ({ ...s, open: false }))} url={pdf.url} filename={`${nome || "Scansione"}.pdf`} />
     </div>
   );

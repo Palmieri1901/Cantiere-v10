@@ -30,18 +30,69 @@ function livelli(d, grigio) {
   }
 }
 
-// filtro: "documento" | "colore" | "originale"; rot: 0/90/180/270
-export async function elabora(src, filtro, rot) {
+// Omografia che porta il rettangolo (0,0)-(w,h) sul quadrilatero q [[x,y]x4: alto-sx, alto-dx, basso-dx, basso-sx]
+function omografia(w, h, q) {
+  const src = [[0, 0], [w, 0], [w, h], [0, h]];
+  const A = [], b = [];
+  for (let i = 0; i < 4; i++) {
+    const [x, y] = src[i], [u, v] = q[i];
+    A.push([x, y, 1, 0, 0, 0, -u * x, -u * y]); b.push(u);
+    A.push([0, 0, 0, x, y, 1, -v * x, -v * y]); b.push(v);
+  }
+  for (let c = 0; c < 8; c++) {
+    let p = c;
+    for (let r = c + 1; r < 8; r++) if (Math.abs(A[r][c]) > Math.abs(A[p][c])) p = r;
+    [A[c], A[p]] = [A[p], A[c]]; [b[c], b[p]] = [b[p], b[c]];
+    for (let r = 0; r < 8; r++) {
+      if (r === c) continue;
+      const f = A[r][c] / A[c][c];
+      for (let k = c; k < 8; k++) A[r][k] -= f * A[c][k];
+      b[r] -= f * b[c];
+    }
+  }
+  return b.map((v, i) => v / A[i][i]);
+}
+
+// Raddrizza il foglio: angoli relativi (0-1) sull'immagine già ruotata
+function raddrizza(cv, angoli) {
+  const q = angoli.map(([x, y]) => [x * cv.width, y * cv.height]);
+  const d = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1]);
+  let w = Math.max(d(q[0], q[1]), d(q[3], q[2])), h = Math.max(d(q[0], q[3]), d(q[1], q[2]));
+  const s = Math.min(1, MAX / Math.max(w, h));
+  w = Math.max(1, Math.round(w * s)); h = Math.max(1, Math.round(h * s));
+  const [a, b, c, e, f, g, i, j] = omografia(w, h, q);
+  const sd = cv.getContext("2d").getImageData(0, 0, cv.width, cv.height).data;
+  const out = document.createElement("canvas");
+  out.width = w; out.height = h;
+  const oc = out.getContext("2d");
+  const od = oc.createImageData(w, h);
+  const W = cv.width, H = cv.height;
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const z = i * x + j * y + 1;
+      const sx = Math.min(W - 1, Math.max(0, ((a * x + b * y + c) / z) | 0));
+      const sy = Math.min(H - 1, Math.max(0, ((e * x + f * y + g) / z) | 0));
+      const si = (sy * W + sx) * 4, oi = (y * w + x) * 4;
+      od.data[oi] = sd[si]; od.data[oi + 1] = sd[si + 1]; od.data[oi + 2] = sd[si + 2]; od.data[oi + 3] = 255;
+    }
+  }
+  oc.putImageData(od, 0, 0);
+  return out;
+}
+
+// filtro: "documento" | "colore" | "originale"; rot: 0/90/180/270; angoli: 4 punti relativi o null
+export async function elabora(src, filtro, rot, angoli = null) {
   const img = await carica(src);
   const s = Math.min(1, MAX / Math.max(img.width, img.height));
   const w = Math.round(img.width * s), h = Math.round(img.height * s);
   const ruota = rot % 180 !== 0;
-  const cv = document.createElement("canvas");
+  let cv = document.createElement("canvas");
   cv.width = ruota ? h : w; cv.height = ruota ? w : h;
-  const ctx = cv.getContext("2d");
+  let ctx = cv.getContext("2d");
   ctx.translate(cv.width / 2, cv.height / 2);
   ctx.rotate((rot * Math.PI) / 180);
   ctx.drawImage(img, -w / 2, -h / 2, w, h);
+  if (angoli) { cv = raddrizza(cv, angoli); ctx = cv.getContext("2d"); }
   if (filtro !== "originale") {
     const id = ctx.getImageData(0, 0, cv.width, cv.height);
     livelli(id.data, filtro === "documento");

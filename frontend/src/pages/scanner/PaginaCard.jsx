@@ -1,10 +1,10 @@
 import { Button } from "@/components/ui/button";
-import { ArrowDown, ArrowUp, RotateCw, Stamp, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, Crop, RotateCw, Stamp, Trash2 } from "lucide-react";
 
 const FILTRI = [["documento", "B/N"], ["colore", "Colore"], ["originale", "Foto"]];
 
 // Miniatura di una pagina con i comandi: filtro, ruota, ordine, timbro, elimina
-export function PaginaCard({ p, i, tot, onFiltro, onRuota, onSposta, onTimbro, onElimina }) {
+export function PaginaCard({ p, i, tot, onFiltro, onRuota, onRitaglia, onSposta, onTimbro, onElimina }) {
   return (
     <div className="rounded-lg border bg-card p-2 space-y-2" data-testid={`scan-pagina-${i}`}>
       <div className="relative bg-muted/40 rounded overflow-hidden aspect-[3/4] grid place-items-center">
@@ -18,8 +18,9 @@ export function PaginaCard({ p, i, tot, onFiltro, onRuota, onSposta, onTimbro, o
             className={`flex-1 text-[11px] rounded px-1 py-1 border transition-colors ${p.filtro === k ? "bg-primary text-primary-foreground border-primary" : "hover:bg-muted"}`}>{l}</button>
         ))}
       </div>
-      <div className="flex justify-between">
+      <div className="flex justify-between -mx-1">
         <Button size="icon" variant="ghost" className="h-8 w-8" onClick={onRuota} title="Ruota" data-testid={`scan-ruota-${i}`}><RotateCw className="w-4 h-4" /></Button>
+        <Button size="icon" variant="ghost" className={`h-8 w-8 ${p.angoli ? "text-primary" : ""}`} onClick={onRitaglia} title="Ritaglia e raddrizza" data-testid={`scan-ritaglia-${i}`}><Crop className="w-4 h-4" /></Button>
         <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => onSposta(-1)} disabled={i === 0} title="Prima" data-testid={`scan-su-${i}`}><ArrowUp className="w-4 h-4" /></Button>
         <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => onSposta(1)} disabled={i === tot - 1} title="Dopo" data-testid={`scan-giu-${i}`}><ArrowDown className="w-4 h-4" /></Button>
         <Button size="icon" variant="ghost" className="h-8 w-8" onClick={onTimbro} title="Timbro e firma" data-testid={`scan-timbro-${i}`}><Stamp className="w-4 h-4" /></Button>
