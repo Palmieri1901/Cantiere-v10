@@ -17,6 +17,8 @@ router = APIRouter(prefix="/suzuki/liberatoria", tags=["Suzuki"])
 TESTO_DEFAULT = [
     "Il/La sottoscritto/a {cliente}, proprietario/a del motore fuoribordo {motore}, matricola {matricola}, installato sull'imbarcazione {imbarcazione}, "
     "chiede espressamente a {cantiere} di eseguire sul motore la modifica di potenziamento da {hp_da} HP a {hp_a} HP ({intervento}).",
+    "Dichiara di essere a conoscenza che la modifica è ammessa esclusivamente per l'impiego in gare in circuiti chiusi o per scopi dimostrativi "
+    "e non per il normale uso del mezzo, e si impegna a non utilizzare il motore modificato per la navigazione ordinaria.",
     "Dichiara di essere stato/a informato/a che la modifica può comportare la decadenza della garanzia del costruttore e può incidere su durata, consumi e affidabilità del motore.",
     "Dichiara di essere stato/a informato/a che la variazione di potenza va riportata sui documenti del motore e dell'imbarcazione (es. certificato d'uso del motore, "
     "documenti di navigazione, polizza assicurativa) e che la potenza installata deve rispettare i limiti dell'imbarcazione e dell'abilitazione al comando: "
