@@ -13,6 +13,7 @@ import OfferteDialog from "./OfferteDialog";
 import ImportAIDialog from "./ImportAIDialog";
 import LogoPdfButton from "./LogoPdfButton";
 import ListinoConcessionarioButton from "./ListinoConcessionarioButton";
+import LiberatoriaButton from "./LiberatoriaButton";
 
 export default function ModelliTab() {
   const [items, setItems] = useState([]);
@@ -82,6 +83,7 @@ export default function ModelliTab() {
         </Button>
         <WhatsAppPdfButton url="/suzuki/caratteristiche.pdf" filename="caratteristiche_Suzuki.pdf" size="icon" testId="wa-caratt-suzuki" />
         <LogoPdfButton />
+        <LiberatoriaButton modelli={items} />
         <Button variant="outline" onClick={() => setImportOpen(true)} data-testid="btn-import-ai">
           <Sparkles className="w-4 h-4 mr-2" /> Importa listino con AI
         </Button>

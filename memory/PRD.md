@@ -1281,3 +1281,7 @@ Backend spezzato in moduli (`server.py` ora 112 righe, prima 2761):
 ## 2026-11-25 — Magazzino a tutto schermo su PC
 - Pagina Magazzino senza limite di larghezza; tabella articoli da 1280px in su a colonne fisse in percentuale (tutto visibile senza scorrimento), prezzi su una riga; sotto 1280px resta lo scorrimento orizzontale. Verificato a 1920/1366/1280 (tabella = contenitore) e 390px.
 
+## 2026-11-26 — Liberatoria potenziamento fuoribordo (pagina Suzuki)
+- Tasto «Liberatoria potenziamento» in Suzuki → Modelli & Listino (`suzuki/LiberatoriaButton.jsx`): dati cliente (anche «Da anagrafica»), imbarcazione, motore (suggerimenti dai modelli Suzuki), matricola, HP da/a, intervento, luogo/data; testo modificabile con segnaposto, salvabile come predefinito (`app_settings/liberatoria_potenziamento`). PDF (`routers/liberatoria.py`, POST `/api/suzuki/liberatoria/pdf`) con intestazione cantiere e logo, tabella dati, testo, spazi firma cliente/cantiere; anteprima con Stampa, WhatsApp, Scarica. Il testo predefinito è un modello da far verificare a un consulente.
+
+

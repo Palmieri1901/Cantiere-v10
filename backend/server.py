@@ -23,7 +23,7 @@ from routers import (
     tariffe, clienti, lavori, stats, export,
     cantiere, backup, preventivo, report, anni, contratti, magazzino, tubolari, suzuki, gommoni, ddt,
     dipendenti, mobile, esterni, servizio, capitaneria, mezzi, aggiornamenti, calendario, assistente, unisci, anagrafica, officina, officina_siti, fatturazione, webauthn_lock, lavagna, laser,
-    share, valutazioni, sync, ai_config, cestino,
+    share, valutazioni, sync, ai_config, cestino, liberatoria,
 )
 
 
@@ -75,6 +75,7 @@ api_router.include_router(unisci.router)
 api_router.include_router(lavagna.router)
 api_router.include_router(laser.router)
 api_router.include_router(cestino.router)
+api_router.include_router(liberatoria.router)
 
 app.include_router(api_router)
 app.include_router(auth_router)
