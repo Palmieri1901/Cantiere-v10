@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Camera, Images, FileDown, Loader2, ScanLine } from "lucide-react";
 import { PdfPreviewOverlay } from "@/components/PdfPreviewOverlay";
 import { openBlob } from "@/pages/ddt/common";
-import { elabora, leggiFile } from "@/lib/scanImage";
+import { elabora, leggiFile, trovaBordi } from "@/lib/scanImage";
 import { TimbroCard } from "./scanner/TimbroCard";
 import { PaginaCard } from "./scanner/PaginaCard";
 import { TimbroEditor } from "./scanner/TimbroEditor";
@@ -32,14 +32,18 @@ export default function Scanner() {
       const nuove = [];
       for (const f of files) {
         const src = await leggiFile(f);
-        nuove.push({ id: crypto.randomUUID(), src, filtro: "documento", rot: 0, angoli: null, img: await elabora(src, "documento", 0), timbri: [] });
+        const angoli = await trovaBordi(src).catch(() => null);
+        nuove.push({ id: crypto.randomUUID(), src, filtro: "documento", rot: 0, angoli, auto: !!angoli, img: await elabora(src, "documento", 0, angoli), timbri: [] });
       }
       setPagine((p) => [...p, ...nuove]);
+      if (nuove.length === 1) setCrop(nuove[0].id);
+      else if (nuove.some((p) => p.auto)) toast.success("Bordi dei fogli trovati in automatico: tocca Ritaglia per correggerli");
     } catch { toast.error("Immagine non leggibile"); } finally { setBusy(""); }
   };
   const aggiorna = async (id, patch) => {
     const p = { ...pagine.find((x) => x.id === id), ...patch };
-    if (patch.rot !== undefined) p.angoli = null;
+    if (patch.rot !== undefined) p.angoli = await trovaBordi(p.src, p.rot).catch(() => null);
+    if (patch.rot !== undefined || patch.angoli !== undefined) p.auto = patch.rot !== undefined && !!p.angoli;
     const img = await elabora(p.src, p.filtro, p.rot, p.angoli);
     const geom = patch.rot !== undefined || patch.angoli !== undefined;
     setPagine((l) => l.map((x) => (x.id === id ? { ...p, img, timbri: geom ? [] : p.timbri } : x)));

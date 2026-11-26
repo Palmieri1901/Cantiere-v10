@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Loader2, Maximize } from "lucide-react";
-import { elabora } from "@/lib/scanImage";
+import { Loader2, Maximize, Wand2 } from "lucide-react";
+import { elabora, trovaBordi } from "@/lib/scanImage";
 
 const TUTTO = [[0, 0], [1, 0], [1, 1], [0, 1]];
 const NOMI = ["alto-sx", "alto-dx", "basso-dx", "basso-sx"];
@@ -32,7 +33,9 @@ export function RitaglioEditor({ pagina, onApply, onClose }) {
       <DialogContent className="w-[calc(100vw-1rem)] sm:max-w-xl max-h-[94vh] overflow-y-auto" data-testid="ritaglio-editor">
         <DialogHeader>
           <DialogTitle>Ritaglia e raddrizza</DialogTitle>
-          <DialogDescription>Trascina i quattro punti sugli angoli del foglio.</DialogDescription>
+          <DialogDescription data-testid="ritaglio-descrizione">
+            {pagina?.auto ? "Bordo del foglio trovato in automatico: se va bene premi Conferma, altrimenti trascina i punti." : "Trascina i quattro punti sugli angoli del foglio."}
+          </DialogDescription>
         </DialogHeader>
         {!img ? <Loader2 className="w-6 h-6 animate-spin mx-auto my-10" /> : (
           <div ref={box} className="relative w-full select-none touch-none" data-testid="ritaglio-area">
@@ -49,9 +52,13 @@ export function RitaglioEditor({ pagina, onApply, onClose }) {
         )}
         <div className="flex flex-wrap gap-2">
           <Button variant="outline" size="sm" onClick={() => setPt(TUTTO)} data-testid="ritaglio-tutto"><Maximize className="w-4 h-4 mr-1" /> Tutta la foto</Button>
+          <Button variant="outline" size="sm" disabled={!img} data-testid="ritaglio-auto"
+            onClick={async () => { const a = await trovaBordi(pagina.src, pagina.rot).catch(() => null); if (a) setPt(a); else toast.error("Bordo non riconosciuto: sposta i punti a mano"); }}>
+            <Wand2 className="w-4 h-4 mr-1" /> Trova bordi
+          </Button>
           <div className="flex-1" />
           <Button variant="ghost" size="sm" onClick={onClose} data-testid="ritaglio-annulla">Annulla</Button>
-          <Button size="sm" onClick={() => onApply(pt === TUTTO || pt.every((q, i) => q[0] === TUTTO[i][0] && q[1] === TUTTO[i][1]) ? null : pt)} disabled={!img} data-testid="ritaglio-applica">Applica</Button>
+          <Button size="sm" onClick={() => onApply(pt === TUTTO || pt.every((q, i) => q[0] === TUTTO[i][0] && q[1] === TUTTO[i][1]) ? null : pt)} disabled={!img} data-testid="ritaglio-applica">{pagina?.auto ? "Conferma" : "Applica"}</Button>
         </div>
       </DialogContent>
     </Dialog>

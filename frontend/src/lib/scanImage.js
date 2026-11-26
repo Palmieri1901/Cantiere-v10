@@ -80,6 +80,63 @@ function raddrizza(cv, angoli) {
   return out;
 }
 
+// Trova da solo i 4 angoli del foglio (chiaro su fondo più scuro); null se non lo riconosce
+export async function trovaBordi(src, rot = 0) {
+  const img = await carica(src);
+  const s = 256 / Math.max(img.width, img.height);
+  const w0 = Math.max(1, Math.round(img.width * s)), h0 = Math.max(1, Math.round(img.height * s));
+  const ruota = rot % 180 !== 0;
+  const cv = document.createElement("canvas");
+  cv.width = ruota ? h0 : w0; cv.height = ruota ? w0 : h0;
+  const ctx = cv.getContext("2d");
+  ctx.filter = "blur(2px)";
+  ctx.translate(cv.width / 2, cv.height / 2);
+  ctx.rotate((rot * Math.PI) / 180);
+  ctx.drawImage(img, -w0 / 2, -h0 / 2, w0, h0);
+  const W = cv.width, H = cv.height, N = W * H;
+  const d = ctx.getImageData(0, 0, W, H).data;
+  const g = new Uint8Array(N), hist = new Array(256).fill(0);
+  for (let p = 0; p < N; p++) { g[p] = (d[p * 4] * 0.299 + d[p * 4 + 1] * 0.587 + d[p * 4 + 2] * 0.114) | 0; hist[g[p]]++; }
+  let sum = 0; for (let t = 0; t < 256; t++) sum += t * hist[t];
+  let sB = 0, wB = 0, best = 0, soglia = 128;
+  for (let t = 0; t < 256; t++) {
+    wB += hist[t]; if (!wB) continue;
+    const wF = N - wB; if (!wF) break;
+    sB += t * hist[t];
+    const v = wB * wF * (sB / wB - (sum - sB) / wF) ** 2;
+    if (v > best) { best = v; soglia = t; }
+  }
+  const lab = new Int32Array(N).fill(-1), coda = new Int32Array(N);
+  let maxN = 0, maxL = -1;
+  for (let p0 = 0, l = 0; p0 < N; p0++) {
+    if (g[p0] <= soglia || lab[p0] !== -1) continue;
+    let a = 0, b = 0; coda[b++] = p0; lab[p0] = l;
+    while (a < b) {
+      const p = coda[a++], x = p % W, y = (p / W) | 0;
+      const v = [x > 0 && p - 1, x < W - 1 && p + 1, y > 0 && p - W, y < H - 1 && p + W];
+      for (const q of v) if (q !== false && g[q] > soglia && lab[q] === -1) { lab[q] = l; coda[b++] = q; }
+    }
+    if (b > maxN) { maxN = b; maxL = l; }
+    l++;
+  }
+  if (maxN < N * 0.15 || maxN > N * 0.97) return null;
+  const c = [[0, 0, Infinity], [0, 0, -Infinity], [0, 0, -Infinity], [0, 0, Infinity]];
+  for (let p = 0; p < N; p++) {
+    if (lab[p] !== maxL) continue;
+    const x = p % W, y = (p / W) | 0, sp = x + y, df = x - y;
+    if (sp < c[0][2]) c[0] = [x, y, sp];
+    if (df > c[1][2]) c[1] = [x, y, df];
+    if (sp > c[2][2]) c[2] = [x, y, sp];
+    if (df < c[3][2]) c[3] = [x, y, df];
+  }
+  const q = c.map(([x, y]) => [x / (W - 1), y / (H - 1)]);
+  let area = 0;
+  for (let i = 0; i < 4; i++) { const [x1, y1] = q[i], [x2, y2] = q[(i + 1) % 4]; area += x1 * y2 - x2 * y1; }
+  if (Math.abs(area) / 2 < 0.12) return null;
+  const tutto = q.every(([x, y], i) => Math.abs(x - [0, 1, 1, 0][i]) < 0.02 && Math.abs(y - [0, 0, 1, 1][i]) < 0.02);
+  return tutto ? null : q;
+}
+
 // filtro: "documento" | "colore" | "originale"; rot: 0/90/180/270; angoli: 4 punti relativi o null
 export async function elabora(src, filtro, rot, angoli = null) {
   const img = await carica(src);
