@@ -166,13 +166,43 @@ export async function preparaTimbro(src) {
   cv.width = Math.round(img.width * s); cv.height = Math.round(img.height * s);
   const ctx = cv.getContext("2d");
   ctx.drawImage(img, 0, 0, cv.width, cv.height);
-  const id = ctx.getImageData(0, 0, cv.width, cv.height);
+  const W = cv.width, H = cv.height;
+  const id = ctx.getImageData(0, 0, W, H);
   const d = id.data;
-  let x0 = cv.width, y0 = cv.height, x1 = 0, y1 = 0;
+  const lum = (i) => d[i] * 0.299 + d[i + 1] * 0.587 + d[i + 2] * 0.114;
+  // Colore della carta zona per zona (anche se beige o con ombre): media dei pixel più chiari di ogni blocco
+  const B = 16, bw = Math.ceil(W / B), bh = Math.ceil(H / B);
+  const sc = document.createElement("canvas");
+  sc.width = B; sc.height = B;
+  const sctx = sc.getContext("2d"), sd = sctx.createImageData(B, B);
+  for (let by = 0; by < B; by++) {
+    for (let bx = 0; bx < B; bx++) {
+      const px = [];
+      for (let y = by * bh; y < Math.min(H, (by + 1) * bh); y++) for (let x = bx * bw; x < Math.min(W, (bx + 1) * bw); x++) px.push((y * W + x) * 4);
+      px.sort((a, b) => lum(b) - lum(a));
+      const top = px.slice(0, Math.max(1, Math.round(px.length * 0.3)));
+      const o = (by * B + bx) * 4;
+      for (let c = 0; c < 3; c++) sd.data[o + c] = top.reduce((s, i) => s + d[i + c], 0) / top.length;
+      sd.data[o + 3] = 255;
+    }
+  }
+  sctx.putImageData(sd, 0, 0);
+  const fc = document.createElement("canvas");
+  fc.width = W; fc.height = H;
+  const fctx = fc.getContext("2d");
+  fctx.imageSmoothingEnabled = true;
+  fctx.drawImage(sc, 0, 0, W, H);
+  const bg = fctx.getImageData(0, 0, W, H).data;
+  let x0 = W, y0 = H, x1 = 0, y1 = 0;
   for (let i = 0; i < d.length; i += 4) {
-    const l = d[i] * 0.299 + d[i + 1] * 0.587 + d[i + 2] * 0.114;
-    d[i + 3] = l > 205 ? 0 : l > 160 ? Math.round(((205 - l) / 45) * 255) : 255;
-    if (d[i + 3] > 40) { const p = i / 4, x = p % cv.width, y = (p / cv.width) | 0; x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y); }
+    const bl = bg[i] * 0.299 + bg[i + 1] * 0.587 + bg[i + 2] * 0.114;
+    const scuro = bl - lum(i);
+    const tinta = Math.hypot(d[i] - bg[i], d[i + 1] - bg[i + 1], d[i + 2] - bg[i + 2]);
+    const a = Math.max(0, Math.min(1, (Math.max(scuro, tinta * 0.7) - 28) / 40));
+    // Bilancia il colore rispetto alla carta così l'inchiostro torna del suo colore vero
+    for (let c = 0; c < 3; c++) d[i + c] = Math.max(0, Math.min(255, (d[i + c] * 255) / Math.max(1, bg[i + c]) * 0.85));
+    d[i + 3] = Math.round(a * 255);
+    if (a > 0.3) { const p = i / 4, x = p % W, y = (p / W) | 0; x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y); }
   }
   ctx.putImageData(id, 0, 0);
   if (x1 <= x0 || y1 <= y0) return cv.toDataURL("image/png");

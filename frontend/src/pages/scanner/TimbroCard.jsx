@@ -30,7 +30,7 @@ export function TimbroCard({ timbro, setTimbro }) {
       </div>
       <div className="flex-1 min-w-[180px]">
         <div className="font-semibold text-sm">Timbro e firma</div>
-        <p className="text-xs text-muted-foreground">Fotografa timbro e firma su un foglio bianco: lo sfondo viene tolto da solo. Resta salvato per i prossimi documenti.</p>
+        <p className="text-xs text-muted-foreground">Fotografa timbro e firma su un foglio: lo sfondo (anche beige o in ombra) diventa trasparente da solo. Resta salvato per i prossimi documenti.</p>
       </div>
       <input ref={inp} type="file" accept="image/*" className="hidden" onChange={carica} data-testid="timbro-file" />
       <div className="flex gap-2">
