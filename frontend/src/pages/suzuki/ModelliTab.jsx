@@ -84,6 +84,7 @@ export default function ModelliTab() {
         <WhatsAppPdfButton url="/suzuki/caratteristiche.pdf" filename="caratteristiche_Suzuki.pdf" size="icon" testId="wa-caratt-suzuki" />
         <LogoPdfButton />
         <LiberatoriaButton modelli={items} />
+        <LiberatoriaButton modelli={items} tipo="non_conformita" />
         <Button variant="outline" onClick={() => setImportOpen(true)} data-testid="btn-import-ai">
           <Sparkles className="w-4 h-4 mr-2" /> Importa listino con AI
         </Button>

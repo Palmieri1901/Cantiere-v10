@@ -1284,5 +1284,6 @@ Backend spezzato in moduli (`server.py` ora 112 righe, prima 2761):
 ## 2026-11-26 — Liberatoria potenziamento fuoribordo (pagina Suzuki)
 - Tasto «Liberatoria potenziamento» in Suzuki → Modelli & Listino (`suzuki/LiberatoriaButton.jsx`): dati cliente (anche «Da anagrafica»), imbarcazione, motore (suggerimenti dai modelli Suzuki), matricola, HP da/a, intervento, luogo/data; testo modificabile con segnaposto, salvabile come predefinito (`app_settings/liberatoria_potenziamento`). PDF (`routers/liberatoria.py`, POST `/api/suzuki/liberatoria/pdf`) con intestazione cantiere e logo, tabella dati, testo, spazi firma cliente/cantiere; anteprima con Stampa, WhatsApp, Scarica. Il testo predefinito è un modello da far verificare a un consulente.
 - 2026-11-26: aggiunto al testo predefinito il paragrafo «modifica ammessa esclusivamente per gare in circuiti chiusi o scopi dimostrativi, non per il normale uso del mezzo».
+- 2026-11-26: secondo documento «Segnalazione non conformità» (stesso componente con `tipo="non_conformita"`, testo dell'utente in `SEGNALAZIONE_DEFAULT`, impostazione `segnalazione_non_conformita`): lettera con luogo/data, destinatario, oggetto, dati motore, testo e firma del cantiere, senza firma del cliente. Endpoint `/api/suzuki/liberatoria/testo?tipo=` e `/pdf` con `tipo`. Verificato PDF 1 pagina e UI a 390px.
 
 
