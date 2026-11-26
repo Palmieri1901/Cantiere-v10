@@ -159,7 +159,9 @@ export async function elabora(src, filtro, rot, angoli = null) {
 }
 
 // Timbro/firma: toglie lo sfondo chiaro (diventa trasparente) e ritaglia i bordi vuoti
-export async function preparaTimbro(src) {
+// forza 0-100 (50 = normale): più alta = inchiostro più scuro e tratti sottili conservati
+export async function preparaTimbro(src, forza = 50) {
+  const soglia = 28 + (50 - forza) * 0.4, tono = 0.85 - (forza - 50) * 0.006;
   const img = await carica(src);
   const s = Math.min(1, 900 / Math.max(img.width, img.height));
   const cv = document.createElement("canvas");
@@ -198,9 +200,9 @@ export async function preparaTimbro(src) {
     const bl = bg[i] * 0.299 + bg[i + 1] * 0.587 + bg[i + 2] * 0.114;
     const scuro = bl - lum(i);
     const tinta = Math.hypot(d[i] - bg[i], d[i + 1] - bg[i + 1], d[i + 2] - bg[i + 2]);
-    const a = Math.max(0, Math.min(1, (Math.max(scuro, tinta * 0.7) - 28) / 40));
+    const a = Math.max(0, Math.min(1, (Math.max(scuro, tinta * 0.7) - soglia) / 40));
     // Bilancia il colore rispetto alla carta così l'inchiostro torna del suo colore vero
-    for (let c = 0; c < 3; c++) d[i + c] = Math.max(0, Math.min(255, (d[i + c] * 255) / Math.max(1, bg[i + c]) * 0.85));
+    for (let c = 0; c < 3; c++) d[i + c] = Math.max(0, Math.min(255, (d[i + c] * 255) / Math.max(1, bg[i + c]) * tono));
     d[i + 3] = Math.round(a * 255);
     if (a > 0.3) { const p = i / 4, x = p % W, y = (p / W) | 0; x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y); }
   }
