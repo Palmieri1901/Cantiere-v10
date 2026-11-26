@@ -18,6 +18,7 @@ import Contratti from "@/pages/Contratti";
 import Magazzino from "@/pages/Magazzino";
 import Tubolari from "@/pages/Tubolari";
 import Suzuki from "@/pages/Suzuki";
+import Scanner from "@/pages/Scanner";
 import Gommoni from "@/pages/Gommoni";
 import Ddt from "@/pages/Ddt";
 import Dipendenti from "@/pages/Dipendenti";
@@ -93,6 +94,7 @@ function App() {
                 <Route path="/magazzino" element={<Magazzino />} />
                 <Route path="/tubolari" element={<Tubolari />} />
                 <Route path="/suzuki" element={<Suzuki />} />
+                <Route path="/scanner" element={<Scanner />} />
                 <Route path="/gommoni" element={<Gommoni />} />
                 <Route path="/ddt" element={<Ddt />} />
                 <Route path="/dipendenti" element={<Dipendenti />} />

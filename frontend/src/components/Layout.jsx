@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { NavLink, Outlet, useLocation, Link, useNavigate } from "react-router-dom";
-import { LayoutDashboard, Users, Grid3x3, Settings2, Sailboat, Building2, Home as HomeIcon, FileBarChart, FileSignature, LogOut, User, Package, Ship, ChevronDown, List, SlidersHorizontal, LifeBuoy, Truck, Smartphone, HardHat, FileBadge, Anchor, CalendarDays, BookUser, Wrench, ClipboardList, Crosshair, BadgeEuro } from "lucide-react";
+import { LayoutDashboard, Users, Grid3x3, Settings2, Sailboat, Building2, Home as HomeIcon, FileBarChart, FileSignature, LogOut, User, Package, Ship, ChevronDown, List, SlidersHorizontal, LifeBuoy, Truck, Smartphone, HardHat, FileBadge, Anchor, CalendarDays, BookUser, Wrench, ClipboardList, Crosshair, BadgeEuro, ScanLine } from "lucide-react";
 import HallGestionale from "@/components/hall/HallGestionale";
 import { cn } from "@/lib/utils";
 import { api } from "@/lib/api";
@@ -35,6 +35,7 @@ const nav = [
   { section: "Vendita" },
   { to: "/tubolari", label: "Tubolari", icon: Ship, testId: "nav-tubolari" },
   { to: "/suzuki", label: "Suzuki", icon: Sailboat, testId: "nav-suzuki" },
+  { to: "/scanner", label: "Scanner", icon: ScanLine, testId: "nav-scanner" },
   { to: "/gommoni", label: "Gommoni GEB", icon: LifeBuoy, testId: "nav-gommoni" },
   { section: "Documenti" },
   { to: "/ddt", label: "DDT & Destinazione", icon: Truck, testId: "nav-ddt" },
@@ -53,6 +54,7 @@ const mobileFlat = [
   { to: "/officina", label: "Officina", icon: Wrench, testId: "nav-officina-mobile" },
   { to: "/tubolari", label: "Tubolari", icon: Ship, testId: "nav-tubolari-mobile" },
   { to: "/suzuki", label: "Suzuki", icon: Sailboat, testId: "nav-suzuki-mobile" },
+  { to: "/scanner", label: "Scanner", icon: ScanLine, testId: "nav-scanner-mobile" },
   { to: "/gommoni", label: "Gommoni", icon: LifeBuoy, testId: "nav-gommoni-mobile" },
 ];
 
