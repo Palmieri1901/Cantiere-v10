@@ -20,7 +20,7 @@ export function AnagraficaPicker({ onPick, testId = "btn-da-anagrafica" }) {
     <>
       <Button type="button" size="sm" variant="outline" onClick={() => { setOpen(true); setQ(""); }} data-testid={testId}><BookUser className="w-3.5 h-3.5 mr-1" /> Da anagrafica</Button>
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="w-[calc(100vw-1.5rem)] sm:max-w-md" data-testid="anagrafica-picker">
+        <DialogContent className="w-[calc(100vw-1.5rem)] sm:max-w-lg lg:max-w-2xl" data-testid="anagrafica-picker">
           <DialogHeader><DialogTitle>Scegli dall'anagrafica</DialogTitle><DialogDescription>I dati anagrafici e fiscali verranno copiati nel modulo.</DialogDescription></DialogHeader>
           <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Cerca…" autoFocus data-testid="anagrafica-picker-cerca" />
           <div className="max-h-[50vh] overflow-y-auto rounded-md border border-border divide-y divide-border">

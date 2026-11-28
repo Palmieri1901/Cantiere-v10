@@ -8,8 +8,9 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Building2, User, AlertTriangle, BookUser } from "lucide-react";
 import { validaCf, validaPiva, validaCap, validaProvincia, isEstero } from "@/lib/fiscale";
+import { AnagraficaPicker } from "@/components/AnagraficaPicker";
 
-const Campo = ({ label, obbl, children }) => <div className="space-y-1"><Label className="text-[11px] uppercase tracking-wider text-muted-foreground">{label}{obbl && <span className="text-destructive"> *</span>}</Label>{children}</div>;
+const Campo = ({ label, obbl, children }) => <div className="space-y-1 min-w-0"><Label className="text-[11px] uppercase tracking-wider text-muted-foreground">{label}{obbl && <span className="text-destructive"> *</span>}</Label>{children}</div>;
 
 // Completamento dati fiscali obbligatori prima dell'invio a Fatture in Cloud + registrazione in Anagrafica generale
 export default function CompletaDatiFiscaliDialog({ open, onOpenChange, tipo, id, anno, verifica, onCompletato }) {
@@ -37,7 +38,7 @@ export default function CompletaDatiFiscaliDialog({ open, onOpenChange, tipo, id
   };
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[calc(100vw-1.5rem)] sm:max-w-lg max-h-[92vh] overflow-y-auto" data-testid="completa-dati-dialog">
+      <DialogContent className="w-[calc(100vw-1.5rem)] sm:max-w-2xl lg:max-w-4xl grid-cols-[minmax(0,1fr)] max-h-[92vh] overflow-y-auto" data-testid="completa-dati-dialog">
         <DialogHeader>
           <DialogTitle>Dati per la fatturazione</DialogTitle>
           <DialogDescription>
@@ -45,18 +46,22 @@ export default function CompletaDatiFiscaliDialog({ open, onOpenChange, tipo, id
               : "Controlla i dati del cliente prima dell'invio."}
           </DialogDescription>
         </DialogHeader>
-        <div className="space-y-3">
+        <div className="space-y-3 min-w-0">
+          <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-dashed p-2">
+            <span className="text-xs text-muted-foreground">Vuoi usare un nominativo già registrato?</span>
+            <AnagraficaPicker testId="cd-da-anagrafica" onPick={(a) => { setF((s) => ({ ...s, ...a, via: a.via || "" })); toast.success("Dati copiati dall'anagrafica"); }} />
+          </div>
           <div className="flex gap-2">
             {[["privato", User, "Privato"], ["azienda", Building2, "Azienda"]].map(([v, Icon, l]) => (
               <button key={v} type="button" onClick={() => upd("tipo_soggetto", v)} data-testid={`cd-soggetto-${v}`} className={`flex-1 h-10 rounded-md border text-sm font-medium inline-flex items-center justify-center gap-1.5 ${f.tipo_soggetto === v ? "bg-primary text-primary-foreground border-primary" : "bg-background border-input"}`}><Icon className="w-4 h-4" /> {l}</button>
             ))}
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-5 gap-y-3">
             {az && <div className="sm:col-span-2"><Campo label="Ragione sociale" obbl={ob(1)}><Input value={f.ragione_sociale} onChange={(e) => upd("ragione_sociale", e.target.value)} data-testid="cd-ragione" /></Campo></div>}
             <Campo label={az ? "Cognome referente" : "Cognome"} obbl={!az}><Input value={f.cognome} onChange={(e) => upd("cognome", e.target.value)} data-testid="cd-cognome" /></Campo>
             <Campo label={az ? "Nome referente" : "Nome"} obbl={!az}><Input value={f.nome} onChange={(e) => upd("nome", e.target.value)} data-testid="cd-nome" /></Campo>
             <div className="sm:col-span-2"><Campo label="Via e numero civico" obbl={ob(1)}><Input value={f.via} onChange={(e) => upd("via", e.target.value)} placeholder="es. Via Roma 1" data-testid="cd-via" /></Campo></div>
-            <div className="sm:col-span-2 grid grid-cols-[90px_1fr_64px] gap-2">
+            <div className="sm:col-span-2 grid grid-cols-[80px_minmax(0,1fr)_64px] gap-2">
               <Campo label={estero ? "Cod. post." : "CAP"} obbl={ob(1)}><Input value={f.cap} onChange={(e) => upd("cap", estero ? e.target.value.slice(0, 10) : e.target.value.replace(/\D/g, "").slice(0, 5))} inputMode={estero ? "text" : "numeric"} className="font-mono-num" data-testid="cd-cap" /><Err e={errCap} id="cd-err-cap" /></Campo>
               <Campo label="Città" obbl={ob(1)}><Input value={f.citta} onChange={(e) => upd("citta", e.target.value)} data-testid="cd-citta" /></Campo>
               <Campo label={estero ? "Regione" : "Prov."} obbl={ob(1)}><Input value={f.provincia} onChange={(e) => upd("provincia", estero ? e.target.value.slice(0, 20) : e.target.value.toUpperCase().slice(0, 2))} className={estero ? "" : "uppercase text-center"} placeholder={estero ? "" : "es. LI"} data-testid="cd-provincia" /><Err e={errProv} id="cd-err-prov" /></Campo>
@@ -76,7 +81,7 @@ export default function CompletaDatiFiscaliDialog({ open, onOpenChange, tipo, id
           </label>
         </div>
         <DialogFooter className="gap-2">
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Annulla</Button>
+          <Button variant="outline" onClick={() => onOpenChange(false)} data-testid="cd-annulla">Annulla</Button>
           <Button onClick={salva} disabled={saving || incompleti.length > 0 || errori.length > 0} data-testid="cd-salva">{saving ? "Salvo…" : incompleti.length ? `Manca: ${incompleti.map(([k]) => ETICHETTE[k] || k).join(", ")}` : errori.length ? "Correggi i dati evidenziati" : "Salva e continua"}</Button>
         </DialogFooter>
       </DialogContent>
