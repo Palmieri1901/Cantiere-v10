@@ -152,8 +152,9 @@ async def _entita(tok: str, cid: int, soggetto: dict, nome: str) -> dict:
         payload["vat_number"] = soggetto["partita_iva"]
     if soggetto.get("codice_fiscale"):
         payload["tax_code"] = soggetto["codice_fiscale"]
-    if soggetto.get("codice_sdi"):
-        payload["ei_code"] = soggetto["codice_sdi"]
+    sdi = str(soggetto.get("codice_sdi") or "").strip().upper()
+    if sdi:
+        payload["ei_code"] = sdi
     if soggetto.get("pec"):
         payload["certified_email"] = soggetto["pec"]
     if soggetto.get("email"):
@@ -229,7 +230,7 @@ def _mancanti(s: dict) -> List[str]:
         az = (s.get("tipo_soggetto") or "privato") == "azienda" and g("ragione_sociale")
         return [] if az else [lbl for k, lbl in (("cognome", "Cognome"), ("nome", "Nome")) if not g(k)]
     if (s.get("tipo_soggetto") or "privato") == "azienda":
-        req = [("ragione_sociale", "Ragione sociale"), ("partita_iva", "Partita IVA"), ("codice_sdi", "Codice SDI")]
+        req = [("ragione_sociale", "Ragione sociale"), ("partita_iva", "Partita IVA")]
     else:
         req = [("cognome", "Cognome"), ("nome", "Nome"), ("codice_fiscale", "Codice fiscale")]
     out = [lbl for k, lbl in req if not g(k)]
@@ -385,13 +386,12 @@ async def invia(p: InviaIn):
     sogg = _split_nome(sogg)
     entity = await _entita(tok, cid, sogg, nome)
     entity_id = entity["id"]
-    lordi = bool(c.get("prezzi_lordi"))
-    prezzo_key = "gross_price" if lordi else "net_price"
-    items = [{"name": r["name"], "description": r["description"], "qty": r["qty"], prezzo_key: r["net_price"], "vat": vat} for r in righe]
-    data = {"type": "proforma", "entity": entity, "date": datetime.now().strftime("%Y-%m-%d"), "subject": oggetto[:255], "items_list": items, "use_gross_prices": lordi,
+    # Gli importi del gestionale sono IVA inclusa: si scorpora il 22% e si inviano sempre prezzi netti
+    items = [{"name": r["name"], "description": r["description"], "qty": r["qty"], "net_price": round(r["net_price"] / 1.22, 5), "vat": vat} for r in righe]
+    data = {"type": "proforma", "entity": entity, "date": datetime.now().strftime("%Y-%m-%d"), "subject": oggetto[:255], "items_list": items, "use_gross_prices": False,
             "e_invoice": True, "ei_data": {"vat_kind": "I"}}
-    tot_righe = round(sum(r["qty"] * r["net_price"] for r in righe), 2)
-    data["payments_list"] = [{"amount": tot_righe if lordi else round(tot_righe * 1.22, 2), "due_date": datetime.now().strftime("%Y-%m-%d"), "status": "not_paid"}]
+    imponibile = round(sum(i["qty"] * i["net_price"] for i in items), 2)
+    data["payments_list"] = [{"amount": round(imponibile + round(imponibile * 0.22, 2), 2), "due_date": datetime.now().strftime("%Y-%m-%d"), "status": "not_paid"}]
     try:
         res = (await _fic("POST", f"/c/{cid}/issued_documents", tok, json={"data": data})).get("data", {})
     except HTTPException as e:

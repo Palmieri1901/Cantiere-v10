@@ -26,10 +26,6 @@ export default function FatturazioneCard() {
     try { await api.put("/fatturazione/config", { company_id: Number(id) }); toast.success("Azienda collegata"); load(); }
     catch (e) { toast.error(e.response?.data?.detail || "Errore"); }
   };
-  const setPrezzi = async (lordi) => {
-    try { await api.put("/fatturazione/config", { prezzi_lordi: lordi }); toast.success(lordi ? "Prezzi lordi (IVA inclusa)" : "Prezzi netti (IVA esclusa)"); load(); }
-    catch (e) { toast.error(e.response?.data?.detail || "Errore"); }
-  };
   const scollega = async () => {
     if (!(await confirmDialog("Rimuovere il collegamento a Fatture in Cloud? Il token verrà cancellato.", { okLabel: "Scollega" }))) return;
     await api.delete("/fatturazione/config"); load();
@@ -64,11 +60,8 @@ export default function FatturazioneCard() {
       {cfg.configurato && cfg.company_id && (
         <div className="border border-border/60 rounded-md p-3 bg-muted/10 space-y-2" data-testid="fatturazione-prezzi">
           <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Prezzi inviati</div>
-          <div className="flex flex-wrap gap-2">
-            <Button size="sm" variant={cfg.prezzi_lordi ? "outline" : "default"} onClick={() => setPrezzi(false)} data-testid="btn-prezzi-netti">Netti (IVA esclusa)</Button>
-            <Button size="sm" variant={cfg.prezzi_lordi ? "default" : "outline"} onClick={() => setPrezzi(true)} data-testid="btn-prezzi-lordi">Lordi (IVA inclusa)</Button>
-          </div>
-          <p className="text-[11px] text-muted-foreground">Deve essere uguale all'impostazione di Fatture in Cloud (Impostazioni → Documenti → "Prezzi lordi/netti"). Con "Lordi" i prezzi del gestionale sono considerati IVA compresa e Fatture in Cloud scorpora l'IVA 22%.</p>
+          <p className="text-sm" data-testid="fatturazione-prezzi-netti">Sempre <b>netti (IVA esclusa)</b>: gli importi del gestionale sono IVA inclusa, quindi all'invio viene scorporata l'IVA 22% e Fatture in Cloud la riaggiunge. Il totale della proforma resta uguale al conteggio.</p>
+          <p className="text-[11px] text-muted-foreground">Documento sempre come fattura elettronica; per le aziende senza codice SDI né PEC viene usato 0000000.</p>
         </div>
       )}
       {cfg.configurato && cfg.company_id && (

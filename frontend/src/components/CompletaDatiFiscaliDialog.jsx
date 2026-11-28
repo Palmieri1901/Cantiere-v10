@@ -23,7 +23,7 @@ export default function CompletaDatiFiscaliDialog({ open, onOpenChange, tipo, id
   const az = f.tipo_soggetto === "azienda";
   const upd = (k, v) => setF((s) => ({ ...s, [k]: v }));
   const estero = isEstero(f);
-  const manca = az ? [["ragione_sociale"], ["partita_iva"], ["codice_sdi"]] : [["cognome"], ["nome"], ["codice_fiscale"]];
+  const manca = az ? [["ragione_sociale"], ["partita_iva"]] : [["cognome"], ["nome"], ["codice_fiscale"]];
   const obbligatori = estero ? (az && (f.ragione_sociale || "").trim() ? [] : [["cognome"], ["nome"]]) : [...manca, ["via"], ["cap"], ["citta"], ["provincia"]];
   const incompleti = obbligatori.filter(([k]) => !(f[k] || "").trim());
   const errCf = estero ? "" : validaCf(f.codice_fiscale), errPiva = estero ? "" : validaPiva(f.partita_iva), errCap = estero ? "" : validaCap(f.cap), errProv = estero ? "" : validaProvincia(f.provincia);
@@ -73,7 +73,7 @@ export default function CompletaDatiFiscaliDialog({ open, onOpenChange, tipo, id
               {estero && <p className="text-[11px] text-muted-foreground mt-1" data-testid="cd-estero-nota">Cliente estero: bastano nome e cognome (o ragione sociale); gli altri dati possono restare vuoti o parziali.</p>}</div>
             <Campo label="Codice fiscale" obbl={ob(!az)}><Input value={f.codice_fiscale} onChange={(e) => upd("codice_fiscale", e.target.value.toUpperCase())} maxLength={estero ? 30 : 16} className={`uppercase font-mono-num ${errCf ? "border-destructive" : ""}`} data-testid="cd-cf" /><Err e={errCf} id="cd-err-cf" /></Campo>
             {az && <Campo label="Partita IVA" obbl={ob(1)}><Input value={f.partita_iva} onChange={(e) => upd("partita_iva", estero ? e.target.value.toUpperCase() : e.target.value.replace(/\D/g, ""))} maxLength={estero ? 20 : 11} className={`font-mono-num ${errPiva ? "border-destructive" : ""}`} data-testid="cd-piva" /><Err e={errPiva} id="cd-err-piva" /></Campo>}
-            {az && <Campo label="Codice SDI" obbl={ob(1)}><Input value={f.codice_sdi} onChange={(e) => upd("codice_sdi", e.target.value.toUpperCase())} maxLength={7} className="uppercase font-mono-num" data-testid="cd-sdi" /></Campo>}
+            {az && <Campo label="Codice SDI"><Input value={f.codice_sdi} onChange={(e) => upd("codice_sdi", e.target.value.toUpperCase())} maxLength={7} placeholder="vuoto = 0000000" className="uppercase font-mono-num placeholder:normal-case" data-testid="cd-sdi" /></Campo>}
             {az && <Campo label="PEC"><Input value={f.pec} onChange={(e) => upd("pec", e.target.value)} data-testid="cd-pec" /></Campo>}
             <Campo label="Email"><Input value={f.email} onChange={(e) => upd("email", e.target.value)} data-testid="cd-email" /></Campo>
             <Campo label="Telefono"><Input value={f.telefono || f.cellulare} onChange={(e) => upd("telefono", e.target.value)} data-testid="cd-telefono" /></Campo>
