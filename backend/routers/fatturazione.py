@@ -144,7 +144,9 @@ async def _righe_cliente(c: dict) -> List[dict]:
 
 
 async def _entita(tok: str, cid: int, soggetto: dict, nome: str) -> dict:
-    az = (soggetto.get("tipo_soggetto") or "privato") == "azienda" and soggetto.get("ragione_sociale")
+    az = ((soggetto.get("tipo_soggetto") or "privato") == "azienda" or soggetto.get("partita_iva")) and (soggetto.get("ragione_sociale") or nome)
+    if az and not soggetto.get("ragione_sociale"):
+        soggetto = {**soggetto, "ragione_sociale": nome}
     payload = {"type": "company" if az else "person", "name": (soggetto.get("ragione_sociale") if az else nome).strip()[:255]}
     if soggetto.get("partita_iva"):
         payload["vat_number"] = soggetto["partita_iva"]
@@ -168,8 +170,9 @@ async def _entita(tok: str, cid: int, soggetto: dict, nome: str) -> dict:
     if ind.get("provincia"):
         payload["address_province"] = ind["provincia"][:2].upper()
     payload["country"] = str(soggetto.get("nazione") or "").strip() if is_estero(soggetto) else "Italia"
-    if payload.get("ei_code") or payload.get("certified_email"):
-        payload["e_invoice"] = True
+    payload["e_invoice"] = True
+    if not payload.get("ei_code") and not is_estero(soggetto):
+        payload["ei_code"] = "0000000"
     esc = lambda v: str(v).replace("'", "\\'")  # noqa: E731
     norm = lambda v: "".join(ch for ch in str(v or "") if ch.isalnum()).upper()  # noqa: E731
     queries = []
@@ -385,7 +388,8 @@ async def invia(p: InviaIn):
     lordi = bool(c.get("prezzi_lordi"))
     prezzo_key = "gross_price" if lordi else "net_price"
     items = [{"name": r["name"], "description": r["description"], "qty": r["qty"], prezzo_key: r["net_price"], "vat": vat} for r in righe]
-    data = {"type": "proforma", "entity": entity, "date": datetime.now().strftime("%Y-%m-%d"), "subject": oggetto[:255], "items_list": items, "use_gross_prices": lordi}
+    data = {"type": "proforma", "entity": entity, "date": datetime.now().strftime("%Y-%m-%d"), "subject": oggetto[:255], "items_list": items, "use_gross_prices": lordi,
+            "e_invoice": True, "ei_data": {"vat_kind": "I"}}
     tot_righe = round(sum(r["qty"] * r["net_price"] for r in righe), 2)
     data["payments_list"] = [{"amount": tot_righe if lordi else round(tot_righe * 1.22, 2), "due_date": datetime.now().strftime("%Y-%m-%d"), "status": "not_paid"}]
     try:

@@ -14,7 +14,10 @@ const Campo = ({ label, obbl, children }) => <div className="space-y-1 min-w-0">
 
 // Completamento dati fiscali obbligatori prima dell'invio a Fatture in Cloud + registrazione in Anagrafica generale
 export default function CompletaDatiFiscaliDialog({ open, onOpenChange, tipo, id, anno, verifica, onCompletato }) {
-  const [f, setF] = useState(verifica.soggetto);
+  const [f, setF] = useState(() => {
+    const s = verifica.soggetto;
+    return s.partita_iva && s.tipo_soggetto !== "azienda" ? { ...s, tipo_soggetto: "azienda", ragione_sociale: s.ragione_sociale || `${s.cognome || ""} ${s.nome || ""}`.trim() } : s;
+  });
   const [registra, setRegistra] = useState(true);
   const [saving, setSaving] = useState(false);
   const az = f.tipo_soggetto === "azienda";

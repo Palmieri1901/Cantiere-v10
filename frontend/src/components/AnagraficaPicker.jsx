@@ -15,7 +15,11 @@ export function AnagraficaPicker({ onPick, testId = "btn-da-anagrafica" }) {
   useEffect(() => { if (open && !list) api.get("/anagrafica").then((r) => setList(r.data)).catch(() => setList([])); }, [open, list]);
   const ql = q.trim().toLowerCase();
   const vis = (list || []).filter((a) => !ql || `${a.cognome} ${a.nome} ${a.ragione_sociale} ${a.partita_iva} ${a.telefono}`.toLowerCase().includes(ql)).slice(0, 50);
-  const scegli = (a) => { onPick(Object.fromEntries(CAMPI.map((k) => [k, a[k] || (k === "tipo_soggetto" ? "privato" : "")]))); setOpen(false); };
+  const scegli = (a) => {
+    const v = Object.fromEntries(CAMPI.map((k) => [k, a[k] || (k === "tipo_soggetto" ? "privato" : "")]));
+    if (v.partita_iva) { v.tipo_soggetto = "azienda"; v.ragione_sociale = v.ragione_sociale || `${v.cognome} ${v.nome}`.trim(); }
+    onPick(v); setOpen(false);
+  };
   return (
     <>
       <Button type="button" size="sm" variant="outline" onClick={() => { setOpen(true); setQ(""); }} data-testid={testId}><BookUser className="w-3.5 h-3.5 mr-1" /> Da anagrafica</Button>

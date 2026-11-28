@@ -44,6 +44,9 @@ def _norm(d: dict) -> dict:
     out["tipo_soggetto"] = out["tipo_soggetto"] if out["tipo_soggetto"] in ("privato", "azienda") else "privato"
     out["codice_fiscale"], out["codice_sdi"] = out["codice_fiscale"].upper(), out["codice_sdi"].upper()
     out["partita_iva"] = re.sub(r"\D", "", out["partita_iva"])
+    if out["partita_iva"] and out["tipo_soggetto"] != "azienda":
+        out["tipo_soggetto"] = "azienda"
+        out["ragione_sociale"] = out["ragione_sociale"] or f"{out['cognome']} {out['nome']}".strip()
     out["provincia"] = out["provincia"].upper()
     if out["via"] or out["cap"] or out["citta"]:
         out["indirizzo"] = componi_indirizzo(out)
@@ -93,6 +96,16 @@ async def upsert_anagrafica(d: dict, origine: str) -> dict:
     await db.anagrafica.insert_one(voce)
     voce.pop("_id", None)
     return {"voce": voce, "creato": True}
+
+
+async def migra_aziende_piva():
+    """Le voci con partita IVA diventano «Azienda» (ragione sociale = cognome e nome se mancante)."""
+    n = 0
+    async for d in db.anagrafica.find({"partita_iva": {"$nin": ["", None]}, "tipo_soggetto": {"$ne": "azienda"}}, {"_id": 0}):
+        rs = (d.get("ragione_sociale") or f"{d.get('cognome') or ''} {d.get('nome') or ''}").strip()
+        await db.anagrafica.update_one({"id": d["id"]}, {"$set": {"tipo_soggetto": "azienda", "ragione_sociale": rs, "updated_at": datetime.now(timezone.utc).isoformat()}})
+        n += 1
+    return n
 
 
 @router.get("/anagrafica")

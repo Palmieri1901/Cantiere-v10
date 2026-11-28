@@ -155,6 +155,13 @@ async def _startup():
         logger.warning(f"magazzino indexes skipped: {e}")
     await seed_admin()
     try:
+        from routers.anagrafica import migra_aziende_piva
+        n = await migra_aziende_piva()
+        if n:
+            logger.info(f"Anagrafica: {n} voci con P.IVA impostate come azienda")
+    except Exception as e:  # noqa: BLE001
+        logger.warning(f"Migrazione anagrafica aziende: {e}")
+    try:
         await db.dipendenti.create_index("key_hash")
         await db.lavori_pending.create_index("client_uid", unique=True)
         await db.lavori_pending.create_index("stato")
